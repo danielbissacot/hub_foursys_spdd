@@ -26,7 +26,8 @@ O conteúdo está organizado dentro da pasta `/catalog`:
 
 - [**`/agents`**](./catalog/agents): **System Prompts** configurados para transformar LLMs em especialistas específicos (ex: Arquiteto, Revisor de Código).
 - [**`/instructions`**](./catalog/instructions): **Guias de Contexto** que detalham nossos padrões de codificação e regras de negócio.
-- [**`/templates/prompts`**](./catalog/templates/prompts): **Modelos de Prompt** prontos para copiar e colar para tarefas do dia a dia (ex: gerar testes, refatorar para Hexagonal).
+- [**`/templates`**](./catalog/templates): Agrupador de modelos que guiam o uso das ferramentas.
+  - [**`/prompts`**](./catalog/templates/prompts): **Modelos de Prompt** prontos para copiar e colar para tarefas do dia a dia (ex: gerar testes, refatorar para padrão Hexagonal).
 
 ---
 

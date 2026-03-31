@@ -1,6 +1,6 @@
 ---
 applyTo: '**/*.java'
-name: Guia de Arquitetura Hexagonal com Spring Boot
+name: Validação de Arquitetura Hexagonal
 description: Instruções para implementar a arquitetura hexagonal em projetos Spring Boot.
 metadata:
   version: "0.0.1"

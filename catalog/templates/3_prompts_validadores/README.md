@@ -8,4 +8,4 @@ Esta pasta é o principal canivete-suíço dos **Desenvolvedores de Software**. 
 |---------|---------|
 | `validacao-hexagonal.md` | Audita o código em busca de violações da Arquitetura Hexagonal (isolamento de Domínio, uso correto de Adapters e Inversão de Portas). |
 | `code-review.md` | Revisão massiva de qualidade (Clean Code, Performance, Segurança) voltada para validações transacionais e Compliance Bancário (LGPD, BACEN). |
-| `testes-unitarios.md` | Gera suítes impecáveis de testes de comportamento via JUnit 5, AssertJ e Mockito, com estrutura BDD e cobertura de exceções e anomalias de regra. |
+| `testes-unitarios-spring.md` | Gera suítes impecáveis de testes de comportamento via JUnit 5, AssertJ e Mockito, com estrutura BDD e cobertura de exceções e anomalias de regra. |

@@ -14,4 +14,4 @@ Esta pasta (`/templates`) abriga os modelos padronizados (Prompts) que utilizamo
   Repositório de qualidade para times de Desenvolvimento. Diretrizes para acionar a IA como Arquiteta, inspecionando Clean Code, padrões como Hexagonal, e futuros diagramas.
 
 - **[`/4_prompts_entrega`](./4_prompts_entrega)** *(Fase 4)*
-  Pasta voltada aos validadores finais, focando na construção de Testes Unitários e cobertura de Regras do Cliente.
+  Pasta voltada aos validadores Quality Assurance (QA). Foca na homologação do negócio, cruzamento final ("Código vs História pedida") e traduções de entregas técnicas para executivos.

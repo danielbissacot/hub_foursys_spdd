@@ -5,6 +5,7 @@ Esta pasta (`/templates`) abriga todos os agrupamentos de modelos padronizados q
 Aqui dentro você encontrará subpastas focadas em categorias específicas. A nossa principal é a biblioteca de **Prompts**, projetada para injetar regras corporativas diretamente no seu código.
 
 ### Estrutura Interna
-- **[`/prompts`](./prompts)**: Repositório com as diretrizes prontas para acionar ferramentas como o Copilot, Cursor ou Chat, garantindo validações de Clean Code, Arquitetura Hexagonal, etc.
+- **[`/prompts_dev`](./prompts_dev)**: Repositório com as diretrizes de código para Desenvolvimento de Software. Prontos para acionar ferramentas como o Copilot ou Cursor, garantindo validações de Clean Code, Arquitetura Hexagonal e Refatoração de Classes.
+- **[`/prompts_agile`](./prompts_agile)**: Coleção reservada aos perfis de POs, Scrum Masters e Células de Produtos. Focada no refinamento, documentação técnica, e elaboração de critérios de aceite segundo o padrão INVEST e uso de regras de negócio estritas.
 
-*Caso precise de modelos para outras etapas (ex: templates de scripts CD/CI, relatórios), eles serão adicionados como novas subpastas aqui!*
+*Caso precise de modelos para outras etapas (ex: templates de testes unitários ou auditoria devops), eles serão adicionados como novas subpastas de promts aqui!*

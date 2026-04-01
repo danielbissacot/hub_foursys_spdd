@@ -1,6 +1,8 @@
 # 🏗️ AI Governance Hub
 
-![Infográfico AI Governance Hub](./catalog/resources/assets/hub_ia_infographic.png)
+<p align="center">
+  <img src="./docs/assets/hub_ia_infographic.png" width="800" alt="AI Governance Hub - Arquitetura">
+</p>
 
 Bem-vindo ao **Cérebro Operacional** do nosso time. Este repositório é o centro de referência técnica para o uso estratégico de Inteligência Artificial no desenvolvimento de software de alta performance.
 

@@ -39,4 +39,4 @@ Organizamos os modelos de prompt em uma sequência lógica de 4 fases (localizad
 3.  **Refino:** Utiliza as personas especialistas em `/agents_skills` para tarefas de Arquiteto ou Tech Lead.
 
 ---
-![Manual do Hub](../resources/assets/hub_ia_infographic.png)
+![AI Governance Hub - Arquitetura](./assets/hub_ia_infographic.png)

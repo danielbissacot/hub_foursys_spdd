@@ -6,4 +6,5 @@ Esta pasta armazena o "coração comportamental" da Inteligência Artificial. Di
 
 | Arquivo | O que essa instrução define |
 |---------|-----------------------------|
+| `mvc-java.md` | Instrução universal para projetos Spring MVC. Força a IA a blindar a entidade de Domínio contra o Lombok/JPA, mantendo regras restritas de cruzamento entre Controllers e Repositories. |
 | `hexagonal-java.md` | Instrução de projeto que proíbe IAs de violarem a Arquitetura Hexagonal. Blinda o domínio, isola Adapters e força Inversão de Dependência no Spring Boot. |

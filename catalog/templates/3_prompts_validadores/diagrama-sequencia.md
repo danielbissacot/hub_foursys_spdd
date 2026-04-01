@@ -32,8 +32,9 @@ Varra o arquivo em busca de **TODOS** os endpoins ou métodos transacionais exec
 3. **Transporte de Dados Estrito:** Na descrição das setas do gráfico, quero ler os parâmetros transacionados (ex: `save(recursoDTO)` e `Query: INSERT INTO...`).
 4. **A Resposta HTTP e Erros:** O retorno final da seta para o Cliente deve conter o Http Status Resultante Ex: `ResponseEntity<Res> (HTTP 201)` ou casos de Exceção Lançada (Http 400).
 
-### 📐 SINTAXE DO DIAGRAMA DE SEQUÊNCIA
-- Você pode gerar um Diagrama Gigante separando as ações (Create, Read, Delete, Update) por divisores nativos, ou gerar múltiplos blocos ` ```mermaid ` individuais, um para cada método exportado da classe.
+### 📐 SINTAXE DO DIAGRAMA DE SEQUÊNCIA (Leitura e Rendering Saudável)
+- **PROIBIDO DIAGRAMAS GIGANTES:** Para evitar que o seu código quebre os limites de renderização em visualizadores UML ou do GitLab, **NUNCA** gere um diagrama englobando tudo.
+- **Divisão Lógica (Fatiamento):** Você tem a obrigação de gerar *Múltiplos Blocos Individuais* de código ` ```mermaid ` (um bloco para CADA fluxo lógico / método exportado no arquivo, ex: um diagrama apenas para o Create, e outro apenas para o Read).
 - Use obrigatoriamente `participant` com `alias` (ex: `participant DB as Database`).
 - Diferencie rigorosamente chamadas `->>` de retornos `-->>`.
 - Use a gerência de ativação temporal do Mermaid contornando o fluxo iterativo com `activate` e `deactivate`.

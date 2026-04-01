@@ -1,13 +1,9 @@
 # ⚙️ Fase 2: Regras Técnicas
 
-Esta pasta abriga os prompts destinados aos **Tech Leads** e **Arquitetos**, focados no refinamento técnico das entregas.
-
-## 🎯 Objetivo
-
-Aqui estruturamos as automações para converter requisitos de negócio puros (histórias) em **Especificações Técnicas**, Regras de Validação de Sistemas e Diagramas de Arquitetura (Mermaid), servindo de ponte entre o Produto e o Desenvolvimento.
+Esta pasta abriga os prompts destinados a **Tech Leads** e **Arquitetos**, usados para pavimentar a estrada técnica antes que o código comece a ser digitado.
 
 ## 📄 Catálogo Atual
 
-| Arquivo | Uso Direto |
+| Arquivo | O que este prompt faz |
 |---------|---------|
-| `historia-tecnica.md` | Avalia o rascunho de uma história de negócio e deriva as especificações técnicas, regras de negócio severas e o diagrama de sequência correspondente usando a Stack local. |
+| `historia-tecnica.md` | Lê requisições de negócio e gera automaticamente uma Especificação Técnica robusta da Stack do projeto, contendo regras sistêmicas e um Diagrama de Sequência (Mermaid). |

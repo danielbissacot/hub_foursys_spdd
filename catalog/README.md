@@ -4,7 +4,6 @@ Bem-vindo à área central de recursos de IA. Quando você navegar por esta past
 
 ### 📂 Estrutura do Diretório
 
-- **[`/agents`](./agents)**: *System Prompts* completos para configurar a "persona" da sua IA (Ex: Tech Lead, Revisor, Arquiteto).
-- **[`/instructions`](./instructions)**: Regras corporativas, padrões de codificação ou convenções estritas do time, servindo para passar contexto adicional para a IA.
-- **[`/templates`](./templates)**: Agrupador geral de modelos práticos para o dia a dia.
-  - **[`/templates/prompts`](./templates/prompts)**: Repositório com instruções diretas para acionamento rápido na IDE. Seu principal material de apoio na engenharia de software diária.
+- **[`/agents_skills`](./agents_skills)**: *System Prompts* para configurar a persona da sua IA (Ex: Tech Lead, QA, Arquiteto).
+- **[`/instructions`](./instructions)**: "Constituição" da IA: regras de segurança, código limpo e padrões de arquitetura (passivos).
+- **[`/templates`](./templates)**: Esteira de prompts práticos dividida por fases (Histórias -> Regras -> Validação -> Entrega).

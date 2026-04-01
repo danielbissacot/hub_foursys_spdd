@@ -16,7 +16,7 @@ Nossas diretrizes de IA estão otimizadas para:
 
 - **Java 21**: Uso de Records, Virtual Threads e sintaxe moderna.
 - **Arquitetura Hexagonal**: Separação clara entre Domínio, Aplicação e Adaptadores.
-- **Angular 17+**: Componentização reativa com **Signals** e Standalone Components.
+- **Angular v18+**: Componentização reativa com **Signals** e Standalone Components.
 
 ---
 
@@ -24,18 +24,21 @@ Nossas diretrizes de IA estão otimizadas para:
 
 O conteúdo está organizado dentro da pasta `/catalog`:
 
-- [**`/agents`**](./catalog/agents): **System Prompts** configurados para transformar LLMs em especialistas específicos (ex: Arquiteto, Revisor de Código).
-- [**`/instructions`**](./catalog/instructions): **Guias de Contexto** que detalham nossos padrões de codificação e regras de negócio.
-- [**`/templates`**](./catalog/templates): Agrupador de modelos que guiam o uso das ferramentas.
-  - [**`/prompts`**](./catalog/templates/prompts): **Modelos de Prompt** prontos para copiar e colar para tarefas do dia a dia (ex: gerar testes, refatorar para padrão Hexagonal).
+- [**`/agents_skills`**](./catalog/agents_skills): **System Prompts** configurados para transformar LLMs em personas especialistas (ex: Arquiteto, Tech Lead, Q.A).
+- [**`/instructions`**](./catalog/instructions): **Regras Globais** ("Constituição") que definem nossos padrões de conformidade, segurança e arquitetura.
+- [**`/templates`**](./catalog/templates): Nossa esteira de prompts dividida em 4 fases do ciclo de vida:
+  - **1_prompts_historias**: Refinamento e Histórias de Usuário.
+  - **2_prompts_regras_tecnicas**: Arquitetura e Regras de Negócio.
+  - **3_prompts_validadores**: Testes Unitários e Diagramas UML.
+  - **4_prompts_entrega**: Homologação final e tradução para o Negócio.
 
 ---
 
 ## 🚀 Como Utilizar
 
-1. **Escolha o Contexto**: Vá em `/catalog/instructions` para entender os padrões que a IA deve seguir.
-2. **Copie o Template**: No diretório `/templates/prompts`, escolha o prompt que atende à sua necessidade.
-3. **Refine com o Agente**: Utilize os prompts de sistema em `/agents` para configurar seu assistente preferido (ChatGPT, Claude, Copilot).
+1. **Defina a Regra Global**: Busque em `/catalog/instructions` a "constituição" técnica (ex: Hexagonal, Clean Code) e configure na sua IDE.
+2. **Utilize a Esteira**: Navegue em `/catalog/templates` e use os prompts de 1 a 4 conforme a fase do seu projeto.
+3. **Refine com um Agente**: Use os prompts em `/catalog/agents_skills` para dar uma persona especialista ao seu assistente.
 
 ---
 

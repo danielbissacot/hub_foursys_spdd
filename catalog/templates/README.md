@@ -1,11 +1,17 @@
-# 🛠️ Templates de Engenharia
+# 🛠️ Templates de IA - Fluxo de Criação
 
-Esta pasta (`/templates`) abriga todos os agrupamentos de modelos padronizados que utilizamos em nossa Governança de IA.
+Esta pasta (`/templates`) abriga os modelos padronizados (Prompts) que utilizamos na esteira de Governança de IA, mapeados em 4 grandes fases do Ciclo de Software.
 
-Aqui dentro você encontrará subpastas focadas em categorias específicas. A nossa principal é a biblioteca de **Prompts**, projetada para injetar regras corporativas diretamente no seu código.
+### Estrutura Interna (As 4 Caixas de Agentes)
 
-### Estrutura Interna
-- **[`/prompts_dev`](./prompts_dev)**: Repositório com as diretrizes de código para Desenvolvimento de Software. Prontos para acionar ferramentas como o Copilot ou Cursor, garantindo validações de Clean Code, Arquitetura Hexagonal e Refatoração de Classes.
-- **[`/prompts_agile`](./prompts_agile)**: Coleção reservada aos perfis de POs, Scrum Masters e Células de Produtos. Focada no refinamento, documentação técnica, e elaboração de critérios de aceite segundo o padrão INVEST e uso de regras de negócio estritas.
+- **[`/1_prompts_historias`](./1_prompts_historias)** *(Fase 1: Semente)*
+  Refinamento ágil de histórias e entendimento de escopo para Células de Produtos (POs/BA).
+  
+- **[`/2_prompts_regras_tecnicas`](./2_prompts_regras_tecnicas)** *(Fase 2: Semeando)*
+  Pasta reservada para criação e validação das Regras Técnicas e arquitetura detalhada baseada no requisito.
 
-*Caso precise de modelos para outras etapas (ex: templates de testes unitários ou auditoria devops), eles serão adicionados como novas subpastas de promts aqui!*
+- **[`/3_prompts_validadores`](./3_prompts_validadores)** *(Fase 3: Árvore)*
+  Repositório de qualidade para times de Desenvolvimento. Diretrizes para acionar a IA como Arquiteta, inspecionando Clean Code, padrões como Hexagonal, e futuros diagramas.
+
+- **[`/4_prompts_entrega`](./4_prompts_entrega)** *(Fase 4: Entrega/Produto)*
+  Pasta voltada aos validadores finais, focando na construção de Testes Unitários e cobertura de Regras do Cliente.

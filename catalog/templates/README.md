@@ -4,10 +4,10 @@ Esta pasta (`/templates`) abriga os modelos padronizados (Prompts) que utilizamo
 
 ### Estrutura Interna (As 4 Caixas de Agentes)
 
-- **[`/1_prompts_historias`](./1_prompts_historias)** *(Fase 1: Semente)*
+- **[`/1_prompts_historias`](./1_prompts_historias)** *(Fase 1)*
   Refinamento ágil de histórias e entendimento de escopo para Células de Produtos (POs/BA).
   
-- **[`/2_prompts_regras_tecnicas`](./2_prompts_regras_tecnicas)** *(Fase 2: Semeando)*
+- **[`/2_prompts_regras_tecnicas`](./2_prompts_regras_tecnicas)** *(Fase 2)*
   Pasta reservada para criação e validação das Regras Técnicas e arquitetura detalhada baseada no requisito.
 
 - **[`/3_prompts_validadores`](./3_prompts_validadores)** *(Fase 3: Árvore)*

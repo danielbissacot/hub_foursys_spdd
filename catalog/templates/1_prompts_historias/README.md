@@ -1,4 +1,4 @@
-# 🏃‍♂️ Templates Ágeis (Agile & Produto)
+# 🏃‍♂️ Fase 1: Prompts de Histórias
 
 Esta pasta abriga os prompts customizados para **Product Owners**, **Scrum Masters** e **Analistas de Negócio** da equipe.
 

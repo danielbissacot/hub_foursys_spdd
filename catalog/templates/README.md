@@ -10,8 +10,8 @@ Esta pasta (`/templates`) abriga os modelos padronizados (Prompts) que utilizamo
 - **[`/2_prompts_regras_tecnicas`](./2_prompts_regras_tecnicas)** *(Fase 2)*
   Pasta reservada para criação e validação das Regras Técnicas e arquitetura detalhada baseada no requisito.
 
-- **[`/3_prompts_validadores`](./3_prompts_validadores)** *(Fase 3: Árvore)*
+- **[`/3_prompts_validadores`](./3_prompts_validadores)** *(Fase 3)*
   Repositório de qualidade para times de Desenvolvimento. Diretrizes para acionar a IA como Arquiteta, inspecionando Clean Code, padrões como Hexagonal, e futuros diagramas.
 
-- **[`/4_prompts_entrega`](./4_prompts_entrega)** *(Fase 4: Entrega/Produto)*
+- **[`/4_prompts_entrega`](./4_prompts_entrega)** *(Fase 4)*
   Pasta voltada aos validadores finais, focando na construção de Testes Unitários e cobertura de Regras do Cliente.

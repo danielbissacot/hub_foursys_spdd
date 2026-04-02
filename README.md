@@ -36,7 +36,7 @@ Remove-Item -Path ai-rules -Recurse -Force -ErrorAction SilentlyContinue; mkdir 
 
 ### 2. O Prompt de Ouro (AI Chat)
 No chat da sua IA (Antigravity/Cursor), cole este comando para configurar tudo (Local + Gitlab CI):
-> **"Antigravity, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta ai-rules de forma simplificada. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização flat. 3. Configure o .gitignore."**
+> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta ai-rules de forma simplificada. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização flat. 3. Configure o .gitignore."**
 
 ---
 

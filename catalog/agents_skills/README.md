@@ -7,8 +7,9 @@ Nesta pasta ficam as "Personas" da IA – perfis de especialistas com conhecimen
 ### 🍃 Spring Boot
 *   🧑‍💻 **[Seu Mentor: Spring Boot & Arquitetura Hexagonal](spring_boot/mentor-spring-hexagonal.md)**
     *   📖 **[Guia de Uso: Como interagir via User Stories](spring_boot/README.md)**
+    *   🛠️ **[Skills de Elite: Ações Técnicas Padronizadas](spring_boot/skills/README.md)**
     *   **Missão**: Ser o seu braço direito técnico e mentor em Java, SOLID e Hexagonal.
-    *   **Como usar**: No chat, digite `@mentor-spring-hexagonal.md ...` e peça uma mentoria ou revisão.
+    *   **Como usar**: No chat, digite `@mentor-spring-hexagonal.md ...` e peça uma mentoria ou revisão utilizando as Skills disponíveis.
 
 ---
 

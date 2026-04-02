@@ -7,7 +7,33 @@ Escolha **UMA** das opções abaixo para conectar este Microserviço ao Hub de G
 ### 🪄 Opção A: Pela Inteligência Artificial (Recomendado)
 Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela fará toda a configuração, download e limpeza sozinha:
 
-> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `mkdir -p ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Get-ChildItem -Path .temp -Filter *.md -Recurse | Copy-Item -Destination ai-rules/; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value 'ai-rules/'`. 2. Crie o arquivo `.gitlab-ci.yml` na raiz com a lógica de sincronização flat para o GitLab. 3. Me avise quando terminar para eu usar o `@`."**
+> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `mkdir -p ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Get-ChildItem -Path .temp -Filter *.md -Recurse | Copy-Item -Destination ai-rules/; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value 'ai-rules/'`. 2. ROBÔ GITLAB: Crie o arquivo `.gitlab-ci.yml` na raiz com este conteúdo:
+> ```yaml
+> stages:
+>   - validate
+>   - build
+> 
+> # TRAVA DE SEGURANÇA: Bloqueia se alguém commitar as regras indevidamente
+> validar-limpeza-hub:
+>   stage: validate
+>   script:
+>     - if [ -d "ai-rules" ]; then echo "🛑 ERRO CRÍTICO! A pasta 'ai-rules' foi commitada no projeto. Remova-a e use o .gitignore corretamente."; exit 1; fi
+>   rules:
+>     - if: $CI_PIPELINE_SOURCE == "push"
+> 
+> # TAREFA DE SINCRONIZAÇÃO: Puxa as regras para uso em tempo de build
+> sincronizar-ia-hub:
+>   stage: build
+>   script:
+>     - mkdir -p ai-rules
+>     - git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp
+>     - find .temp -name '*.md' -exec cp {} ai-rules/ \;
+>     - rm -rf .temp
+>   artifacts:
+>     paths:
+>       - ai-rules/
+> ```
+> 3. Me avise quando terminar para eu usar o `@`."**
 
 ---
 

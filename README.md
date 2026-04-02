@@ -24,25 +24,36 @@ Nossas diretrizes de IA estão otimizadas para:
 
 ---
 
+## 🚀 Início Rápido (Quick Start)
+
+Para conectar um Microserviço a este Hub em **2 segundos**, siga o passo abaixo:
+
+### 1. Instalação Rápida (Terminal)
+No terminal do seu projeto, cole este comando (Windows):
+```powershell
+mkdir -p .ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Get-ChildItem -Path .temp -Filter *.md -Recurse | Copy-Item -Destination .ai-rules/; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value "`n.ai-rules/" -ErrorAction SilentlyContinue; echo "✅ Hub Conectado com Sucesso!"
+```
+
+### 2. O Prompt de Ouro (AI Chat)
+No chat da sua IA (Antigravity/Cursor), cole este comando para configurar tudo (Local + Gitlab CI):
+> **"Antigravity, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta .ai-rules. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização simplificada. 3. Configure o .gitignore."**
+
+---
+
 ## 📂 Arquitetura do Repositório
 
 O conteúdo está organizado dentro da pasta `/catalog`:
 
-- [**`/agents_skills`**](./catalog/agents_skills): **System Prompts** configurados para transformar LLMs em personas especialistas (ex: Arquiteto, Tech Lead, Q.A).
-- [**`/instructions`**](./catalog/instructions): **Regras Globais** ("Constituição") que definem nossos padrões de conformidade, segurança e arquitetura.
-- [**`/templates`**](./catalog/templates): Nossa esteira de prompts dividida em 4 fases do ciclo de vida:
-  - **1_prompts_historias**: Refinamento e Histórias de Usuário.
-  - **2_prompts_regras_tecnicas**: Arquitetura e Regras de Negócio.
-  - **3_prompts_validadores**: Testes Unitários e Diagramas UML.
-  - **4_prompts_entrega**: Homologação final e tradução para o Negócio.
+- [**`/agents_skills`**](./catalog/agents_skills): **System Prompts** configurados para transformar LLMs em personas especialistas.
+- [**`/instructions`**](./catalog/instructions): **Regras Globais** ("Constituição") que definem nossos padrões técnicos.
+- [**`/templates`**](./catalog/templates): Nossa esteira de desenvolvimento em 4 fases.
 
 ---
 
-## 🚀 Como Utilizar
+## 🛠️ Como Utilizar no Dia a Dia
 
-1. **Defina a Regra Global**: Busque em `/catalog/instructions` a "constituição" técnica (ex: Hexagonal, Clean Code) e configure na sua IDE.
-2. **Utilize a Esteira**: Navegue em `/catalog/templates` e use os prompts de 1 a 4 conforme a fase do seu projeto.
-3. **Refine com um Agente**: Use os prompts em `/catalog/agents_skills` para dar uma persona especialista ao seu assistente.
+1. **Chame a Regra**: Digite `#` ou `@` e comece a digitar o nome da regra (ex: `#validacao`).
+2. **Execute a IA**: Peça para ela ler o prompt e aplicar no seu código atual.
 
 ---
 

@@ -1,17 +1,12 @@
-# 🛠️ Templates de IA - Fluxo de Criação
+# 🏗️ Esteira de Prompts (Templates de Desenvolvimento)
 
-Esta pasta (`/templates`) abriga os modelos padronizados (Prompts) que utilizamos na esteira de Governança de IA, mapeados em 4 grandes fases do Ciclo de Software.
+Nesta pasta estão as 4 Fases padronizadas do ciclo de vida da nossa entrega, garantindo consistência desde a história do usuário até o código final.
 
-### Estrutura Interna (As 4 Caixas de Agentes)
+### 📜 As 4 Fases:
+- **1_Historias**: Transformação dos requisitos de negócio em Historias de Usuário.
+- **2_Regras_Tecnicas**: Definição da stack tecnológica e design de arquitetura.
+- **3_Prompts_Validadores**: Code Review, Validação Hexagonal e Testes Unitários.
+- **4_Entrega**: Documentação final, notas de release e padrão de commit.
 
-- **[`/1_prompts_historias`](./1_prompts_historias)** *(Fase 1)*
-  Refinamento ágil de histórias e entendimento de escopo para Células de Produtos (POs/BA).
-  
-- **[`/2_prompts_regras_tecnicas`](./2_prompts_regras_tecnicas)** *(Fase 2)*
-  Pasta reservada para criação e validação das Regras Técnicas e arquitetura detalhada baseada no requisito.
-
-- **[`/3_prompts_validadores`](./3_prompts_validadores)** *(Fase 3)*
-  Repositório de qualidade para times de Desenvolvimento. Diretrizes para acionar a IA como Arquiteta, inspecionando Clean Code, padrões como Hexagonal, e futuros diagramas.
-
-- **[`/4_prompts_entrega`](./4_prompts_entrega)** *(Fase 4)*
-  Pasta voltada aos validadores Quality Assurance (QA). Foca na homologação do negócio, cruzamento final ("Código vs História pedida") e traduções de entregas técnicas para executivos.
+---
+> **Como usar:** No Chat da IDE, use o `@` e selecione o prompt correspondente à fase de desenvolvimento em que você está.

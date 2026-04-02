@@ -31,12 +31,12 @@ Para conectar um Microserviço a este Hub em **2 segundos**, siga o passo abaixo
 ### 1. Instalação Rápida (Terminal)
 No terminal do seu projeto, cole este comando (Windows):
 ```powershell
-mkdir -p .ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Get-ChildItem -Path .temp -Filter *.md -Recurse | Copy-Item -Destination .ai-rules/; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value "`n.ai-rules/" -ErrorAction SilentlyContinue; echo "✅ Hub Conectado com Sucesso!"
+Remove-Item -Path ai-rules -Recurse -Force -ErrorAction SilentlyContinue; mkdir -p ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Get-ChildItem -Path .temp -Filter *.md -Recurse | Copy-Item -Destination ai-rules/; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value "`nai-rules/" -ErrorAction SilentlyContinue; echo "✅ Hub Conectado com Sucesso!"
 ```
 
 ### 2. O Prompt de Ouro (AI Chat)
 No chat da sua IA (Antigravity/Cursor), cole este comando para configurar tudo (Local + Gitlab CI):
-> **"Antigravity, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta .ai-rules. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização simplificada. 3. Configure o .gitignore."**
+> **"Antigravity, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta ai-rules de forma simplificada. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização flat. 3. Configure o .gitignore."**
 
 ---
 

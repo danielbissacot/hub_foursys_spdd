@@ -1,0 +1,93 @@
+<mxfile host="Electron" version="21.6.8" type="device">
+  <diagram id="solucao-v2" name="Arquitetura de Alta Fidelidade">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Camada Central de Governança -->
+        <mxCell id="group-central" value="CAMADA DE GOVERNANÇA CENTRALIZADA (WHITE LABEL)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F5FAFF;strokeColor=#1A73E8;dashed=1;fontStyle=1;fontSize=14;fontColor=#1A73E8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1080" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hub-repo" value="&lt;b&gt;AI GOVERNANCE HUB&lt;/b&gt;&lt;br&gt;(Repositório de Inteligência)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#1A73E8;strokeColor=#0059B2;fontColor=#FFFFFF;shadow=1;" vertex="1" parent="group-central">
+          <mxGeometry x="460" y="60" width="160" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="instructions" value="&lt;b&gt;INSTRUCTIONS&lt;/b&gt;&lt;br&gt;Padrões Java/Angular" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1A73E8;glass=1;" vertex="1" parent="group-central">
+          <mxGeometry x="140" y="80" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="skills" value="&lt;b&gt;AGENTS SKILLS&lt;/b&gt;&lt;br&gt;Kafka, Feign, Redis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1A73E8;glass=1;" vertex="1" parent="group-central">
+          <mxGeometry x="300" y="80" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="templates" value="&lt;b&gt;PROMPT TEMPLATES&lt;/b&gt;&lt;br&gt;As 4 Fases" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1A73E8;glass=1;" vertex="1" parent="group-central">
+          <mxGeometry x="640" y="80" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="catalog-sync" value="&lt;b&gt;GITLAB RUNNER&lt;/b&gt;&lt;br&gt;Sincronização Ativa" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#D93025;strokeColor=#B12B24;fontColor=#FFFFFF;shadow=1;" vertex="1" parent="group-central">
+          <mxGeometry x="830" y="80" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Conexões Internas -->
+        <mxCell id="c1" edge="1" parent="group-central" source="instructions" target="hub-repo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1A73E8;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" edge="1" parent="group-central" source="skills" target="hub-repo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1A73E8;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" edge="1" parent="group-central" source="templates" target="hub-repo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1A73E8;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Camada de Execução Local -->
+        <mxCell id="group-local" value="CAMADA DE DESENVOLVIMENTO (MICROSSERVIÇO)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F6FFED;strokeColor=#52C41A;dashed=1;fontStyle=1;fontSize=14;fontColor=#237804;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="1080" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-agent" value="&lt;b&gt;ASSISTENTE DE IA&lt;/b&gt;&lt;br&gt;(Cérebro na IDE)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F9F0FF;strokeColor=#722ED1;shadow=1;fontStyle=1;" vertex="1" parent="group-local">
+          <mxGeometry x="460" y="100" width="160" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-rules" value="&lt;b&gt;PASTA /ai-rules&lt;/b&gt;&lt;br&gt;(Regras Conectadas)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F6FFED;strokeColor=#52C41A;glass=1;" vertex="1" parent="group-local">
+          <mxGeometry x="150" y="110" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="source-code" value="&lt;b&gt;REPOSITÓRIO DE CÓDIGO&lt;/b&gt;&lt;br&gt;(Spring Boot / Angular)" style="shape=module;whiteSpace=wrap;html=1;fillColor=#FFFBE6;strokeColor=#FAAD14;shadow=1;" vertex="1" parent="group-local">
+          <mxGeometry x="800" y="110" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Fluxo Final -->
+        <mxCell id="sync-flow" edge="1" parent="1" source="catalog-sync" target="ai-rules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#D93025;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="960" y="300" as="sourcePoint" />
+            <mxPoint x="230" y="430" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="960" y="320" />
+              <mxPoint x="230" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sync-text" value="&lt;b&gt;Sincronização em Tempo Real&lt;/b&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;fontColor=#D93025;" vertex="1" connectable="0" parent="sync-flow">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint x="50" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="f1" edge="1" parent="1" source="ai-rules" target="ai-agent" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#52C41A;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" edge="1" parent="1" source="ai-agent" target="source-code" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#722ED1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legendas -->
+        <mxCell id="info" value="A arquitetura garante que a IA utilize SEMPRE os padrões de governança, injetando segurança e qualidade diretamente na IDE do desenvolvedor." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="270" y="740" width="620" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

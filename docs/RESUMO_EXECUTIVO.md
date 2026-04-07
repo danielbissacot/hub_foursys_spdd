@@ -31,23 +31,27 @@ Organizamos os modelos de prompt em uma sequência lógica de 4 fases (localizad
 
 ### 4. Arquitetura White Label & Modularidade
 O Hub foi totalmente higienizado para ser **White Label** (independente de marca). Isso permite:
-*   **Reuso Imediato:** Pode ser aplicado em qualquer novo projeto ou cliente sem ajustes manuais.
-*   **Privacidade:** Remoção de pacotes e referências corporativas específicas, mantendo apenas a excelência técnica.
+*   **Reuso Imediato**: Pode ser aplicado em qualquer novo projeto ou cliente sem ajustes manuais.
+*   **Privacidade**: Remoção de pacotes e referências corporativas específicas.
+
+### 5. Experiência do Desenvolvedor (DevEx)
+Elevamos o Hub de um repositório técnico para um **Portal de Documentação Visual**:
+*   **Navegação Visual (READMEs Lite)**: Cada subpasta de Skill agora possui um cartão de visitas minimalista que renderiza automaticamente no GitLab, permitindo um "Quick Start" de 30 segundos.
+*   **Atalhos de Prompt**: Inclusão de comandos de chat prontos (ex: `@SKILL-KAFKA`) para que o desenvolvedor não precise memorizar caminhos de arquivos.
 
 ---
 
 ## 📈 Benefícios Gerenciais
-*   **Redução de Débito Técnico:** A IA é impedida de gerar "código sujo".
-*   **Aceleração de Onboarding:** Novos desenvolvedores entregam no padrão da empresa desde o primeiro dia.
-*   **Segurança Nativa:** Proteção contra exposição de dados sensíveis na fase de codificação.
-*   **Auditabilidade:** Padronização global de como a IA é usada no dia a dia.
+*   **Redução de Débito Técnico**: A IA é impedida de gerar "código sujo".
+*   **Aceleração de Onboarding**: Novos desenvolvedores entregam no padrão da empresa desde o primeiro dia.
+*   **Aceleração de Entrega (Time-to-Market)**: O desenvolvedor foca na lógica de negócio enquanto o Hub cuida de toda a "plataforma" e infraestrutura via IA.
 
 ---
 
 ## 🚀 Como usar (Fluxo do Desenvolvedor)
-1.  **Configuração:** O desenvolvedor conecta o projeto ao Hub via comando simplificado no `README`.
-2.  **Execução:** Utiliza os modelos de `/templates` para construir a solução.
-3.  **Refino:** Consulta as **Skills** para implementar integrações específicas (Kafka, Feign, etc.) com perfeição.
+1.  **Configuração**: O projeto se conecta ao Hub com um comando simples no terminal.
+2.  **Execução**: O dev utiliza os templates de `/templates` para a arquitetura base.
+3.  **Refino**: Navega visualmente pelas **Skills** e aciona a IA via atalhos para implementar integrações complexas (Kafka, Feign, etc).
 
 ---
 ![AI Governance Hub - Arquitetura](./assets/hub_ia_infographic.png)

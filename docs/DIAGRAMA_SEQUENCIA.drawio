@@ -1,0 +1,123 @@
+<mxfile host="Electron" version="21.6.8" type="device">
+  <diagram id="sequencia-v2" name="UML 2.0 Moderno">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Participantes (Cabeçalho) -->
+        <mxCell id="p1" value="&lt;b&gt;DESENVOLVEDOR&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#E3F2FD;strokeColor=#1A73E8;fontColor=#1A73E8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="40" width="140" height="680" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#1A73E8;strokeColor=none;" vertex="1" parent="p1">
+          <mxGeometry x="65" y="80" width="10" height="520" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p2" value="&lt;b&gt;ASSISTENTE DE IA&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="140" height="680" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#7B1FA2;strokeColor=none;" vertex="1" parent="p2">
+          <mxGeometry x="65" y="100" width="10" height="480" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p3" value="&lt;b&gt;HUB DE REGRAS&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="620" y="40" width="140" height="680" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#2E7D32;strokeColor=none;" vertex="1" parent="p3">
+          <mxGeometry x="65" y="120" width="10" height="440" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p4" value="&lt;b&gt;MICROSSERVIÇO&lt;/b&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#FFFDE7;strokeColor=#FBC02D;fontColor=#9A7D0A;" vertex="1" parent="1">
+          <mxGeometry x="880" y="40" width="140" height="680" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#FBC02D;strokeColor=none;" vertex="1" parent="p4">
+          <mxGeometry x="65" y="160" width="10" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- Troca de Mensagens -->
+        <mxCell id="m1" value="Solicita codificação (@implementar)" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#1A73E8;" edge="1" parent="1" source="a1" target="a2">
+          <mxGeometry x="0.05" y="10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="180" y="140" as="sourcePoint" />
+            <mxPoint x="420" y="140" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="175" y="140" />
+              <mxPoint x="425" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m2" value="Lê Instructions e Templates" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#7B1FA2;" edge="1" parent="1" source="a2" target="a3">
+          <mxGeometry x="0.05" y="10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="435" y="170" as="sourcePoint" />
+            <mxPoint x="685" y="170" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="435" y="180" />
+              <mxPoint x="685" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m3" value="Retorna Guidelines (Java 21/Hexagonal)" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;dashed=1;" edge="1" parent="1" source="a3" target="a2">
+          <mxGeometry x="0.05" y="10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="685" y="220" as="sourcePoint" />
+            <mxPoint x="435" y="220" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="685" y="230" />
+              <mxPoint x="435" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Bloco de Loop (4 Fases) -->
+        <mxCell id="loop-group" value="LOOP: EXECUÇÃO DAS 4 FASES" style="shape=umlFrame;whiteSpace=wrap;html=1;width=180;height=30;fillColor=#f5f5f5;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="260" width="580" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m4" value="Gera Boilerplate e Lógica" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#7B1FA2;" edge="1" parent="1" source="a2" target="a4">
+          <mxGeometry x="0.05" y="10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="435" y="300" as="sourcePoint" />
+            <mxPoint x="945" y="300" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="435" y="310" />
+              <mxPoint x="945" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m5" value="Aplica Testes BDD (Validadores)" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#7B1FA2;" edge="1" parent="1" source="a2" target="a4">
+          <mxGeometry x="0.05" y="10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="435" y="370" as="sourcePoint" />
+            <mxPoint x="945" y="370" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="435" y="380" />
+              <mxPoint x="945" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m6" value="Notifica Conclusão &amp; PR" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;dashed=1;" edge="1" parent="1" source="a2" target="a1">
+          <mxGeometry x="0.05" y="10" relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="425" y="540" as="sourcePoint" />
+            <mxPoint x="175" y="540" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="425" y="580" />
+              <mxPoint x="175" y="580" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Rodapé explicativo -->
+        <mxCell id="footer" value="Os blocos de ativação demonstram como a IA orquestra as regras do Hub de forma síncrona com o desenvolvimento local." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="275" y="740" width="620" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

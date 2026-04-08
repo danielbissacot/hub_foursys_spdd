@@ -85,3 +85,4 @@ class OrderTest {
 ---
 > [!TIP]
 > **Domain First**: Os testes de domínio devem ser os primeiros a serem escritos. Eles são puramente Java (POJOs), rápidos de executar e não dependem de nenhum framework (Spring, JPA, etc.), o que os torna ideais para TDD.
+

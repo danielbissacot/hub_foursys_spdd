@@ -279,3 +279,4 @@ public class CepApiClient implements CepApiOutputPort {
 ---
 > [!TIP]
 > Observe como o **Core** (Domain/UseCase) nunca importa nada do `feign` ou `jackson`. Toda a "sujeira" da API externa fica contida no `adapter/output/client`.
+

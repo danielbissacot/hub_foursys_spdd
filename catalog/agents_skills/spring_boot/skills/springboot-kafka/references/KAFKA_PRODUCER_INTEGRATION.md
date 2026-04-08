@@ -152,3 +152,4 @@ spring:
 ---
 > [!TIP]
 > **Idempotência**: Sempre habilite `enable.idempotence=true` no producer para garantir que, em caso de retentativas automáticas do Kafka, a mesma mensagem não seja publicada em duplicidade no tópico.
+

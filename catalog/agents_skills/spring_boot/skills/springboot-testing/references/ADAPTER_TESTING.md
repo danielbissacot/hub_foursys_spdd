@@ -208,3 +208,4 @@ class ExternalGatewayClientTest {
 ---
 > [!IMPORTANT]
 > **Camada de Adapters**: O foco aqui é validar a fronteira do sistema. Garanta que o JSON que entra e sai está correto e que as integrações externas respondem como esperado aos erros.
+

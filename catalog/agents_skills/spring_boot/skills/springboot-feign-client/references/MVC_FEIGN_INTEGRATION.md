@@ -25,3 +25,4 @@ src/main/java/com/empresa/projeto/
 ---
 > [!TIP]
 > Use esta estrutura para projetos legados ou microserviços de baixa complexidade onde o isolamento total do domínio não é o requisito primário.
+

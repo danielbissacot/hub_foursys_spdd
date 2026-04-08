@@ -48,3 +48,4 @@ Testes são considerados completos quando:
 ---
 > [!IMPORTANT]
 > **Refatoração**: Se um teste quebra quando você muda o nome de uma variável interna ou refatora um método privado (sem mudar o resultado final), ele está acoplado demais. Teste **O QUE** o sistema faz, não **COMO** ele faz.
+

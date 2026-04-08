@@ -67,3 +67,4 @@ void shouldRejectPaymentWhenAccountNotFound() {
 ---
 > [!TIP]
 > **Mock apenas de Ports**: Nunca faça mock de suas entidades de domínio ou value objects. Use os objetos reais para garantir que a lógica de domínio interna também seja validada durante o teste do UseCase.
+

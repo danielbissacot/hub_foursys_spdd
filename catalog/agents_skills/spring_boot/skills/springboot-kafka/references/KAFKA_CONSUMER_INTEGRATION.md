@@ -185,3 +185,4 @@ spring:
 ---
 > [!IMPORTANT]
 > **Resiliência**: Sempre utilize `@RetryableTopic` para garantir que falhas temporárias não causem perda de dados. Mensagens que falham permanentemente devem ser analisadas no tópico de **DLT** (Dead-Letter Topic).
+

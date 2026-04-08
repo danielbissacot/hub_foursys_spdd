@@ -49,7 +49,7 @@ Adicione as seguintes dependências no `pom.xml`:
 
 ## Estrutura na Arquitetura em camadas / MVC
 
-Para integrações com APIs externas usando Feign em arquitetura em camadas ou MVC consulte [references/MVC_FEIGN_INTEGRATION.md](references/MVC_FEIGN_INTEGRATION.md) para estrutura detalhada com exemplos
+Para integrações com APIs externas usando Feign em arquitetura em camadas ou MVC consulte [references/MVC_FEIGN_INTEGRATION.md](REFERENCES/MVC_FEIGN_INTEGRATION.MD) para estrutura detalhada com exemplos
 
 ## Estrutura na Arquitetura Hexagonal
 
@@ -61,7 +61,7 @@ Para integrações com APIs externas usando Feign em arquitetura hexagonal, siga
 - **Mapper/ACL** (`adapter/output/client/mapper/`): Traduz entre API externa e domínio
 - **DTOs** (`adapter/output/client/dto/`): Estruturas da API externa
 
-**📖 Consulte**: [references/HEXAGONAL_FEIGN_INTEGRATION.md](references/HEXAGONAL_FEIGN_INTEGRATION.md) para estrutura detalhada com exemplos
+**📖 Consulte**: [references/HEXAGONAL_FEIGN_INTEGRATION.md](REFERENCES/HEXAGONAL_FEIGN_INTEGRATION.MD) para estrutura detalhada com exemplos
 
 ## Passo 1: Configuração do Feign Client
 
@@ -451,3 +451,4 @@ public class FeignErrorConfig {
     }
 }
 ```
+

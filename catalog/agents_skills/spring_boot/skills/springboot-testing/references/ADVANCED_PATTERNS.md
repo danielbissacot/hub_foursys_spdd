@@ -108,3 +108,4 @@ void shouldValidateAllCustomerProperties() {
 ---
 > [!TIP]
 > **Testes Parametrizados**: Use-os sempre que tiver uma lógica que precisa ser validada com diversos inputs (ex: validadores de CPF, calculadoras de taxas). Isso reduz drasticamente a quantidade de código de teste repetido.
+

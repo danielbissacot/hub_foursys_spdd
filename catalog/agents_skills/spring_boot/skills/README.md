@@ -3,7 +3,7 @@
 Nesta pasta residem os roteiros de **Ação** detalhados para a IA. Enquanto as `Instructions` focam em *O QUE* é correto, as `Skills` definem *COMO* executar tarefas técnicas complexas com perfeição.
 
 ### 🧩 Como funcionam as Skills?
-Cada subpasta contém um arquivo `SKILL-SPRINGBOOT-*.md` com instruções passo a passo e uma pasta de `/references` com modelos reais de código (White Label) para a IA se basear.
+Cada subpasta contém um arquivo `SKILL_SPRINGBOOT_*.md` com instruções passo a passo e uma pasta de `/references` com modelos reais de código (White Label) para a IA se basear.
 
 ### 📚 Habilidades de Elite Disponíveis (Produção):
 
@@ -13,4 +13,5 @@ Cada subpasta contém um arquivo `SKILL-SPRINGBOOT-*.md` com instruções passo 
 - [**springboot-testing**](./springboot-testing): Guia completo de qualidade técnica cobrindo Domínio, UseCases, Adapters e Padrões Avançados.
 
 ---
-> **Uso pelo Agente:** O Mentor (`mentor-spring-hexagonal.md`) consulta estes roteiros para garantir que o código gerado siga exatamente os padrões da empresa, desde a porta de entrada até a resiliência da integração.
+> **Uso pelo Agente:** O Mentor (`MENTOR_ARCHITECT_SPRING_HEXAGONAL.md`) consulta estes roteiros para garantir que o código gerado siga exatamente os padrões da empresa, desde a porta de entrada até a resiliência da integração.
+

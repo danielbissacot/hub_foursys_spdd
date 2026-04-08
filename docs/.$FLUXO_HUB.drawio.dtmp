@@ -1,0 +1,70 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.1.1 Chrome/132.0.6834.210 Electron/34.3.3 Safari/537.36" version="26.1.1">
+  <diagram id="fluxo-premium" name="Esteira de Valor Hub IA">
+    <mxGraphModel dx="1953" dy="976" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="ESTEIRA DE VALOR: HUB DE GOVERNANÇA DE IA" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#003366;" parent="1" vertex="1">
+          <mxGeometry x="110" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos no GitLab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="100" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="callout1" value="O DEV recebe a demanda técnica bruto." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" parent="1" vertex="1">
+          <mxGeometry x="540" y="105" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="&lt;b&gt;2. REFINAMENTO&lt;/b&gt;&lt;br&gt;Templates: Fase 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;shadow=1;glass=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="220" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="callout2" value="IA valida histórias e critérios de aceite seguindo o Hub." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" parent="1" vertex="1">
+          <mxGeometry x="540" y="225" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#1565C0;" parent="1" source="step1" target="step2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="&lt;b&gt;3. ARQUITETURA&lt;/b&gt;&lt;br&gt;Instructions (Constituição)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="340" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="callout3" value="Garantia de Java 21, Hexagonal e Clean Code na base." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" parent="1" vertex="1">
+          <mxGeometry x="540" y="345" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#2E7D32;" parent="1" source="step2" target="step3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="&lt;b&gt;4. CONSTRUÇÃO&lt;/b&gt;&lt;br&gt;Agents Skills Específicas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="460" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="callout4" value="Implementação técnica (Kafka, Feign) com expertise do Hub." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" parent="1" vertex="1">
+          <mxGeometry x="540" y="465" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#EF6C00;" parent="1" source="step3" target="step4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" value="&lt;b&gt;5. VALIDAÇÃO&lt;/b&gt;&lt;br&gt;Templates: Fase 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="580" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="callout5" value="Testes Unitários/BDD e Code Review automático da IA." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" parent="1" vertex="1">
+          <mxGeometry x="540" y="585" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;" parent="1" source="step4" target="step5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step6" value="&lt;b&gt;6. ENTREGA&lt;/b&gt;&lt;br&gt;Templates: Fase 4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="700" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="callout6" value="Geração de Release Notes e Merge Request padronizado." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" parent="1" vertex="1">
+          <mxGeometry x="540" y="705" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#C2185B;" parent="1" source="step5" target="step6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="end" value="MERGE&lt;br&gt;REQUEST" style="ellipse;whiteSpace=wrap;html=1;fillColor=#00532B;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="360" y="820" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#FBC02D;dashed=1;" parent="1" source="step6" target="end" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -46,7 +46,7 @@ Para implementação de Producers e Consumers Kafka em arquitetura hexagonal, si
 - **Event DTOs** (`adapter/output/kafka/producer/dto/`): Estruturas de mensagens Kafka
 - **Mapper** (`adapter/output/kafka/producer/mapper/`): Traduz entre domínio e eventos Kafka
 
-**📖 Consulte**: [references/KAFKA_PRODUCER_INTEGRATION.md](references/KAFKA_PRODUCER_INTEGRATION.md) para estrutura detalhada com exemplos
+**📖 Consulte**: [references/KAFKA_PRODUCER_INTEGRATION.md](REFERENCES/KAFKA_PRODUCER_INTEGRATION.MD) para estrutura detalhada com exemplos
 
 ### Consumer (Input)
 - **InputPort** (`port/input/`): Define casos de uso que processam mensagens
@@ -54,7 +54,7 @@ Para implementação de Producers e Consumers Kafka em arquitetura hexagonal, si
 - **Event DTOs** (`adapter/input/kafka/consumer/dto/`): Estruturas de mensagens recebidas
 - **Mapper** (`adapter/input/kafka/consumer/mapper/`): Traduz eventos Kafka para domínio
 
-**📖 Consulte**: [references/KAFKA_CONSUMER_INTEGRATION.md](references/KAFKA_CONSUMER_INTEGRATION.md) para estrutura detalhada com exemplos
+**📖 Consulte**: [references/KAFKA_CONSUMER_INTEGRATION.md](REFERENCES/KAFKA_CONSUMER_INTEGRATION.MD) para estrutura detalhada com exemplos
 
 ## Configuração do Kafka (application.yml)
 
@@ -79,5 +79,6 @@ spring:
 
 ## Referências Completas
 
-- **[KAFKA_PRODUCER_INTEGRATION.md](references/KAFKA_PRODUCER_INTEGRATION.md)** - Implementação completa de Kafka Producer
-- **[KAFKA_CONSUMER_INTEGRATION.md](references/KAFKA_CONSUMER_INTEGRATION.md)** - Implementação completa de Kafka Consumer
+- **[KAFKA_PRODUCER_INTEGRATION.md](REFERENCES/KAFKA_PRODUCER_INTEGRATION.MD)** - Implementação completa de Kafka Producer
+- **[KAFKA_CONSUMER_INTEGRATION.md](REFERENCES/KAFKA_CONSUMER_INTEGRATION.MD)** - Implementação completa de Kafka Consumer
+

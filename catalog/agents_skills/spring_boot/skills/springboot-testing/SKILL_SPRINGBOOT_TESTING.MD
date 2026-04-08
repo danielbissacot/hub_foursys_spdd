@@ -43,13 +43,13 @@ Atingir ≥95% de cobertura é necessário, mas não suficiente. Cada teste deve
 
 Teste invariantes, regras de validação e comportamento do domínio.
 
-**Para exemplos completos e padrões**, veja [references/DOMAIN_TESTING.md](references/DOMAIN_TESTING.md)
+**Para exemplos completos e padrões**, veja [references/DOMAIN_TESTING.md](REFERENCES/DOMAIN_TESTING.MD)
 
 ### UseCases
 
 Teste orquestração da lógica de negócio, tratamento de erros e colaboração com ports.
 
-**Para padrões abrangentes de testes de UseCase**, veja [references/USECASE_TESTING.md](references/USECASE_TESTING.md)
+**Para padrões abrangentes de testes de UseCase**, veja [references/USECASE_TESTING.md](REFERENCES/USECASE_TESTING.MD)
 
 ### Adapters
 
@@ -57,7 +57,7 @@ Teste mapeamento de DTO, validações e interação com infraestrutura.
 
 ## Validação de Qualidade de Testes
 
-Para garantir que seus testes seguem o padrão de excelência exigido, utilize sempre o nosso [Checklist de Testes](references/TESTING_CHECKLIST.md) antes de cada entrega.
+Para garantir que seus testes seguem o padrão de excelência exigido, utilize sempre o nosso [Checklist de Testes](REFERENCES/TESTING_CHECKLIST.MD) antes de cada entrega.
 
 ## Organização dos Testes
 
@@ -124,4 +124,5 @@ class CustomerRegistrationUseCaseTest {
 - O nome descreve claramente o comportamento esperado?
 - O teste é independente dos demais?
 
-**Para testes parametrizados, testes de exceção e padrões avançados**, veja [references/ADVANCED_PATTERNS.md](references/ADVANCED_PATTERNS.md)
+**Para testes parametrizados, testes de exceção e padrões avançados**, veja [references/ADVANCED_PATTERNS.md](REFERENCES/ADVANCED_PATTERNS.MD)
+

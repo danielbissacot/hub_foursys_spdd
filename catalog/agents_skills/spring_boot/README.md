@@ -97,3 +97,4 @@ Você pode incluir informações técnicas específicas na seção **Informaçõ
 - **Defina critérios claros**: Use critérios de aceitação mensuráveis e objetivos.
 - **Adicione contexto técnico**: Quando souber requisitos específicos de infraestrutura, inclua-os.
 - **Pense em edge cases**: Considere também cenários alternativos e de erro na descrição.
+

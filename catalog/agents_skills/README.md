@@ -5,18 +5,22 @@ Nesta pasta ficam as "Personas" da IA – perfis de especialistas com conhecimen
 ## 🎭 Agentes Ativos:
 
 ### 🍃 Spring Boot
-*   🧑‍💻 **[Seu Mentor: Spring Boot & Arquitetura Hexagonal](spring_boot/mentor-spring-hexagonal.md)**
-    *   📖 **[Guia de Uso: Como interagir via User Stories](spring_boot/README.md)**
-    *   🛠️ **[Skills de Elite: Ações Técnicas Padronizadas](spring_boot/skills/README.md)**
+*   🧑‍💻 **[Seu Mentor: Spring Boot & Arquitetura Hexagonal](spring_boot/MENTOR_ARCHITECT_SPRING_HEXAGONAL.MD)**
+    *   📖 **[Guia de Uso: Como interagir via User Stories](spring_boot/README.MD)**
+    *   🛠️ **[Skills de Elite: Ações Técnicas Padronizadas](spring_boot/skills/README.MD)**
     *   **Missão**: Ser o seu braço direito técnico e mentor em Java, SOLID e Hexagonal.
-    *   **Como usar**: No chat, digite `@mentor-spring-hexagonal.md ...` e peça uma mentoria ou revisão utilizando as Skills disponíveis.
+    *   **Como usar**: No chat, digite `@MENTOR_ARCHITECT_SPRING_HEXAGONAL.MD ...` e peça uma mentoria ou revisão utilizando as Skills disponíveis.
+
+### 🎨 Frontend (Angular)
+*   🧑‍💻 **[Seu Mentor: Angular Architect & Signals](angular/MENTOR_ARCHITECT_ANGULAR.MD)**
+    *   📖 **[Guia de Uso: Como interagir com o Arquiteto](angular/README.MD)**
+    *   🛠️ **[Skills de Elite: Componentes e Acessibilidade](angular/skills/angular-component/README.MD)**
+    *   **Missão**: Garantir que o front-end utilize Signals, Standalone Components e WCAG.
+    *   **Como usar**: No chat, digite `@MENTOR_ARCHITECT_ANGULAR.MD ...` e peça uma mentoria ou criação de componente moderno.
 
 ---
 
 ## 🎭 Perfis Planejados por Categoria:
-
-### 🎨 Frontend (Angular)
-- **Angular Architect**: Padrão de componentes, estados e performance.
 
 ### 🛡️ Compliance & Seguridade
 - **Security Officer**: Revisão de segurança e vulnerabilidade.

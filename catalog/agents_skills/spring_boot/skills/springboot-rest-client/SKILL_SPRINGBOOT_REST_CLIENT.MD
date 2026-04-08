@@ -20,7 +20,7 @@ Use este skill quando:
 
 **⚠️ IMPORTANTE**: 
 - Para aplicações **reativas**, use `WebClient` ao invés de `RestClient`
-- Para **integrações declarativas** com APIs externas, considere usar o [springboot-feign-client skill](../springboot-feign-client/SKILL-SPRINGBOOT-FEIGN-CLIENT.md)
+- Para **integrações declarativas** com APIs externas, considere usar o [springboot-feign-client skill](../SPRINGBOOT_FEIGN_CLIENT/SKILL_SPRINGBOOT_FEIGN_CLIENT.MD)
 
 ## Comparação: RestClient vs Feign Client
 
@@ -316,4 +316,5 @@ public class UsuarioApiClient {
 ## Referências
 
 - [Spring Boot RestClient Documentation](https://docs.spring.io/spring-boot/reference/io/rest-client.html)
-- [Spring Boot Feign Client Skill](../springboot-feign-client/SKILL-SPRINGBOOT-FEIGN-CLIENT.md)
+- [Spring Boot Feign Client Skill](../SPRINGBOOT_FEIGN_CLIENT/SKILL_SPRINGBOOT_FEIGN_CLIENT.MD)
+

@@ -8,7 +8,7 @@ Escolha **UMA** das opções abaixo para conectar este Microserviço ao Hub de G
 
 Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela fará toda a configuração, download e limpeza sozinha:
 
-> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `mkdir -p ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Get-ChildItem -Path .temp -Filter *.md -Recurse | Copy-Item -Destination ai-rules/; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value 'ai-rules/'`. 2. ROBÔ GITLAB: Crie o arquivo `.gitlab-ci.yml` na raiz com este conteúdo:
+> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `mkdir -p ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value 'ai-rules/'`. 2. ROBÔ GITLAB: Crie o arquivo `.gitlab-ci.yml` na raiz com este conteúdo:
 >
 > ```yaml
 > stages:
@@ -29,7 +29,7 @@ Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela far�
 >   script:
 >     - mkdir -p ai-rules
 >     - git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp
->     - find .temp -name '*.md' -exec cp {} ai-rules/ \;
+>     - cp -r .temp/catalog/* ai-rules/
 >     - rm -rf .temp
 >   artifacts:
 >     paths:
@@ -45,7 +45,7 @@ Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela far�
 Se você prefere o terminal, copie e cole este comando (Windows) na raiz do seu projeto:
 
 ```powershell
-Remove-Item -Path ai-rules -Recurse -Force -ErrorAction SilentlyContinue; mkdir -p ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Get-ChildItem -Path .temp -Filter *.md -Recurse | Copy-Item -Destination ai-rules/; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value "`nai-rules/" -ErrorAction SilentlyContinue; echo "✅ Hub Conectado com Sucesso!"
+Remove-Item -Path ai-rules -Recurse -Force -ErrorAction SilentlyContinue; mkdir -p ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; Remove-Item -Path .temp -Recurse -Force; Add-Content -Path .gitignore -Value "`nai-rules/" -ErrorAction SilentlyContinue; echo "✅ Hub Conectado com Sucesso!"
 ```
 
 ---

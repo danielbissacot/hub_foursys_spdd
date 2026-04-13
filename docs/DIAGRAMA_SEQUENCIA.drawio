@@ -59,7 +59,7 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="m3" value="Retorna Guidelines (Java 21/Hexagonal)" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;dashed=1;" edge="1" parent="1" source="a3" target="a2">
+        <mxCell id="m3" value="Retorna Guidelines (Java/COBOL/Hexagonal)" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;dashed=1;" edge="1" parent="1" source="a3" target="a2">
           <mxGeometry x="0.05" y="10" relative="1" as="geometry">
             <mxPoint as="offset" />
             <mxPoint x="685" y="220" as="sourcePoint" />
@@ -72,7 +72,7 @@
         </mxCell>
 
         <!-- Bloco de Loop (4 Fases) -->
-        <mxCell id="loop-group" value="LOOP: EXECUÇÃO DAS 4 FASES" style="shape=umlFrame;whiteSpace=wrap;html=1;width=180;height=30;fillColor=#f5f5f5;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+        <mxCell id="loop-group" value="LOOP: EXECUÇÃO DAS 5 FASES" style="shape=umlFrame;whiteSpace=wrap;html=1;width=180;height=30;fillColor=#f5f5f5;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="380" y="260" width="580" height="240" as="geometry" />
         </mxCell>
 

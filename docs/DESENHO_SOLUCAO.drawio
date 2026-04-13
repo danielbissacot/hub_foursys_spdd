@@ -14,7 +14,7 @@
           <mxGeometry x="460" y="60" width="160" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="instructions" value="&lt;b&gt;INSTRUCTIONS&lt;/b&gt;&lt;br&gt;Padrões Java/Angular" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1A73E8;glass=1;" vertex="1" parent="group-central">
+        <mxCell id="instructions" value="&lt;b&gt;INSTRUCTIONS&lt;/b&gt;&lt;br&gt;Padrões Java/Angular/COBOL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1A73E8;glass=1;" vertex="1" parent="group-central">
           <mxGeometry x="140" y="80" width="140" height="80" as="geometry" />
         </mxCell>
 
@@ -22,7 +22,7 @@
           <mxGeometry x="300" y="80" width="140" height="80" as="geometry" />
         </mxCell>
 
-        <mxCell id="templates" value="&lt;b&gt;PROMPT TEMPLATES&lt;/b&gt;&lt;br&gt;As 4 Fases" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1A73E8;glass=1;" vertex="1" parent="group-central">
+        <mxCell id="templates" value="&lt;b&gt;PROMPT TEMPLATES&lt;/b&gt;&lt;br&gt;As 5 Fases" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1A73E8;glass=1;" vertex="1" parent="group-central">
           <mxGeometry x="640" y="80" width="140" height="80" as="geometry" />
         </mxCell>
 
@@ -54,7 +54,7 @@
           <mxGeometry x="150" y="110" width="160" height="80" as="geometry" />
         </mxCell>
 
-        <mxCell id="source-code" value="&lt;b&gt;REPOSITÓRIO DE CÓDIGO&lt;/b&gt;&lt;br&gt;(Spring Boot / Angular)" style="shape=module;whiteSpace=wrap;html=1;fillColor=#FFFBE6;strokeColor=#FAAD14;shadow=1;" vertex="1" parent="group-local">
+        <mxCell id="source-code" value="&lt;b&gt;REPOSITÓRIO DE CÓDIGO&lt;/b&gt;&lt;br&gt;(Spring / Angular / COBOL)" style="shape=module;whiteSpace=wrap;html=1;fillColor=#FFFBE6;strokeColor=#FAAD14;shadow=1;" vertex="1" parent="group-local">
           <mxGeometry x="800" y="110" width="180" height="80" as="geometry" />
         </mxCell>
 

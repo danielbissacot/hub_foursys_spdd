@@ -33,7 +33,7 @@
         <mxCell id="step3" value="&lt;b&gt;3. ARQUITETURA&lt;/b&gt;&lt;br&gt;Instructions (Constituição)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="310" y="340" width="200" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="callout3" value="Garantia de Java 21, Hexagonal e Clean Code na base." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">
+        <mxCell id="callout3" value="Java 21, COBOL Moderno, Hexagonal e Clean Code na base." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">
           <mxGeometry x="540" y="345" width="160" height="70" as="geometry" />
         </mxCell>
         <mxCell id="arrow2" edge="1" parent="1" source="step2" target="step3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#2E7D32;">

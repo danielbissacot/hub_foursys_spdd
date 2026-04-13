@@ -11,7 +11,7 @@ Este documento resume a reestruturação estratégica realizada no repositório 
 
 ### 1. A "Constituição" da IA (Diretrizes Globais)
 Criamos um conjunto de instruções passivas (localizadas em `/catalog/instructions`) que servem como o "regimento interno" da IA. Elas garantem que a IA **nunca** sugira códigos fora do padrão:
-*   **Arquitetura:** Regras rígidas para **Java Spring (MVC e Hexagonal)** e **Angular Moderno (Signals)**.
+*   **Arquitetura:** Regras rígidas para **Java Spring (MVC e Hexagonal)**, **Angular Moderno (Signals)** e **COBOL Moderno (Batch/Online)**.
 *   **Segurança (AppSec):** Bloqueio automático contra vazamento de CPFs, logs sensíveis (LGPD) e vulnerabilidades comuns.
 *   **Clean Code:** Proibição de anotações que sujam o domínio (Lombok/JPA no Core).
 *   **Qualidade:** Obrigatoriedade de testes unitários seguindo o padrão BDD (*Behavior Driven Development*).
@@ -23,11 +23,12 @@ Implementamos uma camada de **Skills** (localizadas em `/catalog/agents_skills/s
 *   **Estratégia de Testes:** Um guia avançado cobrindo testes de **Domínio, UseCases e Adapters**, meta de cobertura de 95% e padrões avançados (Object Mother, Parametrizados).
 
 ### 3. A Esteira de Produção de Software (Pipeline de Prompts)
-Organizamos os modelos de prompt em uma sequência lógica de 4 fases (localizadas em `/catalog/templates`):
+Organizamos os modelos de prompt em uma sequência lógica de 5 fases (localizadas em `/catalog/templates`):
 1.  **Fase 1 (Histórias):** Transforma pedidos de negócio em histórias técnicas ricas.
 2.  **Fase 2 (Construção):** Auxilia na criação da arquitetura e regras técnicas do código.
 3.  **Fase 3 (Validação):** Gera testes de alta cobertura e diagramas UML automáticos.
 4.  **Fase 4 (Entrega/QA):** Valida se o código atende o que o negócio pediu.
+5.  **Fase 5 (COBOL):** Suporte especializado para manutenção, modernização e engenharia reversa de sistemas legado via **Zowe**.
 
 ### 4. Arquitetura White Label & Modularidade
 O Hub foi totalmente higienizado para ser **White Label** (independente de marca). Isso permite:

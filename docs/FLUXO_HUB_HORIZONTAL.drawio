@@ -21,12 +21,12 @@
         </mxCell>
 
         <!-- Passo 3: Arquitetura -->
-        <mxCell id="step3" value="&lt;b&gt;3. ARQUITETURA&lt;/b&gt;&lt;br&gt;Instructions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step3" value="&lt;b&gt;3. ARQUITETURA&lt;/b&gt;&lt;br&gt;Padrões Java/COBOL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="600" y="200" width="180" height="80" as="geometry" />
         </mxCell>
 
         <!-- Passo 4: Construção -->
-        <mxCell id="step4" value="&lt;b&gt;4. CONSTRUÇÃO&lt;/b&gt;&lt;br&gt;Agents Skills" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step4" value="&lt;b&gt;4. CONSTRUÇÃO&lt;/b&gt;&lt;br&gt;Skills e Fase 5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="860" y="200" width="180" height="80" as="geometry" />
         </mxCell>
 

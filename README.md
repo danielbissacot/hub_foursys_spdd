@@ -21,6 +21,7 @@ Nossas diretrizes de IA estão otimizadas para:
 - **Java 21**: Uso de Records, Virtual Threads e sintaxe moderna.
 - **Arquitetura Hexagonal**: Separação clara entre Domínio, Aplicação e Adaptadores.
 - **Angular v18+**: Componentização reativa com **Signals** e Standalone Components.
+- **COBOL Moderna**: Padronização de sistemas legados, uso de templates via **Zowe** e integração com LLMs para manutenção e refatoração.
 
 ---
 
@@ -46,7 +47,7 @@ O conteúdo está organizado dentro da pasta `/catalog`:
 
 - [**`/agents_skills`**](./catalog/agents_skills): **System Prompts** configurados para transformar LLMs em personas especialistas.
 - [**`/instructions`**](./catalog/instructions): **Regras Globais** ("Constituição") que definem nossos padrões técnicos.
-- [**`/templates`**](./catalog/templates): Nossa esteira de desenvolvimento em 4 fases.
+- [**`/templates`**](./catalog/templates): Nossa esteira de desenvolvimento em 5 fases.
 
 ---
 

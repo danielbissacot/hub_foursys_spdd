@@ -18,6 +18,11 @@ Nesta pasta ficam as "Personas" da IA – perfis de especialistas com conhecimen
     *   **Missão**: Garantir que o front-end utilize Signals, Standalone Components e WCAG.
     *   **Como usar**: No chat, digite `@MENTOR_ARCHITECT_ANGULAR.MD ...` e peça uma mentoria ou criação de componente moderno.
 
+### 🏛️ Mainframe (COBOL)
+*   🧑‍💻 **[Seu Mentor: Arqueólogo de Software & Modernização](cobol/AGENTE_REVERSA_COBOL.MD)**
+    *   **Missão**: Desvendar lógicas complexas em programas legados e propor caminhos de modernização para Java.
+    *   **Como usar**: No chat, digite `@AGENTE_REVERSA_COBOL.MD ...` e selecione seu código COBOL para iniciar a engenharia reversa.
+
 ---
 
 ## 🎭 Perfis Planejados por Categoria:

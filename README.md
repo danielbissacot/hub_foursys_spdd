@@ -34,7 +34,7 @@ Para conectar qualquer projeto ao Hub e ativar os Mentores de IA, basta usar o *
 ---
 > [!TIP]
 > **Precisa de instalação via terminal ou mais detalhes?** 
-> Acesse o [**Guia de Conexão Completo (GitLab)**](GUIA_CONEXAO_GITLAB.MD) para conferir todas as opções de integração e automação.
+> Acesse o [**Guia de Conexão Completo (GitLab)**](GUIA_CONEXAO_GITLAB.md) para conferir todas as opções de integração e automação.
 
 ---
 

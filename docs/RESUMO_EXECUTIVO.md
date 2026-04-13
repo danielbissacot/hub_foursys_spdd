@@ -49,10 +49,18 @@ Elevamos o Hub de um repositório técnico para um **Portal de Documentação Vi
 
 ---
 
-## 🚀 Como usar (Fluxo do Desenvolvedor)
-1.  **Configuração**: O projeto se conecta ao Hub com um comando simples no terminal.
-2.  **Execução**: O dev utiliza os templates de `/templates` para a arquitetura base.
-3.  **Refino**: Navega visualmente pelas **Skills** e aciona a IA via atalhos para implementar integrações complexas (Kafka, Feign, etc).
+## 🚀 Conecte seu Microserviço em 2 Segundos
+
+Para conectar qualquer projeto ao Hub e ativar os Mentores de IA, basta usar o **Prompt de Ouro**:
+
+> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta ai-rules de forma simplificada. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização flat. 3. Configure o .git/info/exclude."**
+
+---
+> [!TIP]
+> **Precisa de instalação via terminal ou mais detalhes?** 
+> Acesse o [**Guia de Conexão Completo (GitLab)**](../GUIA_CONEXAO_GITLAB.MD) para conferir todas as opções de integração e automação.
+
+---
 
 ---
 ![AI Governance Hub - Arquitetura](./assets/hub_ia_infographic.png)

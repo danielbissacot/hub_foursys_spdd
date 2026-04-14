@@ -8,7 +8,7 @@ Escolha **UMA** das opções abaixo para conectar este Microserviço ao Hub de G
 
 Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela fará toda a configuração, download e limpeza sozinha:
 
-> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; if (Test-Path .gitignore) { (Get-Content .gitignore) | Where-Object { $_ -notmatch 'ai-rules' } | Set-Content .gitignore }; if (Test-Path .git/info/exclude) { (Get-Content .git/info/exclude) | Where-Object { $_ -notmatch 'ai-rules' } | Set-Content .git/info/exclude }; git rm -r --cached ai-rules 2>$null; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; Remove-Item -Path .temp -Recurse -Force`. 2. ROBÔ GITLAB: Crie o arquivo `.gitlab-ci.yml` na raiz com o conteúdo YAML que vou te passar agora. 3. Me avise quando terminar para eu usar o `#`."**
+> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force`. 2. ROBÔ GITLAB: Crie o arquivo `.gitlab-ci.yml` na raiz com o conteúdo oficial do Hub. 3. Me avise quando terminar para eu usar o `#`."**
 >
 > ```yaml
 > stages:
@@ -45,7 +45,7 @@ Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela far�
 Se você prefere o terminal, copie e cole este comando (Windows) na raiz do seu projeto:
 
 ```powershell
-Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; if (Test-Path .gitignore) { (Get-Content .gitignore) | Where-Object { $_ -notmatch 'ai-rules' } | Set-Content .gitignore }; if (Test-Path .git/info/exclude) { (Get-Content .git/info/exclude) | Where-Object { $_ -notmatch 'ai-rules' } | Set-Content .git/info/exclude }; git rm -r --cached ai-rules -ErrorAction SilentlyContinue 2>$null; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; Remove-Item -Path .temp -Recurse -Force; echo "✅ Hub Conectado! Pasta ai-rules VISIVEL e COLORIDA. Use # no chat agora."
+Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; echo "✅ Hub Conectado com Sucesso! (Pasta Visível - Gatilho # Ativado)"
 ```
 
 ---

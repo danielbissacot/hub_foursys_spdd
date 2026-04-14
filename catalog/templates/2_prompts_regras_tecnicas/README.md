@@ -7,3 +7,4 @@ Esta pasta abriga os prompts destinados a **Tech Leads** e **Arquitetos**, usado
 | Arquivo | O que este prompt faz |
 |---------|---------|
 | `historia-tecnica.md` | Lê requisições de negócio e gera automaticamente uma Especificação Técnica robusta da Stack do projeto, contendo regras sistêmicas e um Diagrama de Sequência (Mermaid). |
+

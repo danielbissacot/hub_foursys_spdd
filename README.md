@@ -53,3 +53,4 @@ Este hub é mantido pela equipe para garantir a evolução contínua das nossas 
 ---
 > [!TIP]
 > *Um bom prompt economiza 80% do trabalho de refatoração. Use os templates!*
+

@@ -3,7 +3,7 @@
 Implementação declarativa de clientes REST para integrações entre microserviços com facilidade e resiliência.
 
 ### 🤖 Como acionar no Chat da IA:
-> **"@SKILL_SPRINGBOOT_FEIGN-CLIENT.md Crie o client Feign para integração com o serviço [Nome]"**
+> **"#SKILL_SPRINGBOOT_FEIGN-CLIENT.md Crie o client Feign para integração com o serviço [Nome]"**
 
 ### 📚 O que esta Skill entrega:
 - **Interfaces Declarativas**: Menos código "boilerplate" de infraestrutura.
@@ -11,5 +11,6 @@ Implementação declarativa de clientes REST para integrações entre microservi
 - **Padronização**: Mensagens de erro e logs uniformes.
 
 ### 🔗 Atalhos de Referência:
-- [Guia de Implementação](./SKILL_SPRINGBOOT_FEIGN_CLIENT.MD) 📖
+- [Guia de Implementação](./SKILL_SPRINGBOOT_FEIGN_CLIENT.md) 📖
+
 

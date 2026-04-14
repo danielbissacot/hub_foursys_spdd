@@ -53,7 +53,7 @@ Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue;
 ### 🛠️ O que foi configurado?
 
 * **Pasta `ai-rules/`**: Contém todos os prompts. A pasta deve estar **COLORIDA** (não ignorada) para que a IA do VS Code possa indexar os arquivos e o `#` funcione.
-* **Uso no Chat**: Agora você pode usar o **`#`** e começar a digitar o nome de qualquer prompt (ex: `#hexagonal`).
+* **Uso no Chat**: Agora você pode usar o **`#`** e começar a digitar o nome de qualquer prompt (ex: `#HEXAGONAL-JAVA`).
 * **Segurança**: A trava de segurança contra commits da `ai-rules` é garantida automaticamente pelo GitLab CI.
 
 ---
@@ -61,3 +61,4 @@ Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue;
 ### 🛡️ Nota para Gestores
 
 Este processo utiliza um Token de Acesso Seguro com nível **Reporter** (apenas leitura). As regras do Hub são centralizadas e imutáveis por este microserviço, garantindo a governança global.
+

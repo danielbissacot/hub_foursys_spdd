@@ -7,3 +7,4 @@ Esta pasta abriga os modelos voltados para **Analistas de Qualidade (QA)** e Lí
 | Arquivo | O que este prompt faz |
 |---------|---------|
 | `homologacao-negocio.md` | Cruza de forma autônoma o código do desenvolvedor com a História Ágil solicitada. Emite laudo de falhas funcionais e traduz todas as alterações de arquitetura em formato de "benefícios de negócio" para Diretores ou POs enxergarem o valor sem jargões técnicos. |
+

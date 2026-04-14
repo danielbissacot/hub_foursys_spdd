@@ -15,3 +15,4 @@ Cada subpasta contém um arquivo `SKILL_SPRINGBOOT_*.md` com instruções passo 
 ---
 > **Uso pelo Agente:** O Mentor (`MENTOR_ARCHITECT_SPRING_HEXAGONAL.md`) consulta estes roteiros para garantir que o código gerado siga exatamente os padrões da empresa, desde a porta de entrada até a resiliência da integração.
 
+

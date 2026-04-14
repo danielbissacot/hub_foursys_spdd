@@ -10,4 +10,5 @@ Nesta pasta estão as 5 Fases padronizadas do ciclo de vida da nossa entrega, ga
 - **5_templates_cobol**: Padronização, Modernização e manutenção de sistemas Mainframe.
 
 ---
-> **Como usar:** No Chat da IDE, use o `@` e selecione o prompt correspondente à fase de desenvolvimento em que você está.
+> **Como usar:** No Chat da IDE, use o `#` e selecione o prompt correspondente à fase de desenvolvimento em que você está.
+

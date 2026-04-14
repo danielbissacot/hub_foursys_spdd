@@ -3,11 +3,11 @@
 Bem-vindo ao braço de governança front-end do **AI Governance Hub**. Este módulo foi projetado para garantir que todos os nossos aplicativos Angular utilizem as práticas mais modernas e performáticas do framework.
 
 ## 🎭 O Seu Mentor: Arquiteto Angular
-O Agente especializado reside em `MENTOR_ARCHITECT_ANGULAR.MD`. Ele está configurado para ser o seu par durante o design de componentes, refatoração de serviços e revisões de código.
+O Agente especializado reside em `MENTOR_ARCHITECT_ANGULAR.md`. Ele está configurado para ser o seu par durante o design de componentes, refatoração de serviços e revisões de código.
 
 ### 🤖 Como usar no Chat:
 Para carregar o contexto do arquiteto, inicie sua conversa com:
-> **"@MENTOR_ARCHITECT_ANGULAR.MD [sua dúvida ou tarefa aqui]"**
+> **"#MENTOR_ARCHITECT_ANGULAR.md [sua dúvida ou tarefa aqui]"**
 
 ---
 
@@ -25,8 +25,9 @@ Para ser aprovado pelo Hub, o código Angular deve seguir estes 4 mandamentos:
 ## ⚙️ Skills Operacionais Disponíveis
 As habilidades práticas estão organizadas na pasta `/skills`. Elas contêm roteiros passo a passo para execuções complexas:
 
-- [**Angular Component**](./skills/angular-component/README.MD): Criação de componentes modernos com Acessibilidade (WCAG).
+- [**Angular Component**](./skills/angular-component/README.md): Criação de componentes modernos com Acessibilidade (WCAG).
 
 ---
-> **Dica de Produtividade**: Ao pedir para a IA criar uma tela nova, utilize o template de **Fase 2 (Regras Técnicas)** e mencione o `@MENTOR_ARCHITECT_ANGULAR.md` para que a arquitetura do front-end já nasça perfeita.
+> **Dica de Produtividade**: Ao pedir para a IA criar uma tela nova, utilize o template de **Fase 2 (Regras Técnicas)** e mencione o `#MENTOR_ARCHITECT_ANGULAR.md` para que a arquitetura do front-end já nasça perfeita.
+
 

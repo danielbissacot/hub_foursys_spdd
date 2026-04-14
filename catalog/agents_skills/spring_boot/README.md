@@ -2,7 +2,7 @@
 
 O Agente Spring Boot é um especialista em backend que implementa features seguindo padrões de qualidade, clean coding e boas práticas de engenharia de software da empresa. Ele gera código completo com testes unitários, validações e documentação seguindo a Arquitetura Hexagonal.
 
-Deve ser usado junto às **Instructions** de arquitetura do seu projeto (`@hexagonal-java.md`) e **Skills** de Spring Boot para um melhor resultado.
+Deve ser usado junto às **Instructions** de arquitetura do seu projeto (`#HEXAGONAL-JAVA.md`) e **Skills** de Spring Boot para um melhor resultado.
 
 ---
 
@@ -97,4 +97,5 @@ Você pode incluir informações técnicas específicas na seção **Informaçõ
 - **Defina critérios claros**: Use critérios de aceitação mensuráveis e objetivos.
 - **Adicione contexto técnico**: Quando souber requisitos específicos de infraestrutura, inclua-os.
 - **Pense em edge cases**: Considere também cenários alternativos e de erro na descrição.
+
 

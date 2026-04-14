@@ -45,7 +45,7 @@ Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela far�
 Se você prefere o terminal, copie e cole este comando (Windows) na raiz do seu projeto:
 
 ```powershell
-Remove-Item -Path ai-rules -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; echo "✅ Hub Conectado com Sucesso! (Pasta Visível - Indexação IA Ativada)"
+Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; if (Test-Path .gitignore) { (Get-Content .gitignore) | Where-Object { $_ -notmatch 'ai-rules' } | Set-Content .gitignore }; if (Test-Path .git/info/exclude) { (Get-Content .git/info/exclude) | Where-Object { $_ -notmatch 'ai-rules' } | Set-Content .git/info/exclude }; git rm -r --cached ai-rules -ErrorAction SilentlyContinue 2>$null; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; Remove-Item -Path .temp -Recurse -Force; echo "✅ Hub Conectado! Pasta ai-rules VISIVEL e COLORIDA. Use # no chat agora."
 ```
 
 ---

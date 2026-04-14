@@ -25,16 +25,9 @@ Nossas diretrizes de IA estão otimizadas para:
 
 ---
 
-## 🚀 Conecte seu Microserviço em 2 Segundos
+## 🚀 Como Conectar seu Projeto?
 
-Para conectar qualquer projeto ao Hub e ativar os Mentores de IA, basta usar o **Prompt de Ouro**:
-
-> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta ai-rules de forma simplificada. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização flat. 3. Configure o .git/info/exclude."**
-
----
-> [!TIP]
-> **Precisa de instalação via terminal ou mais detalhes?** 
-> Acesse o [**Guia de Conexão Completo (GitLab)**](GUIA_CONEXAO_GITLAB.md) para conferir todas as opções de integração e automação.
+> Acesse o [**Guia de Conexão Completo (GitLab)**](GUIA_CONEXAO_GITLAB.md) para conferir nossa solução de integração automática *One-Liner*. Em apenas 2 segundos seu projeto estará conectado e validado!
 
 ---
 

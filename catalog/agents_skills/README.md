@@ -23,6 +23,12 @@ Nesta pasta ficam as "Personas" da IA – perfis de especialistas com conhecimen
     *   **Missão**: Desvendar lógicas complexas em programas legados e propor caminhos de modernização para Java.
     *   **Como usar**: No chat, digite `#AGENTE_REVERSA_COBOL.md ...` e selecione seu código COBOL para iniciar a engenharia reversa.
 
+### 💼 Negócios (Business)
+*   🧑‍💼 **[Agente de Refinamento Ágil](business/AGENTE_REFINAMENTO.md)**
+    *   **Missão**: Transformar rascunhos e ideias em User Stories padrão INVEST com especificações técnicas.
+    *   **Como usar**: No chat, digite `#AGENTE_REFINAMENTO.md` e forneça o conteúdo do arquivo na pasta `backlog/input/`.
+
+
 ---
 
 ## 🎭 Perfis Planejados por Categoria:

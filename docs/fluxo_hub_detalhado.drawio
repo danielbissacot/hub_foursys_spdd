@@ -50,23 +50,23 @@
           <mxGeometry x="1380" y="320" width="180" height="70" as="geometry" />
         </mxCell>
 
-        <!-- Conectores de Ativos (Verticais) -->
-        <mxCell id="c1" edge="1" parent="1" source="step1" target="asset1" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+        <!-- Conectores de Ativos (Vermelhos Sólidos com Ponta) -->
+        <mxCell id="c1" edge="1" parent="1" source="step1" target="asset1" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=2;endArrow=classic;startArrow=none;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c2" edge="1" parent="1" source="step2" target="asset2" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+        <mxCell id="c2" edge="1" parent="1" source="step2" target="asset2" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=2;endArrow=classic;startArrow=none;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c3" edge="1" parent="1" source="step3" target="asset3" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+        <mxCell id="c3" edge="1" parent="1" source="step3" target="asset3" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=2;endArrow=classic;startArrow=none;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c4" edge="1" parent="1" source="step4" target="asset4" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+        <mxCell id="c4" edge="1" parent="1" source="step4" target="asset4" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=2;endArrow=classic;startArrow=none;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c5" edge="1" parent="1" source="step5" target="asset5" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+        <mxCell id="c5" edge="1" parent="1" source="step5" target="asset5" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=2;endArrow=classic;startArrow=none;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="c6" edge="1" parent="1" source="step6" target="asset6" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+        <mxCell id="c6" edge="1" parent="1" source="step6" target="asset6" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FF0000;strokeWidth=2;endArrow=classic;startArrow=none;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 

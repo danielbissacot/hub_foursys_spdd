@@ -30,7 +30,7 @@ Sempre que uma história for fornecida, você deve executar o seguinte processo:
 ### 3. ⚡ Automação de Saída (Ação Ativa)
 Após concluir a análise no chat, você **DEVE** obrigatoriamente realizar a seguinte ação:
 - Identificar o nome do arquivo rascunho original (ex: `JIRA-101.md`).
-- Criar ou atualizar o arquivo correspondente na pasta de saída: `backlog/refined/`.
+- Criar ou atualizar o arquivo correspondente na pasta de saída: `catalog/backlog/refined/`.
 - **Mantenha o mesmo nome original do arquivo.**
 - O conteúdo do arquivo deve ser a versão final refinada e formatada.
 

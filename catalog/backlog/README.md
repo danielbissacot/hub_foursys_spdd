@@ -17,4 +17,4 @@ Sempre que você colocar uma nova história na pasta `input/`, abra o arquivo no
 3.  O Agente processará o arquivo e sugerirá a versão final para ser movida para a pasta `refined/`.
 
 ---
-> **Dica:** Use o template `catalog/templates/1_prompts_historias/REFINAMENTO_AGIL.md` como base para criar seus rascunhos iniciais.
+> **Dica:** Use o template `templates/1_prompts_historias/REFINAMENTO_AGIL.md` como base para criar seus rascunhos iniciais.

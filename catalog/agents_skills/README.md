@@ -26,7 +26,7 @@ Nesta pasta ficam as "Personas" da IA – perfis de especialistas com conhecimen
 ### 💼 Negócios (Business)
 *   🧑‍💼 **[Agente de Refinamento Ágil](business/AGENTE_REFINAMENTO.md)**
     *   **Missão**: Transformar rascunhos e ideias em User Stories padrão INVEST com especificações técnicas.
-    *   **Como usar**: No chat, digite `#AGENTE_REFINAMENTO.md` e forneça o conteúdo do arquivo na pasta `backlog/input/`.
+    *   **Como usar**: No chat, digite `#AGENTE_REFINAMENTO.md` e forneça o conteúdo do arquivo na pasta `catalog/backlog/input/`.
 
 
 ---

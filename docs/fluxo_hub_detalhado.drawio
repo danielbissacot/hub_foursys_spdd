@@ -1,0 +1,102 @@
+<mxfile host="Electron" version="21.6.8" type="device">
+  <diagram id="fluxo-detalhado" name="Esteira Detalhada com Ativos">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Título -->
+        <mxCell id="title" value="ESTEIRA DE VALOR DETALHADA - ATIVOS DO HUB IA" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#003366;" vertex="1" parent="1">
+          <mxGeometry x="527" y="40" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- CAMADA 1: ETAPAS PRINCIPAIS -->
+        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos GitLab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="&lt;b&gt;2. REFINAMENTO&lt;/b&gt;&lt;br&gt;Fase 1: Histórias" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="&lt;b&gt;3. ARQUITETURA&lt;/b&gt;&lt;br&gt;Padrões Java/COBOL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="&lt;b&gt;4. CONSTRUÇÃO&lt;/b&gt;&lt;br&gt;Skills e Fase 5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" value="&lt;b&gt;5. VALIDAÇÃO&lt;/b&gt;&lt;br&gt;Fase 3: Testes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step6" value="&lt;b&gt;6. ENTREGA&lt;/b&gt;&lt;br&gt;Fase 4: MR Docs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- CAMADA 2: ATIVOS DO HUB (NOVO) -->
+        <mxCell id="asset1" value="&lt;i&gt;Trigger:&lt;/i&gt;&lt;br&gt;&lt;b&gt;GitLab Webhooks&lt;/b&gt;&lt;br&gt;Lab Automation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="asset2" value="&lt;i&gt;Prompts:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#ESTORIA_USUARIO.md&lt;/b&gt;&lt;br&gt;#GERADOR_CRITERIOS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="320" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="asset3" value="&lt;i&gt;Instructions:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#HEXAGONAL-JAVA.md&lt;/b&gt;&lt;br&gt;#MENTOR_ARCHITECT.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="320" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="asset4" value="&lt;i&gt;Skills e Mainframe:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#SKILL_SPRINGBOOT.md&lt;/b&gt;&lt;br&gt;#MODERNIZA_COBOL.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="320" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="asset5" value="&lt;i&gt;Validators:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#CODE_REVIEW_TECNICO.md&lt;/b&gt;&lt;br&gt;#TESTE_UNITARIO.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="320" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="asset6" value="&lt;i&gt;Delivery:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#RELEASE_NOTES.md&lt;/b&gt;&lt;br&gt;#COMMIT_PATTERN.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;strokeWidth=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="320" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Conectores de Ativos (Verticais) -->
+        <mxCell id="c1" edge="1" parent="1" source="step1" target="asset1" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" edge="1" parent="1" source="step2" target="asset2" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" edge="1" parent="1" source="step3" target="asset3" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" edge="1" parent="1" source="step4" target="asset4" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" edge="1" parent="1" source="step5" target="asset5" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" edge="1" parent="1" source="step6" target="asset6" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;endArrow=none;startArrow=none;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SETAS DE FLUXO (IDA) -->
+        <mxCell id="f1" edge="1" parent="1" source="step1" target="step2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#1565C0;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="170" y="150" /><mxPoint x="430" y="150" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f2" edge="1" parent="1" source="step2" target="step3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#2E7D32;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="430" y="150" /><mxPoint x="690" y="150" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f3" edge="1" parent="1" source="step3" target="step4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#EF6C00;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="690" y="150" /><mxPoint x="950" y="150" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4" edge="1" parent="1" source="step4" target="step5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7B1FA2;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="950" y="150" /><mxPoint x="1210" y="150" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f5" edge="1" parent="1" source="step5" target="step6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#C2185B;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1210" y="150" /><mxPoint x="1470" y="150" /></Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

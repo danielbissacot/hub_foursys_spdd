@@ -6,10 +6,27 @@ metadata:
   version: "0.0.1"
 ---
 
-# Template: Geração de Comentários e Documentação
+# 📖 Template: Documentação e Comentários
 
-**Instruções de Uso:**
-Use este prompt para documentar programas legados que possuem pouca ou nenhuma explicação interna. A IA irá "traduzir" a lógica técnica para comentários em português e gerar um manual técnico sucinto.
+> [!NOTE]
+> **Propósito:** Utilize este template como o **primeiro passo** na análise de programas COBOL legados ou "caixa preta". Ele foca em aumentar a legibilidade imediata sem alterar a lógica.
+
+---
+
+### 🗺️ Contexto de Uso
+Este template faz parte da fase de **Compreensão e Documentação**. Ele é ideal para:
+- Realizar o "onboarding" técnico em um módulo desconhecido.
+- Preparar o código para futuras manutenções ou modernizações.
+- Gerar documentação técnica rápida para auditorias ou novos membros da equipe.
+
+---
+
+### 🚀 Instruções de Uso
+
+1.  **Copie** o [Comando Base](#-comando-base-do-sistema) abaixo.
+2.  **Cole** o comando na sua ferramenta de IA de preferência.
+3.  **Anexe** o código COBOL (CBL, CCP ou CPY) que deseja documentar.
+4.  **Revise** os comentários inline gerados e o resumo de negócio ao final.
 
 ---
 
@@ -23,7 +40,7 @@ Sua tarefa é dobrar a legibilidade do código COBOL fornecido, realizando duas 
 ### 🛠️ Ação 1: Comentários Inline
 - Adicione comentários detalhados em **Português** precedendo cada Paragraph ou Section.
 - Explique o *objetivo* de cada bloco, não apenas repita a sintaxe.
-- Garanta que os comentários fiquem na área de comentários do COBOL (geralmente iniciando na coluna 7 com um asterisco '*').
+- Garanta que os comentários fiquem na área de comentários do COBOL (gerualmente iniciando na coluna 7 com um asterisco '*').
 
 ### 🛠️ Ação 2: Resumo Técnico (Documentação)
 Após o código comentado, gere um resumo técnico contendo:
@@ -35,3 +52,9 @@ Após o código comentado, gere um resumo técnico contendo:
 ### 💻 Código para Documentar:
 [Cole o trecho de código COBOL aqui]
 ```
+
+---
+
+> [!TIP]
+> Para uma análise ainda mais profunda voltada para modernização Java, considere utilizar o template de `ENGENHARIA_REVERSA_COMPLETA.md` após concluir esta etapa.
+

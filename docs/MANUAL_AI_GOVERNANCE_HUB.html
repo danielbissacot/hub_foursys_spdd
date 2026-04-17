@@ -150,6 +150,11 @@
             transition: opacity 0.2s;
         }
 
+        .btn-gitlab:hover {
+            opacity: 0.9;
+            color: white;
+        }
+
         .copy-banner {
             background-color: #0284c7;
             color: white;
@@ -159,6 +164,18 @@
             display: inline-block;
             font-weight: bold;
             text-transform: uppercase;
+        }
+
+        .req-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .req-icon {
+            color: var(--accent-color);
+            margin-right: 12px;
+            font-size: 1.2rem;
         }
 
         /* Responsividade */
@@ -181,6 +198,7 @@
         </a>
         <div class="nav flex-column">
             <a class="nav-link active" href="#coracao">🎯 O Coração</a>
+            <a class="nav-link" href="#requisitos">📋 Pré-requisitos</a>
             <a class="nav-link" href="#conexao">⚡ Conexão GitLab</a>
             <a class="nav-link" href="#vscode">💻 Uso no VS Code</a>
             <a class="nav-link" href="#constituicao">📜 A Constituição</a>
@@ -203,17 +221,34 @@
             </div>
         </section>
 
-        <!-- RESTAURAÇÃO: Comando completo PowerShell + YAML do GitLab -->
+        <!-- SEÇÃO: Pré-requisitos (Completado) -->
+        <section id="requisitos" class="mb-5">
+            <h2 class="mb-4">📋 Pré-requisitos</h2>
+            <div class="feature-card border-warning" style="border-left: 5px solid #ffc107 !important;">
+                <p class="text-muted mb-4">Antes de iniciar a conexão, certifique-se de que seu ambiente cumpre os requisitos abaixo:</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="req-item"><span class="req-icon">🪟</span><span><strong>VS Code:</strong> Instalado na máquina.</span></div>
+                        <div class="req-item"><span class="req-icon">🤖</span><span><strong>GitCopilot/IA:</strong> Acesso ativo à licença do Cliente.</span></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="req-item"><span class="req-icon">Fox</span><span><strong>GitLab Foursys:</strong> Acesso ao Hub.</span></div>
+                        <div class="req-item text-danger"><span class="req-icon">🔒</span><span><strong>VPN Foursys:</strong> Ativa (obrigatório para clonar).</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: Conexão (Completado) -->
         <section id="conexao" class="mb-5">
             <h2 class="mb-4">⚡ Guia de Conexão (GitLab)</h2>
-            <p class="text-muted mb-4">Abaixo está a instrução completa. Copie o bloco inteiro e envie para o Chat da sua IA para automatizar a configuração.</p>
-            
+            <p class="text-muted mb-4">Abaixo está a instrução completa. Copie o bloco inteiro e envie para o Chat da sua IA.</p>
             <div class="feature-card">
                 <div class="copy-banner">Instrução Completa para o Chat</div>
                 <pre><code>"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 
 
 1. No terminal, execute: 
-Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt.
+Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt
 
 2. ROBÔ GITLAB: Crie o arquivo .gitlab-ci.yml na raiz com o conteúdo oficial do Hub:
 
@@ -242,15 +277,13 @@ sincronizar-ia-hub:
       - ai-rules/
 
 3. Me avise quando terminar para eu usar o #."</code></pre>
-                
                 <div class="mt-4">
-                    <a href="https://gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub" target="_blank" class="btn-gitlab">
-                        Ver Repositório Oficial no GitLab
-                    </a>
+                    <a href="https://gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub" target="_blank" class="btn-gitlab">Ver Repositório Oficial no GitLab</a>
                 </div>
             </div>
         </section>
 
+        <!-- SEÇÃO: VS Code (RESTAURADA) -->
         <section id="vscode" class="mb-5">
             <div class="feature-card">
                 <h2 class="mb-4">💻 Como usar no VS Code</h2>
@@ -268,81 +301,55 @@ sincronizar-ia-hub:
                     <div class="col-md-4">
                         <h1 class="accent-text mb-3 fw-bold">🎯</h1>
                         <h5>Resultado Focado</h5>
-                        <p class="small text-muted">A IA gera o código respeitando todas as instruções de segurança e qualidade.</p>
+                        <p class="small text-muted">A IA gera o código respeitando todas as instruções corporativas.</p>
                     </div>
                 </div>
             </div>
         </section>
 
+        <!-- SEÇÃO: Constituição (RESTAURADA) -->
         <section id="constituicao" class="mb-5">
             <div class="feature-card">
                 <h2 class="mb-4">📜 A "Constituição" da IA <small class="text-muted" style="color: var(--accent-color) !important;">(instructions)</small></h2>
-                <p class="text-muted">Regras globais que garantem uma fundação técnica sólida.</p>
-                <div class="row g-4 mt-4 text-center">
-                    <div class="col-md-6">
-                        <div class="p-3 border rounded-3 bg-light">
-                            <h4 class="accent-text mb-1">🛡️ Segurança</h4>
-                            <p class="small text-muted m-0">Zero vazamento de dados corporativos.</p>
-                        </div>
+                <div class="row g-4 mt-4">
+                    <div class="col-md-6 border-start border-primary border-3 ps-4">
+                        <h4 class="accent-text">🛡️ Segurança</h4>
+                        <p class="small text-muted">Conformidade total e zero vazamento de segredos.</p>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 border rounded-3 bg-light">
-                            <h4 class="accent-text mb-1">💎 Qualidade</h4>
-                            <p class="small text-muted m-0">Clean Code e SOLID por padrão.</p>
-                        </div>
+                    <div class="col-md-6 border-start border-primary border-3 ps-4">
+                        <h4 class="accent-text">💎 Qualidade</h4>
+                        <p class="small text-muted">Clean Code, SOLID e padronização Foursys.</p>
                     </div>
                 </div>
             </div>
         </section>
 
+        <!-- SEÇÃO: Cartuchos (RESTAURADA COM EXEMPLO REAL) -->
         <section id="cartuchos" class="mb-5">
             <div class="feature-card">
                 <h2 class="mb-4">🛠️ Cartuchos de Especialistas <small class="text-muted" style="color: var(--accent-color) !important;">(skills)</small></h2>
-                <p class="text-muted mb-4">Combine a intenção do seu negócio com as regras do Hub para resultados perfeitos.</p>
-                
                 <div class="mb-4">
-                    <span class="badge-skill">☕ Java / Spring Boot</span>
-                    <span class="badge-skill">🅰️ Angular Frontend</span>
-                    <span class="badge-skill">📜 Mainframe COBOL</span>
-                    <span class="badge-skill">🧪 DevOps & QA</span>
+                    <span class="badge-skill">☕ Java / Spring</span><span class="badge-skill">🅰️ Angular</span><span class="badge-skill">📜 COBOL</span><span class="badge-skill">🧪 DevOps/QA</span>
                 </div>
-                
                 <div class="p-4 rounded-3 border bg-light">
                     <p class="mb-2 small text-muted font-monospace">// Exemplo de Prompt Especialista:</p>
-                    <strong class="text-dark d-block mb-2" style="font-size: 1rem; line-height: 1.6;">
-                        "Utilize a skill <span class="accent-text">#SKILL_SPRINGBOOT_REST_CLIENT.md</span> seguindo as regras de <span class="accent-text">#HEXAGONAL_JAVA.md</span> para criar um método que consulta o saldo via API."
-                    </strong>
-                    <p class="small text-success m-0 fw-bold">✓ Resultado: Código padronizado e seguro conforme as regras da Foursys.</p>
+                    <strong class="text-dark d-block" style="font-size: 1rem; line-height: 1.6;">"Utilize a skill #SKILL_SPRINGBOOT_REST_CLIENT.md seguindo as regras de #HEXAGONAL_JAVA.md para criar um método que consulta o saldo via API."</strong>
                 </div>
             </div>
         </section>
 
+        <!-- SEÇÃO: Mapa de Ativos (RESTAURADA) -->
         <section id="mapa" class="mb-5">
             <h2 class="mb-4">📂 Mapa de Ativos</h2>
             <div class="feature-card">
-                <p class="text-muted mb-4">Sabe quando você digita <code>#</code> no VS Code? A lista que aparece vem destes diretórios organizados no Hub. Conheça as responsabilidades de cada um:</p>
-                
+                <p class="text-muted mb-4">Estes são os diretórios que a IA consulta via hashtag (#):</p>
                 <div class="table-responsive rounded-3 border">
                     <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Diretório</th>
-                                <th>Responsabilidade dos Arquivos</th>
-                            </tr>
-                        </thead>
+                        <thead class="table-light"><tr><th>Pasta</th><th>Descrição</th></tr></thead>
                         <tbody>
-                            <tr>
-                                <td><code class="text-dark">catalog/instructions</code></td>
-                                <td class="small text-muted">A "Constituição". Define regras globais de segurança, arquitetura e qualidade.</td>
-                            </tr>
-                            <tr>
-                                <td><code class="text-dark">catalog/agents_skills</code></td>
-                                <td class="small text-muted">Os "Especialistas". Instruções focadas em tecnologias específicas (Java, Angular, etc).</td>
-                            </tr>
-                            <tr>
-                                <td><code class="text-dark">catalog/templates</code></td>
-                                <td class="small text-muted">A "Planta Baixa". Modelos oficiais para histórias de usuário e estruturas de código.</td>
-                            </tr>
+                            <tr><td><code>catalog/instructions</code></td><td class="small text-muted">As Leis Globais de governança.</td></tr>
+                            <tr><td><code>catalog/agents_skills</code></td><td class="small text-muted">Experts especializados por linguagem.</td></tr>
+                            <tr><td><code>catalog/templates</code></td><td class="small text-muted">Modelos e plantas arquitetônicas oficiais.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -352,7 +359,6 @@ sincronizar-ia-hub:
         <footer class="text-center text-muted mt-5 pb-5 border-top pt-4">
             <p class="small fw-bold">© 2026 AI Governance Hub - Foursys</p>
         </footer>
-
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

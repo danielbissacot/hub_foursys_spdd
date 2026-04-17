@@ -13,6 +13,6 @@ Cada subpasta contém um arquivo `SKILL_SPRINGBOOT_*.md` com instruções passo 
 - [**springboot-testing**](./springboot-testing): Guia completo de qualidade técnica cobrindo Domínio, UseCases, Adapters e Padrões Avançados.
 
 ---
-> **Uso pelo Agente:** O Mentor (`MENTOR_ARCHITECT_SPRING_HEXAGONAL.md`) consulta estes roteiros para garantir que o código gerado siga exatamente os padrões da empresa, desde a porta de entrada até a resiliência da integração.
+> **Uso pelo Agente:** O Agente Foursys (`AGENTE_FOURSYS.md`) consulta estes roteiros para garantir que o código gerado siga exatamente os padrões da empresa, desde a porta de entrada até a resiliência da integração.
 
 

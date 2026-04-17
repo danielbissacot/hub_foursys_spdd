@@ -5,11 +5,11 @@ Nesta pasta ficam as "Personas" da IA – perfis de especialistas com conhecimen
 ## 🎭 Agentes Ativos:
 
 ### 🍃 Spring Boot
-*   🧑‍💻 **[Seu Mentor: Spring Boot & Arquitetura Hexagonal](spring_boot/MENTOR_ARCHITECT_SPRING_HEXAGONAL.md)**
+*   🧑‍💻 **[Seu Agente: Foursys Spring Boot & Arquitetura Hexagonal](spring_boot/AGENTE_FOURSYS.md)**
     *   📖 **[Guia de Uso: Como interagir via User Stories](spring_boot/README.md)**
     *   🛠️ **[Skills de Elite: Ações Técnicas Padronizadas](spring_boot/skills/README.md)**
     *   **Missão**: Ser o seu braço direito técnico e mentor em Java, SOLID e Hexagonal.
-    *   **Como usar**: No chat, digite `#MENTOR_ARCHITECT_SPRING_HEXAGONAL.md ...` e peça uma mentoria ou revisão utilizando as Skills disponíveis.
+    *   **Como usar**: No chat, digite `#AGENTE_FOURSYS.md ...` e peça uma mentoria ou revisão utilizando as Skills disponíveis.
 
 ### 🎨 Frontend (Angular)
 *   🧑‍💻 **[Seu Mentor: Angular Architect & Signals](angular/MENTOR_ARCHITECT_ANGULAR.md)**

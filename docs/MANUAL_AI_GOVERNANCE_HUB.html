@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Usuário | AI Governance Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --accent-color: #0284c7;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --border-color: #e2e8f0;
+            --highlight: #0369a1;
+            --code-bg: #1e293b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            height: 100vh;
+            width: 280px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1.5rem;
+            z-index: 1000;
+        }
+
+        .sidebar-brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--accent-color);
+            margin-bottom: 2.5rem;
+            display: block;
+            text-decoration: none;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: #f0f9ff;
+            color: var(--accent-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 4rem;
+            max-width: 1100px;
+        }
+
+        /* Cards */
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        h1, h2, h3 {
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .accent-text {
+            color: var(--accent-color);
+        }
+
+        .impact-phrase {
+            font-size: 1.1rem;
+            font-style: italic;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 1.5rem;
+            margin: 2rem 0;
+            color: var(--highlight);
+            background-color: #f0f9ff;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--code-bg);
+            color: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        code {
+            color: #38bdf8;
+        }
+
+        .badge-skill {
+            background-color: #f0f9ff;
+            color: var(--accent-color);
+            border: 1px solid #bae6fd;
+            padding: 0.5rem 0.8rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        .btn-gitlab {
+            background-color: #f47023;
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: opacity 0.2s;
+        }
+
+        .copy-banner {
+            background-color: #0284c7;
+            color: white;
+            padding: 5px 15px;
+            font-size: 0.75rem;
+            border-radius: 5px 5px 0 0;
+            display: inline-block;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Responsividade */
+        @media (max-width: 992px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <a href="#" class="sidebar-brand">
+            🧠 AI Governance Hub
+        </a>
+        <div class="nav flex-column">
+            <a class="nav-link active" href="#coracao">🎯 O Coração</a>
+            <a class="nav-link" href="#conexao">⚡ Conexão GitLab</a>
+            <a class="nav-link" href="#vscode">💻 Uso no VS Code</a>
+            <a class="nav-link" href="#constituicao">📜 A Constituição</a>
+            <a class="nav-link" href="#cartuchos">🛠️ Cartuchos/Skills</a>
+            <a class="nav-link" href="#mapa">📂 Mapa de Ativos</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        
+        <section id="coracao" class="mb-5">
+            <h1 class="display-5 mb-4 fw-bold">Manual de Onboarding</h1>
+            <div class="feature-card">
+                <h2 class="mb-3">🎯 O Coração da Governança</h2>
+                <p class="lead" style="color: var(--text-main);">O Hub é o "Cérebro" e a "Constituição" das nossas IAs de desenvolvimento.</p>
+                <p class="text-muted">Garantimos que cada linha de código gerada pela IA siga rigorosamente as diretrizes da nossa empresa, unindo produtividade com segurança absoluta.</p>
+                <div class="impact-phrase">
+                    "Não é apenas IA, é Inteligência Governada."
+                </div>
+            </div>
+        </section>
+
+        <!-- RESTAURAÇÃO: Comando completo PowerShell + YAML do GitLab -->
+        <section id="conexao" class="mb-5">
+            <h2 class="mb-4">⚡ Guia de Conexão (GitLab)</h2>
+            <p class="text-muted mb-4">Abaixo está a instrução completa. Copie o bloco inteiro e envie para o Chat da sua IA para automatizar a configuração.</p>
+            
+            <div class="feature-card">
+                <div class="copy-banner">Instrução Completa para o Chat</div>
+                <pre><code>"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 
+
+1. No terminal, execute: 
+Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt.
+
+2. ROBÔ GITLAB: Crie o arquivo .gitlab-ci.yml na raiz com o conteúdo oficial do Hub:
+
+stages:
+  - validate
+  - build
+
+# TRAVA DE SEGURANÇA: Bloqueia se alguém commitar as regras indevidamente
+validar-limpeza-hub:
+  stage: validate
+  script:
+    - if [ -d "ai-rules" ]; then echo "🛑 ERRO CRÍTICO! A pasta 'ai-rules' foi commitada no projeto. Remova-a e use o .gitignore corretamente."; exit 1; fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+# TAREFA DE SINCRONIZAÇÃO: Puxa as regras para uso em tempo de build
+sincronizar-ia-hub:
+  stage: build
+  script:
+    - mkdir ai-rules
+    - git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp
+    - cp -r .temp/catalog/* ai-rules/
+    - rm -rf .temp
+  artifacts:
+    paths:
+      - ai-rules/
+
+3. Me avise quando terminar para eu usar o #."</code></pre>
+                
+                <div class="mt-4">
+                    <a href="https://gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub" target="_blank" class="btn-gitlab">
+                        Ver Repositório Oficial no GitLab
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="vscode" class="mb-5">
+            <div class="feature-card">
+                <h2 class="mb-4">💻 Como usar no VS Code</h2>
+                <div class="row g-4 mt-2 text-center">
+                    <div class="col-md-4">
+                        <h1 class="accent-text mb-3 fw-bold">#</h1>
+                        <h5>Gatilho Hashtag</h5>
+                        <p class="small text-muted">Digite <code>#</code> no chat para ver a lista de agentes e regras do Hub.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h1 class="accent-text mb-3 fw-bold">Contexto</h1>
+                        <h5>Seleção de Regras</h5>
+                        <p class="small text-muted">Selecione <code>#HEXAGONAL_JAVA.md</code> para que a IA aplique esse padrão.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h1 class="accent-text mb-3 fw-bold">🎯</h1>
+                        <h5>Resultado Focado</h5>
+                        <p class="small text-muted">A IA gera o código respeitando todas as instruções de segurança e qualidade.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="constituicao" class="mb-5">
+            <div class="feature-card">
+                <h2 class="mb-4">📜 A "Constituição" da IA <small class="text-muted" style="color: var(--accent-color) !important;">(instructions)</small></h2>
+                <p class="text-muted">Regras globais que garantem uma fundação técnica sólida.</p>
+                <div class="row g-4 mt-4 text-center">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <h4 class="accent-text mb-1">🛡️ Segurança</h4>
+                            <p class="small text-muted m-0">Zero vazamento de dados corporativos.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <h4 class="accent-text mb-1">💎 Qualidade</h4>
+                            <p class="small text-muted m-0">Clean Code e SOLID por padrão.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cartuchos" class="mb-5">
+            <div class="feature-card">
+                <h2 class="mb-4">🛠️ Cartuchos de Especialistas <small class="text-muted" style="color: var(--accent-color) !important;">(skills)</small></h2>
+                <p class="text-muted mb-4">Combine a intenção do seu negócio com as regras do Hub para resultados perfeitos.</p>
+                
+                <div class="mb-4">
+                    <span class="badge-skill">☕ Java / Spring Boot</span>
+                    <span class="badge-skill">🅰️ Angular Frontend</span>
+                    <span class="badge-skill">📜 Mainframe COBOL</span>
+                    <span class="badge-skill">🧪 DevOps & QA</span>
+                </div>
+                
+                <div class="p-4 rounded-3 border bg-light">
+                    <p class="mb-2 small text-muted font-monospace">// Exemplo de Prompt Especialista:</p>
+                    <strong class="text-dark d-block mb-2" style="font-size: 1rem; line-height: 1.6;">
+                        "Utilize a skill <span class="accent-text">#SKILL_SPRINGBOOT_REST_CLIENT.md</span> seguindo as regras de <span class="accent-text">#HEXAGONAL_JAVA.md</span> para criar um método que consulta o saldo via API."
+                    </strong>
+                    <p class="small text-success m-0 fw-bold">✓ Resultado: Código padronizado e seguro conforme as regras da Foursys.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="mapa" class="mb-5">
+            <h2 class="mb-4">📂 Mapa de Ativos</h2>
+            <div class="feature-card">
+                <p class="text-muted mb-4">Sabe quando você digita <code>#</code> no VS Code? A lista que aparece vem destes diretórios organizados no Hub. Conheça as responsabilidades de cada um:</p>
+                
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Diretório</th>
+                                <th>Responsabilidade dos Arquivos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code class="text-dark">catalog/instructions</code></td>
+                                <td class="small text-muted">A "Constituição". Define regras globais de segurança, arquitetura e qualidade.</td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-dark">catalog/agents_skills</code></td>
+                                <td class="small text-muted">Os "Especialistas". Instruções focadas em tecnologias específicas (Java, Angular, etc).</td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-dark">catalog/templates</code></td>
+                                <td class="small text-muted">A "Planta Baixa". Modelos oficiais para histórias de usuário e estruturas de código.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center text-muted mt-5 pb-5 border-top pt-4">
+            <p class="small fw-bold">© 2026 AI Governance Hub - Foursys</p>
+        </footer>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('.nav-link').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

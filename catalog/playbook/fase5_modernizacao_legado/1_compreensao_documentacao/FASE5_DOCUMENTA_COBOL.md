@@ -1,4 +1,4 @@
----
+﻿---
 applyTo: '**/*.cbl, **/*.ccp, **/*.cpy'
 name: Geração de Comentários e Documentação (COBOL)
 description: Adiciona comentários detalhados e gera um resumo técnico (input/output/negócio) de programas COBOL.
@@ -56,5 +56,5 @@ Após o código comentado, gere um resumo técnico contendo:
 ---
 
 > [!TIP]
-> Para uma análise ainda mais profunda voltada para modernização Java, considere utilizar o template de `ENGENHARIA_REVERSA_COMPLETA.md` após concluir esta etapa.
+> Para uma análise ainda mais profunda voltada para modernização Java, considere utilizar o template de `FASE5_REVERSA_COMPLETA_COBOL.md` após concluir esta etapa.
 

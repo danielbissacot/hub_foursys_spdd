@@ -1,4 +1,4 @@
-<mxfile host="Electron" version="21.6.8" type="device">
+﻿<mxfile host="Electron" version="21.6.8" type="device">
   <diagram id="fluxo-enterprise-v1-2" name="Esteira Enterprise Alta Fidelidade">
     <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -49,10 +49,10 @@
         <mxCell id="asset3" value="&lt;i&gt;Arquitetura &amp; Mentoria:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#MENTOR_SPRING_HEX.md&lt;/b&gt;&lt;br&gt;#HEXAGONAL-JAVA.md | #ANGULAR.md&lt;br&gt;#SOLID-CLEAN-CODE.md&lt;br&gt;#SECURITY-COMPLIANCE.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="600" y="325" width="180" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="asset4" value="&lt;i&gt;Mão na Massa (Full Stack):&lt;/i&gt;&lt;br&gt;&lt;b&gt;#SKILL_SPRINGBOOT.md&lt;/b&gt;&lt;br&gt;&lt;b&gt;#SKILL_ANGULAR.md&lt;/b&gt;&lt;br&gt;#MENTOR_ANGULAR.md&lt;br&gt;#AGENTE_REVERSA_COBOL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset4" value="&lt;i&gt;Mão na Massa (Full Stack):&lt;/i&gt;&lt;br&gt;&lt;b&gt;#SKILL_SPRINGBOOT.md&lt;/b&gt;&lt;br&gt;&lt;b&gt;#SKILL_ANGULAR.md&lt;/b&gt;&lt;br&gt;#AGENTE_ANGULAR_FOURSYS.md&lt;br&gt;#AGENTE_COBOL_FOURSYS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="860" y="325" width="180" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="asset5" value="&lt;i&gt;Qualidade &amp; Compliance:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#VALIDACAO_HEXAGONAL.md&lt;/b&gt;&lt;br&gt;#CODE_REVIEW (SPRING/ANGULAR)&lt;br&gt;#TESTES_UNITARIOS (SPRING/ANGULAR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset5" value="&lt;i&gt;Qualidade &amp; Compliance:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#FASE3_VALIDACAO_HEXAGONAL.md&lt;/b&gt;&lt;br&gt;#FASE3_REVIEW (SPRING/ANGULAR)&lt;br&gt;#FASE3_TESTES (SPRING/ANGULAR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="1120" y="325" width="180" height="100" as="geometry" />
         </mxCell>
         <mxCell id="asset6" value="&lt;i&gt;Finalização Hub:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#RELEASE_NOTES.md&lt;/b&gt;&lt;br&gt;#GIT_COMMIT_PATTERN.md&lt;br&gt;#DOCUMENTACAO_API.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">

@@ -1,4 +1,4 @@
-# 🍃 Sobre o Agente Spring Boot
+# 🍃 Sobre o AGENTE_SPRING_FOURSYS
 
 O Agente Spring Boot é um especialista em backend que implementa features seguindo padrões de qualidade, clean coding e boas práticas de engenharia de software da empresa. Ele gera código completo com testes unitários, validações e documentação seguindo a Arquitetura Hexagonal.
 

@@ -23,7 +23,7 @@ Implementamos uma camada de **Skills** (localizadas em `/catalog/agents_skills/s
 *   **Estratégia de Testes:** Um guia avançado cobrindo testes de **Domínio, UseCases e Adapters**, meta de cobertura de 95% e padrões avançados (Object Mother, Parametrizados).
 
 ### 3. A Esteira de Produção de Software (Pipeline de Prompts)
-Organizamos os modelos de prompt em uma sequência lógica de 5 fases (localizadas em `/catalog/templates`):
+Organizamos os modelos de prompt em uma sequência lógica de 5 fases (localizadas em `/catalog/playbook`):
 1.  **Fase 1 (Histórias):** Transforma pedidos de negócio em histórias técnicas ricas.
 2.  **Fase 2 (Construção):** Auxilia na criação da arquitetura e regras técnicas do código.
 3.  **Fase 3 (Validação):** Gera testes de alta cobertura e diagramas UML automáticos.

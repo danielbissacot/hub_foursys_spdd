@@ -1,4 +1,4 @@
-# ⚙️ Fase 2: Regras Técnicas
+﻿# ⚙️ Fase 2: Regras Técnicas
 
 Esta pasta abriga os prompts destinados a **Tech Leads** e **Arquitetos**, usados para pavimentar a estrada técnica antes que o código comece a ser digitado.
 

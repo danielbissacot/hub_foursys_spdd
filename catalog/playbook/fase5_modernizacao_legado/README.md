@@ -1,4 +1,4 @@
-# 🏗️ Templates e Prompts COBOL (Fase 5)
+﻿# 🏗️ Templates e Prompts COBOL (Fase 5)
 
 Esta pasta centraliza os ativos de governança para o desenvolvimento e manutenção de sistemas Mainframe. O objetivo é permitir que o desenvolvedor utilize o **Zowe Explorer** no VS Code e, através do contexto destes templates, capacite a IA a realizar intervenções seguras e padronizadas.
 

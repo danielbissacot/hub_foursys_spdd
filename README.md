@@ -39,7 +39,7 @@ O conteúdo está organizado dentro da pasta `/catalog`:
 
 - [**`/agents_skills`**](./catalog/agents_skills): **System Prompts** configurados para transformar LLMs em personas especialistas.
 - [**`/instructions`**](./catalog/instructions): **Regras Globais** ("Constituição") que definem nossos padrões técnicos.
-- [**`/templates`**](./catalog/templates): Nossa esteira de desenvolvimento em 5 fases.
+- [**`/playbook`**](./catalog/playbook): Nossa esteira estratégica de desenvolvimento em 6 Fases (0 a 5).
 
 ---
 
@@ -52,5 +52,5 @@ Este hub é mantido pela equipe para garantir a evolução contínua das nossas 
 
 ---
 > [!TIP]
-> *Um bom prompt economiza 80% do trabalho de refatoração. Use os templates!*
+> *Um bom prompt economiza 80% do trabalho de refatoração. Use os Playbooks!*
 

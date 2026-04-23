@@ -1,4 +1,4 @@
-# 📋 Gestão de Backlog Local
+﻿# 📋 Gestão de Backlog Local
 
 Bem-vindo à área de gestão de demandas do projeto. Esta pasta serve como o ponto de entrada para novas histórias de usuário e requisitos que precisam de refinamento.
 
@@ -17,4 +17,4 @@ Sempre que você colocar uma nova história na pasta `input/`, abra o arquivo no
 3.  O Agente processará o arquivo e sugerirá a versão final para ser movida para a pasta `refined/`.
 
 ---
-> **Dica:** Use o template `templates/1_prompts_historias/REFINAMENTO_AGIL.md` como base para criar seus rascunhos iniciais.
+> **Dica:** Use o template `templates/fase1_refinamento_negocio/FASE1_REFINAMENTO_NEGOCIO.md` como base para criar seus rascunhos iniciais.

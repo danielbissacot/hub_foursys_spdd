@@ -1,13 +1,13 @@
-# 🧪 Módulo: Angular Architect (v18+)
+# 🧪 Módulo: AGENTE_ANGULAR_FOURSYS (v18+)
 
 Bem-vindo ao braço de governança front-end do **AI Governance Hub**. Este módulo foi projetado para garantir que todos os nossos aplicativos Angular utilizem as práticas mais modernas e performáticas do framework.
 
-## 🎭 O Seu Mentor: Arquiteto Angular
-O Agente especializado reside em `MENTOR_ARCHITECT_ANGULAR.md`. Ele está configurado para ser o seu par durante o design de componentes, refatoração de serviços e revisões de código.
+## 🎭 A Persona: AGENTE_ANGULAR_FOURSYS
+O Agente especializado reside em `AGENTE_ANGULAR_FOURSYS.md`. Ele está configurado para ser o seu par durante o design de componentes, refatoração de serviços e revisões de código.
 
 ### 🤖 Como usar no Chat:
 Para carregar o contexto do arquiteto, inicie sua conversa com:
-> **"#MENTOR_ARCHITECT_ANGULAR.md [sua dúvida ou tarefa aqui]"**
+> **"#AGENTE_ANGULAR_FOURSYS.md [sua dúvida ou tarefa aqui]"**
 
 ---
 
@@ -28,6 +28,6 @@ As habilidades práticas estão organizadas na pasta `/skills`. Elas contêm rot
 - [**Angular Component**](./skills/angular-component/README.md): Criação de componentes modernos com Acessibilidade (WCAG).
 
 ---
-> **Dica de Produtividade**: Ao pedir para a IA criar uma tela nova, utilize o template de **Fase 2 (Regras Técnicas)** e mencione o `#MENTOR_ARCHITECT_ANGULAR.md` para que a arquitetura do front-end já nasça perfeita.
+> **Dica de Produtividade**: Ao pedir para a IA criar uma tela nova, utilize o template de **Fase 2 (Regras Técnicas)** e mencione o `#AGENTE_ANGULAR_FOURSYS.md` para que a arquitetura do front-end já nasça perfeita.
 
 

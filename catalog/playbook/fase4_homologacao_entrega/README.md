@@ -1,4 +1,4 @@
-# 📦 Fase 4: Entrega e Produto
+﻿# 📦 Fase 4: Entrega e Produto
 
 Esta pasta abriga os modelos voltados para **Analistas de Qualidade (QA)** e Líderes atuando na homologação do software, servindo como a ponte final entre a "Engenharia de Código" e o que o "Cliente" exigiu.
 

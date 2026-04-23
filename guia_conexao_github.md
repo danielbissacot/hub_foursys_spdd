@@ -1,6 +1,6 @@
 # 🚀 Guia de Conexão: AI Governance Hub (GitHub)
 
-Escolha **UMA** das opções abaixo para conectar este Microserviço ao Hub de Governança em segundos.
+Escolha **UMA** das opções abaixo para conectar este Microserviço ao [**Hub de Governança (Branch Oficial)**](https://github.com/danielbissacot/ai-governance-hub/tree/hub-ia-arquitetura) em segundos.
 
 ---
 

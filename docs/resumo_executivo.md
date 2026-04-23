@@ -1,4 +1,4 @@
-﻿# 🚀 Resumo Executivo: AI Governance Hub (Cérebro Operacional)
+# 🚀 Resumo Executivo: AI Governance Hub (Cérebro Operacional)
 
 Este documento resume a reestruturação estratégica realizada no repositório de Governança de IA para maximizar a performance do time de desenvolvimento e garantir a conformidade arquitetural.
 
@@ -22,13 +22,14 @@ Implementamos uma camada de **Skills** (localizadas em `/catalog/agents_skills/s
 *   **Mensageria (Kafka/Confluent):** Implementação completa de Producers e Consumers com estratégias de **Retry** e **DLT** (Dead-Letter Topics).
 *   **Estratégia de Testes:** Um guia avançado cobrindo testes de **Domínio, UseCases e Adapters**, meta de cobertura de 95% e padrões avançados (Object Mother, Parametrizados).
 
-### 3. A Esteira de Produção de Software (Pipeline de Prompts)
-Organizamos os modelos de prompt em uma sequência lógica de 5 fases (localizadas em `/catalog/playbook`):
-1.  **Fase 1 (Histórias):** Transforma pedidos de negócio em histórias técnicas ricas.
-2.  **Fase 2 (Construção):** Auxilia na criação da arquitetura e regras técnicas do código.
-3.  **Fase 3 (Validação):** Gera testes de alta cobertura e diagramas UML automáticos.
-4.  **Fase 4 (Entrega/QA):** Valida se o código atende o que o negócio pediu.
-5.  **Fase 5 (COBOL):** Suporte especializado para manutenção, modernização e engenharia reversa de sistemas legado via **Zowe**.
+### 3. A Esteira de Produção de Software (Playbook de 6 Fases)
+Organizamos os roteiros de execução em uma sequência lógica (localizadas em `/catalog/playbook`):
+1.  **Fase 0 (Descoberta):** Entendimento de sistemas legado e diagramação técnica automática.
+2.  **Fase 1 (Refinamento):** Transforma pedidos de negócio em histórias técnicas ricas.
+3.  **Fase 2 (Desenho):** Auxilia no design da arquitetura e especificações técnicas.
+4.  **Fase 3 (Qualidade):** Nossos "Portões de Qualidade" com Review, Testes e Validação Hexagonal.
+5.  **Fase 4 (Homologação):** Checklist de prontidão e aderência ao negócio.
+6.  **Fase 5 (Legado):** Engenharia reversa e modernização COBOL.
 
 ### 4. Arquitetura White Label & Modularidade
 O Hub foi totalmente higienizado para ser **White Label** (independente de marca). Isso permite:

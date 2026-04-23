@@ -8,6 +8,11 @@ Bem-vindo ao **Cérebro Operacional** do nosso time. Este repositório é o cent
 
 ---
 
+> [!IMPORTANT]
+> **Novo por aqui?** Confira o [**📖 Manual de Onboarding (Visual)**](docs/MANUAL_AI_GOVERNANCE_HUB.html) para aprender o protocolo de uso estratégico do Hub.
+
+---
+
 ## 🎯 Nossa Missão
 
 Capacitar desenvolvedores através de **Engenharia de Prompt**, facilitando a adoção de padrões modernos e garantindo a qualidade técnica em toda a nossa stack.

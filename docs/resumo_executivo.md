@@ -1,4 +1,4 @@
-# 🚀 Resumo Executivo: AI Governance Hub (Cérebro Operacional)
+﻿# 🚀 Resumo Executivo: AI Governance Hub (Cérebro Operacional)
 
 Este documento resume a reestruturação estratégica realizada no repositório de Governança de IA para maximizar a performance do time de desenvolvimento e garantir a conformidade arquitetural.
 
@@ -37,7 +37,7 @@ O Hub foi totalmente higienizado para ser **White Label** (independente de marca
 
 ### 5. Experiência do Desenvolvedor (DevEx)
 Elevamos o Hub de um repositório técnico para um **Portal de Documentação Visual**:
-*   **Navegação Visual (READMEs Lite)**: Cada subpasta de Skill agora possui um cartão de visitas minimalista que renderiza automaticamente no GitLab, permitindo um "Quick Start" de 30 segundos.
+*   **Navegação Visual (READMEs Lite)**: Cada subpasta de Skill agora possui um cartão de visitas minimalista que renderiza automaticamente no GitHub/GitLab, permitindo um "Quick Start" de 30 segundos.
 *   **Atalhos de Prompt**: Inclusão de comandos de chat prontos (ex: `@SKILL-KAFKA`) para que o desenvolvedor não precise memorizar caminhos de arquivos.
 
 ---
@@ -53,12 +53,12 @@ Elevamos o Hub de um repositório técnico para um **Portal de Documentação Vi
 
 Para conectar qualquer projeto ao Hub e ativar os Mentores de IA, basta usar o **Prompt de Ouro**:
 
-> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta ai-rules de forma simplificada. 2. Crie o arquivo .gitlab-ci.yml com a lógica de sincronização flat. 3. Configure o .git/info/exclude."**
+> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub. 1. Sincronize os arquivos locais na pasta agentes_foursys de forma simplificada. 2. Crie o arquivo de workflow do GitHub Actions com a lógica de sincronização. 3. Configure o .git/info/exclude."**
 
 ---
 > [!TIP]
 > **Precisa de instalação via terminal ou mais detalhes?** 
-> Acesse o [**Guia de Conexão Completo (GitLab)**](../GUIA_CONEXAO_GITLAB.md) para conferir todas as opções de integração e automação.
+> Acesse o [**Guia de Conexão Completo (GitHub)**](guia_conexao_github.md) para conferir todas as opções de integração e automação.
 
 ---
 

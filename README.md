@@ -27,7 +27,7 @@ Nossas diretrizes de IA estão otimizadas para:
 
 ## 🚀 Como Conectar seu Projeto?
 
-> Acesse o [**Guia de Conexão Completo (GitLab)**](guia_conexao_gitlab.md) para conferir nossa solução de integração automática *One-Liner*. Em apenas 2 segundos seu projeto estará conectado e validado!
+> Acesse o [**Guia de Conexão Completo (GitHub)**](guia_conexao_github.md) para conferir nossa solução de integração automática *One-Liner*. Em apenas 2 segundos seu projeto estará conectado e validado!
 
 ---
 

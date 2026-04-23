@@ -11,7 +11,7 @@
         </mxCell>
 
         <!-- Passo 1: DEV -->
-        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos GitLab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="200" width="180" height="80" as="geometry" />
         </mxCell>
         

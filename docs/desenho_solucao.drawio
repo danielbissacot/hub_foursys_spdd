@@ -1,4 +1,4 @@
-<mxfile host="Electron" version="21.6.8" type="device">
+﻿<mxfile host="Electron" version="21.6.8" type="device">
   <diagram id="solucao-v2" name="Arquitetura de Alta Fidelidade">
     <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
@@ -26,7 +26,7 @@
           <mxGeometry x="640" y="80" width="140" height="80" as="geometry" />
         </mxCell>
 
-        <mxCell id="catalog-sync" value="&lt;b&gt;GITLAB RUNNER&lt;/b&gt;&lt;br&gt;Sincronização Ativa" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#D93025;strokeColor=#B12B24;fontColor=#FFFFFF;shadow=1;" vertex="1" parent="group-central">
+        <mxCell id="catalog-sync" value="&lt;b&gt;GITHUB ACTIONS&lt;/b&gt;&lt;br&gt;Sincronização Ativa" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#D93025;strokeColor=#B12B24;fontColor=#FFFFFF;shadow=1;" vertex="1" parent="group-central">
           <mxGeometry x="830" y="80" width="180" height="80" as="geometry" />
         </mxCell>
 
@@ -50,7 +50,7 @@
           <mxGeometry x="460" y="100" width="160" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="ai-rules" value="&lt;b&gt;PASTA /ai-rules&lt;/b&gt;&lt;br&gt;(Regras Conectadas)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F6FFED;strokeColor=#52C41A;glass=1;" vertex="1" parent="group-local">
+        <mxCell id="agentes_foursys" value="&lt;b&gt;PASTA /agentes_foursys&lt;/b&gt;&lt;br&gt;(Regras Conectadas)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F6FFED;strokeColor=#52C41A;glass=1;" vertex="1" parent="group-local">
           <mxGeometry x="150" y="110" width="160" height="80" as="geometry" />
         </mxCell>
 
@@ -59,7 +59,7 @@
         </mxCell>
 
         <!-- Fluxo Final -->
-        <mxCell id="sync-flow" edge="1" parent="1" source="catalog-sync" target="ai-rules" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#D93025;curved=1;">
+        <mxCell id="sync-flow" edge="1" parent="1" source="catalog-sync" target="agentes_foursys" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#D93025;curved=1;">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="960" y="300" as="sourcePoint" />
             <mxPoint x="230" y="430" as="targetPoint" />
@@ -75,7 +75,7 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="f1" edge="1" parent="1" source="ai-rules" target="ai-agent" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#52C41A;">
+        <mxCell id="f1" edge="1" parent="1" source="agentes_foursys" target="ai-agent" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#52C41A;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="f2" edge="1" parent="1" source="ai-agent" target="source-code" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#722ED1;">

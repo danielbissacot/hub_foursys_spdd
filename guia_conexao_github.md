@@ -8,7 +8,7 @@ Escolha **UMA** das opções abaixo para conectar este Microserviço ao Hub de G
 
 Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela fará toda a configuração, download e limpeza sozinha:
 
-> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt`. 2. ROBÔ GITHUB: Crie o arquivo `.github/workflows/hub-sync.yml` na raiz com o conteúdo oficial do Hub. 3. Me avise quando terminar para eu usar o `#`."**
+> **"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 1. No terminal, execute: `Remove-Item -Path agentes_foursys -Recurse -Force -ErrorAction SilentlyContinue; git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git agentes_foursys; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt`. 2. ROBÔ GITHUB: Crie o arquivo `.github/workflows/hub-sync.yml` na raiz com o conteúdo oficial do Hub. 3. Me avise quando terminar para eu usar o `#`."**
 >
 > ```yaml
 > name: Hub AI Sync
@@ -26,26 +26,26 @@ Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela far�
 >       - name: Checkout code
 >         uses: actions/checkout@v3
 > 
->       - name: Security Check (ai-rules folder)
+>       - name: Security Check (agentes_foursys folder)
 >         run: |
->           if [ -d "ai-rules" ]; then
->             echo "🛑 ERRO CRÍTICO! A pasta 'ai-rules' foi commitada no projeto."
+>           if [ -d "agentes_foursys" ]; then
+>             echo "🛑 ERRO CRÍTICO! A pasta 'agentes_foursys' foi commitada no projeto."
 >             echo "Remova-a do commit e use o .gitignore corretamente."
 >             exit 1
 >           fi
 > 
 >       - name: Sync AI Hub Rules
 >         run: |
->           mkdir ai-rules
+>           mkdir agentes_foursys
 >           git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git .temp
->           cp -r .temp/catalog/* ai-rules/
+>           cp -r .temp/catalog/* agentes_foursys/
 >           rm -rf .temp
 > 
 >       - name: Upload Rules as Artifact
 >         uses: actions/upload-artifact@v3
 >         with:
->           name: ai-rules
->           path: ai-rules/
+>           name: agentes_foursys
+>           path: agentes_foursys/
 > ```
 >
 > 1. Me avise quando terminar para eu usar o `#`."**
@@ -57,17 +57,17 @@ Copie o texto abaixo e cole no Chat da sua IDE (Antigravity ou Cursor). Ela far�
 Se você prefere o terminal, copie e cole este comando (Windows) na raiz do seu projeto:
 
 ```powershell
-Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt; echo "✅ Hub Conectado com Sucesso! (Mapa Gerado e Aberto)"
+Remove-Item -Path agentes_foursys -Recurse -Force -ErrorAction SilentlyContinue; git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git agentes_foursys; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt; echo "✅ Hub Conectado com Sucesso!"
 ```
 
 ---
 
 ### 🛠️ O que foi configurado?
 
-* **Pasta `ai-rules/`**: Contém todos os prompts. A pasta deve estar **COLORIDA** (não ignorada) para que a IA do VS Code possa indexar os arquivos e o `#` funcione.
+* **Pasta `agentes_foursys/`**: Contém todos os prompts. A pasta sendo um clone direto garante que a IA indexe os arquivos, mesmo que você a inclua no `.gitignore`.
 * **Uso no Chat**: Agora você pode usar o **`#`** e começar a digitar o nome de qualquer prompt (ex: `#HEXAGONAL-JAVA`).
 * **Mapa de Ativos (`MAPA_DO_HUB.txt`)**: Um arquivo gerado automaticamente com o índice de todos os prompts disponíveis para facilitar a sua navegação.
-* **Segurança**: A trava de segurança contra commits da `ai-rules` é garantida automaticamente pelo GitHub Actions.
+* **Segurança**: A trava de segurança contra commits da `agentes_foursys` é garantida automaticamente pelo GitHub Actions. Você pode (e deve) ignorá-la no `.gitignore`.
 
 ---
 

@@ -33,7 +33,7 @@ Varra o arquivo em busca de **TODOS** os endpoins ou métodos transacionais exec
 4. **A Resposta HTTP e Erros:** O retorno final da seta para o Cliente deve conter o Http Status Resultante Ex: `ResponseEntity<Res> (HTTP 201)` ou casos de Exceção Lançada (Http 400).
 
 ### 📐 SINTAXE DO DIAGRAMA DE SEQUÊNCIA (Leitura e Rendering Saudável)
-- **PROIBIDO DIAGRAMAS GIGANTES:** Para evitar que o seu código quebre os limites de renderização em visualizadores UML ou do GitLab, **NUNCA** gere um diagrama englobando tudo.
+- **PROIBIDO DIAGRAMAS GIGANTES:** Para evitar que o seu código quebre os limites de renderização em visualizadores UML ou do repositório (GitHub/GitLab), **NUNCA** gere um diagrama englobando tudo.
 - **Divisão Lógica (Fatiamento):** Você tem a obrigação de gerar *Múltiplos Blocos Individuais* de código ` ```mermaid ` (um bloco para CADA fluxo lógico / método exportado no arquivo, ex: um diagrama apenas para o Create, e outro apenas para o Read).
 - Use obrigatoriamente `participant` com `alias` (ex: `participant DB as Database`).
 - Diferencie rigorosamente chamadas `->>` de retornos `-->>`.

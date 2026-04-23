@@ -22,7 +22,7 @@
         </mxCell>
 
         <!-- CAMADA 1: ETAPAS PRINCIPAIS -->
-        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos GitLab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#448AFF;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#448AFF;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="200" width="180" height="80" as="geometry" />
         </mxCell>
         <mxCell id="step2" value="&lt;b&gt;2. REFINAMENTO&lt;/b&gt;&lt;br&gt;Fase 1: Histórias" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
@@ -42,7 +42,7 @@
         </mxCell>
 
         <!-- CAMADA 2: ATIVOS DO HUB (ALTA FIDELIDADE V1.2) -->
-        <mxCell id="asset1" value="&lt;i&gt;Trigger:&lt;/i&gt;&lt;br&gt;&lt;b&gt;GitLab Labs CI&lt;/b&gt;&lt;br&gt;#REQUISITOS_ESTRUTURADOS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=10;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset1" value="&lt;i&gt;Trigger:&lt;/i&gt;&lt;br&gt;&lt;b&gt;GitHub Actions&lt;/b&gt;&lt;br&gt;#REQUISITOS_ESTRUTURADOS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=10;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="325" width="180" height="70" as="geometry" />
         </mxCell>
         <mxCell id="asset2" value="&lt;i&gt;Refinement:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#ESTORIA_USUARIO.md&lt;/b&gt;&lt;br&gt;#GERADOR_CRITERIOS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=10;dashed=1;" vertex="1" parent="1">

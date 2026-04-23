@@ -137,8 +137,8 @@
             font-weight: 600;
         }
 
-        .btn-gitlab {
-            background-color: #f47023;
+        .btn-github {
+            background-color: #24292f;
             color: white;
             font-weight: 600;
             border: none;
@@ -150,7 +150,7 @@
             transition: opacity 0.2s;
         }
 
-        .btn-gitlab:hover {
+        .btn-github:hover {
             opacity: 0.9;
             color: white;
         }
@@ -199,7 +199,7 @@
         <div class="nav flex-column">
             <a class="nav-link active" href="#coracao">🎯 O Coração</a>
             <a class="nav-link" href="#requisitos">📋 Pré-requisitos</a>
-            <a class="nav-link" href="#conexao">⚡ Conexão GitLab</a>
+            <a class="nav-link" href="#conexao">⚡ Conexão GitHub</a>
             <a class="nav-link" href="#vscode">💻 Uso no VS Code</a>
             <a class="nav-link" href="#constituicao">📜 A Constituição</a>
             <a class="nav-link" href="#cartuchos">🛠️ Cartuchos/Skills</a>
@@ -232,8 +232,8 @@
                         <div class="req-item"><span class="req-icon">🤖</span><span><strong>GitCopilot/IA:</strong> Acesso ativo à licença do Cliente.</span></div>
                     </div>
                     <div class="col-md-6">
-                        <div class="req-item"><span class="req-icon">Fox</span><span><strong>GitLab Foursys:</strong> Acesso ao Hub.</span></div>
-                        <div class="req-item text-danger"><span class="req-icon">🔒</span><span><strong>VPN Foursys:</strong> Ativa (obrigatório para clonar).</span></div>
+                        <div class="req-item"><span class="req-icon">🐙</span><span><strong>GitHub Oficial:</strong> Acesso ao repositório do Hub.</span></div>
+                        <div class="req-item text-success"><span class="req-icon">🌍</span><span><strong>Acesso Público:</strong> Disponível sem necessidade de VPN.</span></div>
                     </div>
                 </div>
             </div>
@@ -241,44 +241,43 @@
 
         <!-- SEÇÃO: Conexão (Completado) -->
         <section id="conexao" class="mb-5">
-            <h2 class="mb-4">⚡ Guia de Conexão (GitLab)</h2>
+            <h2 class="mb-4">⚡ Guia de Conexão (GitHub)</h2>
             <p class="text-muted mb-4">Abaixo está a instrução completa. Copie o bloco inteiro e envie para o Chat da sua IA.</p>
             <div class="feature-card">
                 <div class="copy-banner">Instrução Completa para o Chat</div>
                 <pre><code>"Olá, Assistente de IA! Por favor, configure este microserviço para usar o AI Governance Hub com estes 3 passos: 
 
 1. No terminal, execute: 
-Remove-Item -Path ai-rules, .temp -Recurse -Force -ErrorAction SilentlyContinue; mkdir ai-rules; git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp; Copy-Item -Path .temp/catalog/* -Destination ai-rules/ -Recurse -Force; git rm -r --cached ai-rules -ErrorAction SilentlyContinue; Remove-Item -Path .temp -Recurse -Force; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt
+Remove-Item -Path agentes_foursys -Recurse -Force -ErrorAction SilentlyContinue; git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git agentes_foursys; $m=@('======================================================================','                MAPA DE ATIVOS: AI GOVERNANCE HUB','======================================================================','','Este arquivo ajuda voce a encontrar os prompts e agentes certos.','DICA: Use o gatilho # no chat da sua IDE para chamar os arquivos.','','[!] CATEGORIAS DE ACESSO RAPIDO:','','1. REFINAMENTO (User Stories e Requisitos)','------------------------------------------','- #ESTORIA_USUARIO.md','- #REQUISITOS_ESTRUTURADOS.md','','2. REGRAS TECNICAS (Implementacao)','----------------------------------','- #REGRAS_NEGOCIO_DOMAIN.md','','3. VALIDACAO (Qualidade e Compliance)','-------------------------------------','- #VALIDACAO_HEXAGONAL.md','- #CODE_REVIEW_SPRING.md | #CODE_REVIEW_ANGULAR.md','- #TESTES_UNITARIOS_SPRING.md | #TESTES_UNITARIOS_ANGULAR.md','','4. ENTREGA (Finalizacao e MR)','-----------------------------','- #RELEASE_NOTES.md','- #GIT_COMMIT_PATTERN.md','','5. LEGADO (Mainframe COBOL)','---------------------------','- #AGENTE_REVERSA_COBOL.md','- #ENGENHARIA_REVERSA_COMPLETA.md','','[+] AGENTES ESPECIALISTAS (PERSONAS):','-------------------------------------','- #AGENTE_FOURSYS.md (Spring/Hexaqonal)','- #MENTOR_ARCHITECT_ANGULAR.md','- #AGENTE_REVERSA_COBOL.md','','[*] AGENT SKILLS (HABILIDADES INTEGRADAS):','------------------------------------------','-> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.','-> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.','','💡 EXEMPLO DE COMANDO NO CHAT:',' Ola #AGENTE_FOURSYS.md, use sua skill de [KAFKA] seguindo',' os padroes de #HEXAGONAL-JAVA.md neste codigo.','','======================================================================','  Governança IA Foursys - Hub v1.0.0','======================================================================') -join [Environment]::NewLine; $m | Out-File -FilePath MAPA_DO_HUB.txt -Encoding utf8; code MAPA_DO_HUB.txt
 
-2. ROBÔ GITLAB: Crie o arquivo .gitlab-ci.yml na raiz com o conteúdo oficial do Hub:
+2. ROBÔ GITHUB: Crie o arquivo .github/workflows/hub-sync.yml na raiz com o conteúdo oficial do Hub:
 
-stages:
-  - validate
-  - build
+name: Hub AI Sync
+on:
+  push:
+    branches: [ main, master, develop ]
 
-# TRAVA DE SEGURANÇA: Bloqueia se alguém commitar as regras indevidamente
-validar-limpeza-hub:
-  stage: validate
-  script:
-    - if [ -d "ai-rules" ]; then echo "🛑 ERRO CRÍTICO! A pasta 'ai-rules' foi commitada no projeto. Remova-a e use o .gitignore corretamente."; exit 1; fi
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push"
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-# TAREFA DE SINCRONIZAÇÃO: Puxa as regras para uso em tempo de build
-sincronizar-ia-hub:
-  stage: build
-  script:
-    - mkdir ai-rules
-    - git clone --branch hub-ia-arquitetura --depth 1 https://oauth2:Z5H2fDfprUFTJKyriWzy@gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub.git .temp
-    - cp -r .temp/catalog/* ai-rules/
-    - rm -rf .temp
-  artifacts:
-    paths:
-      - ai-rules/
+      - name: Security Check
+        run: |
+          if [ -d "agentes_foursys" ]; then
+            echo "🛑 ERRO! Remova a pasta 'agentes_foursys' do commit."
+            exit 1
+          fi
+
+      - name: Sync AI Hub
+        run: |
+          git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git agentes_foursys
 
 3. Me avise quando terminar para eu usar o #."</code></pre>
                 <div class="mt-4">
-                    <a href="https://gitlab.fourcamp.com/daniel.bissacot/ai-governance-hub" target="_blank" class="btn-gitlab">Ver Repositório Oficial no GitLab</a>
+                    <a href="https://github.com/danielbissacot/ai-governance-hub" target="_blank" class="btn-github">Ver Repositório Oficial no GitHub</a>
                 </div>
             </div>
         </section>

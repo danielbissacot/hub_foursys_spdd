@@ -11,7 +11,7 @@
         </mxCell>
 
         <!-- Passo 1 -->
-        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos no GitLab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos no GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="310" y="100" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="callout1" value="O DEV recebe a demanda técnica bruto." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">

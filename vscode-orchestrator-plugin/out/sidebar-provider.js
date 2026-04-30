@@ -39,19 +39,20 @@ const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const child_process_1 = require("child_process");
 class HubSidebarProvider {
-    _extensionUri;
+    _context;
     static viewType = 'hub-sidebar-view';
-    constructor(_extensionUri) {
-        this._extensionUri = _extensionUri;
+    constructor(_context) {
+        this._context = _context;
     }
     resolveWebviewView(webviewView, context, _token) {
         webviewView.webview.options = {
             enableScripts: true,
-            localResourceRoots: [this._extensionUri]
+            localResourceRoots: [this._context.extensionUri]
         };
         const workspaceFolders = vscode.workspace.workspaceFolders;
         const rootPath = workspaceFolders ? workspaceFolders[0].uri.fsPath : "";
-        const isConnected = fs.existsSync(path.join(rootPath, "agentes_foursys"));
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
+        const isConnected = fs.existsSync(path.join(globalStoragePath, "agentes_foursys"));
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview, isConnected);
         // Captura as mensagens vindas da Webview
         webviewView.webview.onDidReceiveMessage(async (data) => {
@@ -65,7 +66,7 @@ class HubSidebarProvider {
             }
             switch (data.value) {
                 case 'Connect': {
-                    this._connectToHub(rootPath, webviewView);
+                    this._connectToHub(globalStoragePath, webviewView);
                     break;
                 }
                 case 'Fase 1':
@@ -76,6 +77,9 @@ class HubSidebarProvider {
                     break;
                 case 'Fase 3':
                     vscode.commands.executeCommand('hub.runPhase3');
+                    break;
+                case 'Fase 4':
+                    vscode.commands.executeCommand('hub.runPhase4');
                     break;
                 case 'Spring':
                     this._openFile(rootPath, "catalog/agents_skills/spring_boot/AGENTE_SPRING_FOURSYS.md");
@@ -93,9 +97,10 @@ class HubSidebarProvider {
         });
     }
     async _openFile(rootPath, filePath) {
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
         const pathsToTry = [
             path.join(rootPath, filePath),
-            path.join(rootPath, "agentes_foursys", filePath)
+            path.join(globalStoragePath, "agentes_foursys", filePath)
         ];
         for (const fullPath of pathsToTry) {
             if (fs.existsSync(fullPath)) {
@@ -106,15 +111,18 @@ class HubSidebarProvider {
         }
         vscode.window.showErrorMessage(`Arquivo não encontrado: ${filePath}`);
     }
-    _connectToHub(rootPath, webviewView) {
+    _connectToHub(globalStoragePath, webviewView) {
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Conectando ao AI Governance Hub...",
             cancellable: false
         }, async (progress) => {
             return new Promise((resolve, reject) => {
+                if (!fs.existsSync(globalStoragePath)) {
+                    fs.mkdirSync(globalStoragePath, { recursive: true });
+                }
                 const cmd = `git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git agentes_foursys`;
-                (0, child_process_1.exec)(cmd, { cwd: rootPath }, (error, stdout, stderr) => {
+                (0, child_process_1.exec)(cmd, { cwd: globalStoragePath }, (error, stdout, stderr) => {
                     if (error) {
                         vscode.window.showErrorMessage(`Erro ao conectar: ${error.message}`);
                         reject(error);
@@ -188,6 +196,7 @@ class HubSidebarProvider {
                     <button class="btn" onclick="sendAction('Fase 1')"><span class="fase-icon">📋</span> Fase 1: Refinamento</button>
                     <button class="btn" onclick="sendAction('Fase 2')"><span class="fase-icon">🏗️</span> Fase 2: Desenho Técnico</button>
                     <button class="btn" onclick="sendAction('Fase 3')"><span class="fase-icon">🛡️</span> Fase 3: Desenvolvimento Especializado</button>
+                    <button class="btn" onclick="sendAction('Fase 4')"><span class="fase-icon">🧪</span> Fase 4: Garantia de Qualidade</button>
                     
                     <h2>🛡️ Agentes Especialistas</h2>
                     <button class="btn" onclick="sendAction('Spring')">🍃 Agente Spring Boot</button>

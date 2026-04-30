@@ -6,7 +6,7 @@ import { exec } from 'child_process';
 export class HubSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'hub-sidebar-view';
 
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(private readonly _context: vscode.ExtensionContext) {}
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -15,12 +15,13 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
     ) {
         webviewView.webview.options = {
             enableScripts: true,
-            localResourceRoots: [this._extensionUri]
+            localResourceRoots: [this._context.extensionUri]
         };
 
         const workspaceFolders = vscode.workspace.workspaceFolders;
         const rootPath = workspaceFolders ? workspaceFolders[0].uri.fsPath : "";
-        const isConnected = fs.existsSync(path.join(rootPath, "agentes_foursys"));
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
+        const isConnected = fs.existsSync(path.join(globalStoragePath, "agentes_foursys"));
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview, isConnected);
 
@@ -36,7 +37,7 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
 
             switch (data.value) {
                 case 'Connect': {
-                    this._connectToHub(rootPath, webviewView);
+                    this._connectToHub(globalStoragePath, webviewView);
                     break;
                 }
                 case 'Fase 1':
@@ -48,6 +49,9 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
                 case 'Fase 3':
                     vscode.commands.executeCommand('hub.runPhase3');
                     break;
+                case 'Fase 4':
+                    vscode.commands.executeCommand('hub.runPhase4');
+                    break;
                 case 'Spring': this._openFile(rootPath, "catalog/agents_skills/spring_boot/AGENTE_SPRING_FOURSYS.md"); break;
                 case 'Angular': this._openFile(rootPath, "catalog/agents_skills/angular/AGENTE_ANGULAR_FOURSYS.md"); break;
                 case 'Cobol': this._openFile(rootPath, "catalog/agents_skills/cobol/AGENTE_COBOL_FOURSYS.md"); break;
@@ -57,9 +61,10 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     private async _openFile(rootPath: string, filePath: string) {
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
         const pathsToTry = [
             path.join(rootPath, filePath),
-            path.join(rootPath, "agentes_foursys", filePath)
+            path.join(globalStoragePath, "agentes_foursys", filePath)
         ];
 
         for (const fullPath of pathsToTry) {
@@ -72,15 +77,18 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
         vscode.window.showErrorMessage(`Arquivo não encontrado: ${filePath}`);
     }
 
-    private _connectToHub(rootPath: string, webviewView: vscode.WebviewView) {
+    private _connectToHub(globalStoragePath: string, webviewView: vscode.WebviewView) {
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Conectando ao AI Governance Hub...",
             cancellable: false
         }, async (progress) => {
             return new Promise((resolve, reject) => {
+                if (!fs.existsSync(globalStoragePath)) {
+                    fs.mkdirSync(globalStoragePath, { recursive: true });
+                }
                 const cmd = `git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git agentes_foursys`;
-                exec(cmd, { cwd: rootPath }, (error, stdout, stderr) => {
+                exec(cmd, { cwd: globalStoragePath }, (error, stdout, stderr) => {
                     if (error) {
                         vscode.window.showErrorMessage(`Erro ao conectar: ${error.message}`);
                         reject(error);
@@ -156,6 +164,7 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
                     <button class="btn" onclick="sendAction('Fase 1')"><span class="fase-icon">📋</span> Fase 1: Refinamento</button>
                     <button class="btn" onclick="sendAction('Fase 2')"><span class="fase-icon">🏗️</span> Fase 2: Desenho Técnico</button>
                     <button class="btn" onclick="sendAction('Fase 3')"><span class="fase-icon">🛡️</span> Fase 3: Desenvolvimento Especializado</button>
+                    <button class="btn" onclick="sendAction('Fase 4')"><span class="fase-icon">🧪</span> Fase 4: Garantia de Qualidade</button>
                     
                     <h2>🛡️ Agentes Especialistas</h2>
                     <button class="btn" onclick="sendAction('Spring')">🍃 Agente Spring Boot</button>

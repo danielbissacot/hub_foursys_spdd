@@ -1,4 +1,4 @@
-﻿<mxfile host="Electron" version="21.6.8" type="device">
+<mxfile host="Electron" version="21.6.8" type="device">
   <diagram id="fluxo-enterprise-v1-2" name="Esteira Enterprise Alta Fidelidade">
     <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -22,22 +22,22 @@
         </mxCell>
 
         <!-- CAMADA 1: ETAPAS PRINCIPAIS -->
-        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#448AFF;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step1" value="&lt;b&gt;0. DESCOBERTA&lt;/b&gt;&lt;br&gt;Requisitos Hub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#448AFF;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="200" width="180" height="80" as="geometry" />
         </mxCell>
         <mxCell id="step2" value="&lt;b&gt;2. REFINAMENTO&lt;/b&gt;&lt;br&gt;Fase 1: Histórias" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="340" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step3" value="&lt;b&gt;3. ARQUITETURA&lt;/b&gt;&lt;br&gt;Padrões Java/COBOL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step3" value="&lt;b&gt;2. DESENHO TÉCNICO&lt;/b&gt;&lt;br&gt;Arquitetura e Skills" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="600" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step4" value="&lt;b&gt;4. CONSTRUÇÃO&lt;/b&gt;&lt;br&gt;Skills e Fase 5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step4" value="&lt;b&gt;3. QUALIDADE&lt;/b&gt;&lt;br&gt;Review e Agentes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="860" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step5" value="&lt;b&gt;5. VALIDAÇÃO&lt;/b&gt;&lt;br&gt;Fase 3: Testes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step5" value="&lt;b&gt;4. ENTREGA&lt;/b&gt;&lt;br&gt;Deploy e Artefatos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="1120" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step6" value="&lt;b&gt;6. ENTREGA&lt;/b&gt;&lt;br&gt;Fase 4: MR Docs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step6" value="&lt;b&gt;5. MODERNIZAÇÃO&lt;/b&gt;&lt;br&gt;Legado e Otimização" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="1380" y="200" width="180" height="80" as="geometry" />
         </mxCell>
 

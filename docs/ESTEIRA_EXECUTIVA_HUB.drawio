@@ -1,0 +1,74 @@
+<mxfile host="Electron" version="21.6.8" type="device">
+  <diagram id="esteira-executiva" name="Mapa de Valor do Hub">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Título -->
+        <mxCell id="t1" value="AI GOVERNANCE HUB: ESTEIRA DE DESENVOLVIMENTO E ENTREGA" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#003366;" vertex="1" parent="1">
+          <mxGeometry x="284.5" y="40" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Container de Fases -->
+        <mxCell id="phases" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#dee2e6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="120" width="1070" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Fases 0 a 5 -->
+        <mxCell id="p0" value="0. DESCOBERTA" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#E3F2FD;strokeColor=#1A73E8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="1. REFINA" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#E3F2FD;strokeColor=#1A73E8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="250" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="2. DESENHO" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#E8F5E9;strokeColor=#2E7D32;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="3. QUALIDADE" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#E8F5E9;strokeColor=#2E7D32;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="590" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="4. ENTREGA" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FFF3E0;strokeColor=#EF6C00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" value="5. MODERNIZA" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FFF3E0;strokeColor=#EF6C00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="930" y="140" width="80" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Ativos (Boxes Agrupados) -->
+        <mxCell id="g1" value="ATIVOS DE NEGÓCIO" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F1F8FF;strokeColor=#1A73E8;startSize=23;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="250" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" value="#ESTRUTURA_E_IDENTIFICACAO&#xa;#ESTORIA_USUARIO&#xa;Agente Negócio" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;" vertex="1" parent="g1">
+          <mxGeometry x="25" y="45" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g2" value="ATIVOS TÉCNICOS" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F6FFED;strokeColor=#52C41A;startSize=23;" vertex="1" parent="1">
+          <mxGeometry x="420" y="320" width="250" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="#HEXAGONAL_JAVA&#xa;#SOLID_CLEAN_CODE&#xa;Agentes Spring/Angular" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;" vertex="1" parent="g2">
+          <mxGeometry x="25" y="45" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g3" value="ATIVOS DE VALOR" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FFFBE6;strokeColor=#FAAD14;startSize=23;" vertex="1" parent="1">
+          <mxGeometry x="760" y="320" width="250" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="#RELEASE_NOTES&#xa;#MODERNIZACAO_JAVA&#xa;Agente Reversa COBOL" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;" vertex="1" parent="g3">
+          <mxGeometry x="25" y="45" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Conectores -->
+        <mxCell id="c1" edge="1" parent="1" source="phases" target="g1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#1A73E8;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" edge="1" parent="1" source="phases" target="g2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#52C41A;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" edge="1" parent="1" source="phases" target="g3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FAAD14;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

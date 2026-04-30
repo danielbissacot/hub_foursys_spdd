@@ -39,16 +39,15 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
                     this._connectToHub(rootPath, webviewView);
                     break;
                 }
-                case 'Fase 0':
-                case 'Fase 1': 
-                case 'Fase 2':
-                case 'Fase 3':
-                case 'Fase 4':
-                case 'Fase 5': {
-                    // Dispara a execução da pipeline real
-                    vscode.commands.executeCommand('hub.runPipeline');
+                case 'Fase 1':
+                    vscode.commands.executeCommand('hub.runPhase1');
                     break;
-                }
+                case 'Fase 2':
+                    vscode.commands.executeCommand('hub.runPhase2');
+                    break;
+                case 'Fase 3':
+                    vscode.commands.executeCommand('hub.runPhase3');
+                    break;
                 case 'Spring': this._openFile(rootPath, "catalog/agents_skills/spring_boot/AGENTE_SPRING_FOURSYS.md"); break;
                 case 'Angular': this._openFile(rootPath, "catalog/agents_skills/angular/AGENTE_ANGULAR_FOURSYS.md"); break;
                 case 'Cobol': this._openFile(rootPath, "catalog/agents_skills/cobol/AGENTE_COBOL_FOURSYS.md"); break;
@@ -154,36 +153,20 @@ export class HubSidebarProvider implements vscode.WebviewViewProvider {
 
                 <div class="${isConnected ? '' : 'disabled'}">
                     <h2>🚀 Ciclo de Vida (SDDE)</h2>
-                    <button class="btn" onclick="sendAction('Fase 0')"><span class="fase-icon">🔍</span> Fase 0: Descoberta</button>
                     <button class="btn" onclick="sendAction('Fase 1')"><span class="fase-icon">📋</span> Fase 1: Refinamento</button>
                     <button class="btn" onclick="sendAction('Fase 2')"><span class="fase-icon">🏗️</span> Fase 2: Desenho Técnico</button>
-                    <button class="btn" onclick="sendAction('Fase 3')"><span class="fase-icon">🛡️</span> Fase 3: Qualidade</button>
-                    <button class="btn" onclick="sendAction('Fase 4')"><span class="fase-icon">📦</span> Fase 4: Entrega</button>
-                    <button class="btn" onclick="sendAction('Fase 5')"><span class="fase-icon">♻️</span> Fase 5: Modernização</button>
+                    <button class="btn" onclick="sendAction('Fase 3')"><span class="fase-icon">🛡️</span> Fase 3: Desenvolvimento Especializado</button>
                     
                     <h2>🛡️ Agentes Especialistas</h2>
                     <button class="btn" onclick="sendAction('Spring')">🍃 Agente Spring Boot</button>
                     <button class="btn" onclick="sendAction('Angular')">🅰️ Agente Angular</button>
                     <button class="btn" onclick="sendAction('Cobol')">🟦 Agente Reversa COBOL</button>
-                    <button class="btn" onclick="sendAction('Business')">💼 Agente Business/PO</button>
-
-                    <div class="chat-section">
-                        <h2>💬 Pergunte ao Hub</h2>
-                        <textarea id="chatInput" placeholder="Ex: Como validar este DTO no padrão Foursys?"></textarea>
-                        <button class="btn-chat" onclick="askAgent()">CONSULTAR IA ➜</button>
-                    </div>
                 </div>
 
                 <script>
                     const vscode = acquireVsCodeApi();
                     function sendAction(value) {
                         vscode.postMessage({ type: 'onAction', value: value });
-                    }
-                    function askAgent() {
-                        const input = document.getElementById('chatInput').value;
-                        if (input) {
-                            vscode.postMessage({ type: 'onAsk', value: input });
-                        }
                     }
                 </script>
             </body>

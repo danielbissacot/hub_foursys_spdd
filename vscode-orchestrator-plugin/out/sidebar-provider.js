@@ -58,21 +58,25 @@ class HubSidebarProvider {
             if (!rootPath) {
                 return;
             }
+            if (data.type === 'onAsk') {
+                vscode.window.showInformationMessage(`Enviando consulta para a IA: "${data.value}"`);
+                // Aqui podemos integrar com o Copilot Chat no futuro
+                return;
+            }
             switch (data.value) {
                 case 'Connect': {
                     this._connectToHub(rootPath, webviewView);
                     break;
                 }
-                case 'Fase 0':
                 case 'Fase 1':
-                case 'Fase 2':
-                case 'Fase 3':
-                case 'Fase 4':
-                case 'Fase 5': {
-                    // Dispara a execução da pipeline real
-                    vscode.commands.executeCommand('hub.runPipeline');
+                    vscode.commands.executeCommand('hub.runPhase1');
                     break;
-                }
+                case 'Fase 2':
+                    vscode.commands.executeCommand('hub.runPhase2');
+                    break;
+                case 'Fase 3':
+                    vscode.commands.executeCommand('hub.runPhase3');
+                    break;
                 case 'Spring':
                     this._openFile(rootPath, "catalog/agents_skills/spring_boot/AGENTE_SPRING_FOURSYS.md");
                     break;
@@ -157,6 +161,18 @@ class HubSidebarProvider {
                     h2 { font-size: 10px; text-transform: uppercase; margin-bottom: 12px; opacity: 0.6; letter-spacing: 1.5px; margin-top: 24px; font-weight: 800; }
                     .disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
                     .fase-icon { margin-right: 8px; font-size: 14px; }
+                    .chat-section { margin-top: 30px; border-top: 1px solid var(--vscode-panel-border); padding-top: 20px; }
+                    textarea { 
+                        width: 100%; height: 80px; background: var(--vscode-input-background); color: var(--vscode-input-foreground);
+                        border: 1px solid var(--vscode-input-border); border-radius: 4px; padding: 10px; font-size: 11px; resize: none;
+                        box-sizing: border-box; margin-bottom: 10px;
+                    }
+                    textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
+                    .btn-chat {
+                        background-color: #1e88e5; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; 
+                        width: 100%; font-weight: bold; font-size: 11px; transition: background 0.2s;
+                    }
+                    .btn-chat:hover { background-color: #1976d2; }
                 </style>
             </head>
             <body>
@@ -169,18 +185,14 @@ class HubSidebarProvider {
 
                 <div class="${isConnected ? '' : 'disabled'}">
                     <h2>🚀 Ciclo de Vida (SDDE)</h2>
-                    <button class="btn" onclick="sendAction('Fase 0')"><span class="fase-icon">🔍</span> Fase 0: Descoberta</button>
                     <button class="btn" onclick="sendAction('Fase 1')"><span class="fase-icon">📋</span> Fase 1: Refinamento</button>
                     <button class="btn" onclick="sendAction('Fase 2')"><span class="fase-icon">🏗️</span> Fase 2: Desenho Técnico</button>
-                    <button class="btn" onclick="sendAction('Fase 3')"><span class="fase-icon">🛡️</span> Fase 3: Qualidade</button>
-                    <button class="btn" onclick="sendAction('Fase 4')"><span class="fase-icon">📦</span> Fase 4: Entrega</button>
-                    <button class="btn" onclick="sendAction('Fase 5')"><span class="fase-icon">♻️</span> Fase 5: Modernização</button>
+                    <button class="btn" onclick="sendAction('Fase 3')"><span class="fase-icon">🛡️</span> Fase 3: Desenvolvimento Especializado</button>
                     
                     <h2>🛡️ Agentes Especialistas</h2>
                     <button class="btn" onclick="sendAction('Spring')">🍃 Agente Spring Boot</button>
                     <button class="btn" onclick="sendAction('Angular')">🅰️ Agente Angular</button>
                     <button class="btn" onclick="sendAction('Cobol')">🟦 Agente Reversa COBOL</button>
-                    <button class="btn" onclick="sendAction('Business')">💼 Agente Business/PO</button>
                 </div>
 
                 <script>

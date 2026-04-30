@@ -11,7 +11,7 @@
         </mxCell>
 
         <!-- Passo 1 -->
-        <mxCell id="step1" value="&lt;b&gt;1. ENTRADA&lt;/b&gt;&lt;br&gt;Requisitos no GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step1" value="&lt;b&gt;0. DESCOBERTA&lt;/b&gt;&lt;br&gt;Requisitos Hub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#2196F3;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="310" y="100" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="callout1" value="O DEV recebe a demanda técnica bruto." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">
@@ -30,7 +30,7 @@
         </mxCell>
 
         <!-- Passo 3 -->
-        <mxCell id="step3" value="&lt;b&gt;3. ARQUITETURA&lt;/b&gt;&lt;br&gt;Instructions (Constituição)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step3" value="&lt;b&gt;2. DESENHO TÉCNICO&lt;/b&gt;&lt;br&gt;Arquitetura e Skills" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="310" y="340" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="callout3" value="Java 21, COBOL Moderno, Hexagonal e Clean Code na base." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">
@@ -41,7 +41,7 @@
         </mxCell>
 
         <!-- Passo 4 -->
-        <mxCell id="step4" value="&lt;b&gt;4. CONSTRUÇÃO&lt;/b&gt;&lt;br&gt;Agents Skills Específicas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step4" value="&lt;b&gt;3. QUALIDADE&lt;/b&gt;&lt;br&gt;Review e Agentes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="310" y="460" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="callout4" value="Implementação técnica (Kafka, Feign) com expertise do Hub." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">
@@ -52,7 +52,7 @@
         </mxCell>
 
         <!-- Passo 5 -->
-        <mxCell id="step5" value="&lt;b&gt;5. VALIDAÇÃO&lt;/b&gt;&lt;br&gt;Templates: Fase 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step5" value="&lt;b&gt;4. ENTREGA&lt;/b&gt;&lt;br&gt;Deploy e Artefatos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="310" y="580" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="callout5" value="Testes Unitários/BDD e Code Review automático da IA." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">
@@ -63,7 +63,7 @@
         </mxCell>
 
         <!-- Passo 6 -->
-        <mxCell id="step6" value="&lt;b&gt;6. ENTREGA&lt;/b&gt;&lt;br&gt;Templates: Fase 4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step6" value="&lt;b&gt;5. MODERNIZAÇÃO&lt;/b&gt;&lt;br&gt;Legado e Otimização" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="310" y="700" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="callout6" value="Geração de Release Notes e Merge Request padronizado." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFDE7;strokeColor=#FBC02D;fontSize=11;align=left;" vertex="1" parent="1">

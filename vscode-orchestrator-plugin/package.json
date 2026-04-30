@@ -3,7 +3,7 @@
   "publisher": "hub-governanca",
   "displayName": "AI Governance Hub Orchestrator",
   "description": "Orquestrador SDD para Agentes Java e Angular via GitHub Copilot",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "engines": {
     "vscode": "^1.90.0"
   },

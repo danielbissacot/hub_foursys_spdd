@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foursys | AI Governance Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --foursys-dark: #1a1d2e;
+            --foursys-orange: #ff6d00;
+            --foursys-accent: #ff8b33;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--foursys-dark);
+            background-image: radial-gradient(circle at 0% 0%, rgba(255, 109, 0, 0.05) 0%, transparent 50%),
+                              radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.05) 0%, transparent 50%);
+            color: #ffffff;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .navbar-foursys {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(26, 29, 46, 0.95);
+        }
+
+        .logo-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .logo-text span { color: var(--foursys-orange); }
+
+        .nav-right-text {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .hero-section {
+            padding: 100px 0 60px;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            max-width: 850px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Fluxo Horizontal Iterativo */
+        .flow-container {
+            position: relative;
+            margin: 60px 0;
+            padding: 40px 20px;
+            background: var(--glass);
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .flow-line {
+            position: absolute;
+            top: 50%;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--foursys-orange), #38bdf8);
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .step-node {
+            position: relative;
+            z-index: 1;
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+
+        .step-circle {
+            width: 70px;
+            height: 70px;
+            background: var(--foursys-dark);
+            border: 3px solid var(--foursys-orange);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-weight: 800;
+            font-size: 1.4rem;
+            box-shadow: 0 0 30px rgba(255, 109, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .step-node:hover .step-circle {
+            transform: scale(1.1) rotate(5deg);
+            background: var(--foursys-orange);
+            color: var(--foursys-dark);
+            box-shadow: 0 0 40px rgba(255, 109, 0, 0.4);
+        }
+
+        .step-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--foursys-orange);
+        }
+
+        .step-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-top: 5px;
+        }
+
+        /* Iterative Feedback Arrows (CSS Mockup) */
+        .feedback-loop {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+
+        /* Asset Grid */
+        .asset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-top: 50px;
+        }
+
+        .asset-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            transition: all 0.4s ease;
+        }
+
+        .asset-card:hover {
+            border-color: var(--foursys-orange);
+            background: rgba(255, 109, 0, 0.03);
+            transform: translateY(-10px);
+        }
+
+        .card-header-icon {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: var(--foursys-orange);
+        }
+
+        .asset-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+
+        .asset-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .asset-item::before {
+            content: '#';
+            color: var(--foursys-orange);
+            margin-right: 8px;
+            font-weight: 800;
+        }
+
+        .highlight-orange { color: var(--foursys-orange); }
+
+        @media (max-width: 992px) {
+            .asset-grid { grid-template-columns: 1fr; }
+            .flow-line { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar-foursys">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="logo-text">four<span>sys</span></div>
+            <div class="nav-right-text">AI GOVERNANCE INTELLIGENCE</div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="hero-section">
+            <h1 class="hero-title">Esteira de Desenvolvimento e Entrega</h1>
+            <p class="hero-subtitle">O AI Governance Hub orquestra o ciclo de vida do software garantindo conformidade, qualidade e agilidade através de agentes especializados.</p>
+        </header>
+
+        <!-- Fluxo Horizontal -->
+        <div class="flow-container">
+            <div class="flow-line"></div>
+            <div class="row g-0 text-center">
+                <div class="col step-node">
+                    <div class="step-label">Fase 0</div>
+                    <div class="step-circle">0</div>
+                    <div class="step-name">Descoberta</div>
+                </div>
+                <div class="col step-node">
+                    <div class="step-label">Fase 1</div>
+                    <div class="step-circle">1</div>
+                    <div class="step-name">Refinamento</div>
+                </div>
+                <div class="col step-node">
+                    <div class="step-label">Fase 2</div>
+                    <div class="step-circle">2</div>
+                    <div class="step-name">Desenho</div>
+                </div>
+                <div class="col step-node">
+                    <div class="step-label">Fase 3</div>
+                    <div class="step-circle">3</div>
+                    <div class="step-name">Qualidade</div>
+                </div>
+                <div class="col step-node">
+                    <div class="step-label">Fase 4</div>
+                    <div class="step-circle">4</div>
+                    <div class="step-name">Entrega</div>
+                </div>
+                <div class="col step-node">
+                    <div class="step-label">Fase 5</div>
+                    <div class="step-circle">5</div>
+                    <div class="step-name">Modernização</div>
+                </div>
+            </div>
+            <div class="feedback-loop">
+                &larr; Ciclo de Feedback e Refinamento Contínuo &rarr;
+            </div>
+        </div>
+
+        <!-- Asset Grid -->
+        <div class="asset-grid">
+            <div class="asset-card">
+                <div class="card-header-icon">🏛️</div>
+                <h5 class="fw-bold mb-3">Governança & Negócio</h5>
+                <p class="small text-secondary">Definição do esqueleto e identificação de regras de compliance iniciais.</p>
+                <ul class="asset-list">
+                    <li class="asset-item">ESTRUTURA_E_IDENTIFICACAO.md</li>
+                    <li class="asset-item">ESTORIA_USUARIO.md</li>
+                    <li class="asset-item">Agente Negócio Foursys</li>
+                </ul>
+            </div>
+
+            <div class="asset-card">
+                <div class="card-header-icon">🏗️</div>
+                <h5 class="fw-bold mb-3">Engenharia & Codificação</h5>
+                <p class="small text-secondary">Injeção de padrões arquiteturais Java 21, Angular e COBOL Moderno.</p>
+                <ul class="asset-list">
+                    <li class="asset-item">HEXAGONAL_JAVA.md</li>
+                    <li class="asset-item">MVC_JAVA.md</li>
+                    <li class="asset-item">Agentes Spring / Angular</li>
+                </ul>
+            </div>
+
+            <div class="asset-card">
+                <div class="card-header-icon">🛡️</div>
+                <h5 class="fw-bold mb-3">Qualidade & Evolução</h5>
+                <p class="small text-secondary">Validação rigorosa de segurança, testes e modernização de legado.</p>
+                <ul class="asset-list">
+                    <li class="asset-item">SECURITY_COMPLIANCE.md</li>
+                    <li class="asset-item">PRONTIDAO_MODERNIZACAO.md</li>
+                    <li class="asset-item">Agente Reversa COBOL</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer class="mt-5 pt-5 pb-5 text-center opacity-50">
+            <hr class="mb-4">
+            <p>Foursys &copy; 2026 | AI Governance Intelligence Flow</p>
+        </footer>
+    </div>
+
+</body>
+</html>

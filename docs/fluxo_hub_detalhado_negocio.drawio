@@ -1,4 +1,4 @@
-﻿<mxfile host="Electron" version="21.6.8" type="device">
+<mxfile host="Electron" version="21.6.8" type="device">
   <diagram id="fluxo-enterprise-v1-2" name="Esteira Enterprise Alta Fidelidade">
     <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -11,51 +11,51 @@
         </mxCell>
 
         <!-- ZONAS DE WORKFLOW (SWIMLANES DE FUNDO) -->
-        <mxCell id="zone1" value="DESIGN &amp; PLANEJAMENTO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=none;opacity=5;fontSize=20;fontStyle=1;align=center;verticalAlign=top;spacingTop=20;" vertex="1" parent="1">
+        <mxCell id="zone1" value="0. DESCOBERTA &amp;amp; 1. REFINAMENTO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=none;opacity=5;fontSize=20;fontStyle=1;align=center;verticalAlign=top;spacingTop=20;" vertex="1" parent="1">
           <mxGeometry x="50" y="120" width="480" height="350" as="geometry" />
         </mxCell>
-        <mxCell id="zone2" value="ENGENHARIA &amp; CONSTRUÇÃO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=none;opacity=5;fontSize=20;fontStyle=1;align=center;verticalAlign=top;spacingTop=20;" vertex="1" parent="1">
+        <mxCell id="zone2" value="2. DESENHO &amp;amp; 3. QUALIDADE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=none;opacity=5;fontSize=20;fontStyle=1;align=center;verticalAlign=top;spacingTop=20;" vertex="1" parent="1">
           <mxGeometry x="570" y="120" width="480" height="350" as="geometry" />
         </mxCell>
-        <mxCell id="zone3" value="QUALIDADE &amp; GOVERNANÇA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=none;opacity=5;fontSize=20;fontStyle=1;align=center;verticalAlign=top;spacingTop=20;" vertex="1" parent="1">
+        <mxCell id="zone3" value="4. ENTREGA &amp;amp; 5. MODERNIZAÇÃO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=none;opacity=5;fontSize=20;fontStyle=1;align=center;verticalAlign=top;spacingTop=20;" vertex="1" parent="1">
           <mxGeometry x="1090" y="120" width="480" height="350" as="geometry" />
         </mxCell>
 
         <!-- CAMADA 1: ETAPAS PRINCIPAIS -->
-        <mxCell id="step1" value="&lt;b&gt;HISTÓRIA DO NEGÓCIO&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#448AFF;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step1" value="&lt;b&gt;0. DESCOBERTA&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#448AFF;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="200" width="180" height="80" as="geometry" />
         </mxCell>
         <mxCell id="step2" value="&lt;b&gt;1. REFINAMENTO&lt;/b&gt;&lt;br&gt;Fase 1: Histórias" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#4CAF50;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="340" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step3" value="&lt;b&gt;2. ENGENHARIA ACELERADA (IA)&lt;/b&gt;&lt;br&gt;Fase 2: Skills e Construção" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step3" value="&lt;b&gt;2. DESENHO TÉCNICO&lt;/b&gt;&lt;br&gt;Fase 2: Arquitetura e Skills" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9800;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="600" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step4" value="&lt;b&gt;3. GOVERNANÇA ARQUITETURAL&lt;/b&gt;&lt;br&gt;Fase 3: Java/Angular" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step4" value="&lt;b&gt;3. QUALIDADE&lt;/b&gt;&lt;br&gt;Fase 3: Review e Testes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#9C27B0;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="860" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step5" value="&lt;b&gt;4. QUALIDADE &amp; COMPLIANCE&lt;/b&gt;&lt;br&gt;Fase 4: Testes e Validação" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step5" value="&lt;b&gt;4. ENTREGA&lt;/b&gt;&lt;br&gt;Fase 4: Deploy e Artefatos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#E91E63;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="1120" y="200" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step6" value="&lt;b&gt;5. ENTREGA E AUDITORIA&lt;/b&gt;&lt;br&gt;Fase 5: Documentação da Entrega" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
+        <mxCell id="step6" value="&lt;b&gt;5. MODERNIZAÇÃO&lt;/b&gt;&lt;br&gt;Fase 5: Legado e Otimização" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFD600;strokeWidth=2;shadow=1;glass=1;" vertex="1" parent="1">
           <mxGeometry x="1380" y="200" width="180" height="80" as="geometry" />
         </mxCell>
 
         <!-- CAMADA 2: ATIVOS DO HUB (ALTA FIDELIDADE V1.2) -->
 
-        <mxCell id="asset2" value="&lt;i&gt;Refinement:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#ESTORIA_USUARIO.md&lt;/b&gt;&lt;br&gt;#GERADOR_CRITERIOS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=10;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset2" value="&lt;i&gt;Refinement &amp;amp; Discovery:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#ESTRUTURA_E_IDENTIFICACAO.md&lt;/b&gt;&lt;br&gt;#AGENTE_NEGOCIO_FOURSYS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=10;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="340" y="325" width="180" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="asset3" value="&lt;i&gt;Arquitetura &amp; Mentoria:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#MENTOR_SPRING_HEX.md&lt;/b&gt;&lt;br&gt;#HEXAGONAL-JAVA.md | #ANGULAR.md&lt;br&gt;#SOLID-CLEAN-CODE.md&lt;br&gt;#SECURITY-COMPLIANCE.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset3" value="&lt;i&gt;Desenho &amp;amp; Arquitetura:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#HEXAGONAL_JAVA.md | #MVC_JAVA.md&lt;/b&gt;&lt;br&gt;#ANGULAR_FRONTEND.md&lt;br&gt;#SOLID_CLEAN_CODE.md&lt;br&gt;#AGENTE_SPRING_FOURSYS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="600" y="325" width="180" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="asset4" value="&lt;i&gt;Mão na Massa (Full Stack):&lt;/i&gt;&lt;br&gt;&lt;b&gt;#SKILL_SPRINGBOOT.md&lt;/b&gt;&lt;br&gt;&lt;b&gt;#SKILL_ANGULAR.md&lt;/b&gt;&lt;br&gt;#AGENTE_ANGULAR_FOURSYS.md&lt;br&gt;#AGENTE_COBOL_FOURSYS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset4" value="&lt;i&gt;Qualidade &amp;amp; Compliance:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#TESTING_PATTERNS.md&lt;/b&gt;&lt;br&gt;#SECURITY_COMPLIANCE.md&lt;br&gt;#AGENTE_ANGULAR_FOURSYS.md&lt;br&gt;#AGENTE_COBOL_FOURSYS.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="860" y="325" width="180" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="asset5" value="&lt;i&gt;Qualidade &amp; Compliance:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#FASE3_VALIDACAO_HEXAGONAL.md&lt;/b&gt;&lt;br&gt;#FASE3_REVIEW (SPRING/ANGULAR)&lt;br&gt;#FASE3_TESTES (SPRING/ANGULAR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset5" value="&lt;i&gt;Entrega &amp;amp; Deploy:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#RELEASE_NOTES.md&lt;/b&gt;&lt;br&gt;#GIT_COMMIT_PATTERN.md&lt;br&gt;#README.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="1120" y="325" width="180" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="asset6" value="&lt;i&gt;Finalização Hub:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#RELEASE_NOTES.md&lt;/b&gt;&lt;br&gt;#GIT_COMMIT_PATTERN.md&lt;br&gt;#DOCUMENTACAO_API.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="asset6" value="&lt;i&gt;Modernização &amp;amp; Legado:&lt;/i&gt;&lt;br&gt;&lt;b&gt;#PRONTIDAO_MODERNIZACAO_JAVA.md&lt;/b&gt;&lt;br&gt;#CLEAN_CODE_COBOL.md&lt;br&gt;#SEGURANCA_PERFORMANCE_MAINFRAME.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#666666;strokeWidth=1;fontSize=9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="1380" y="325" width="180" height="100" as="geometry" />
         </mxCell>
 

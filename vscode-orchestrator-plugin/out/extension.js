@@ -38,96 +38,186 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
-const sdd_engine_1 = require("./sdd-engine");
 const sidebar_provider_1 = require("./sidebar-provider");
 const ai_client_1 = require("./ai-client");
 function activate(context) {
-    let disposable = vscode.commands.registerCommand('hub.runPipeline', async () => {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            vscode.window.showErrorMessage('Abra uma pasta no VS Code para executar a pipeline.');
-            return;
-        }
-        const rootPath = workspaceFolders[0].uri.fsPath;
-        const engine = new sdd_engine_1.SDDEngine(rootPath);
-        let config;
-        try {
-            config = engine.loadConfig();
-        }
-        catch (e) {
-            vscode.window.showErrorMessage(`Erro na Orquestração: ${e.message}`);
-            return;
-        }
-        // Navegação Visual dos Agentes
-        const items = config.pipelines.map(p => ({
-            label: `$(gear) ${p.name}`,
-            description: p.description,
-            detail: `ID: ${p.id} | ${p.steps.length} Agentes em Sequência`,
-            pipeline: p
-        }));
-        const selectedOption = await vscode.window.showQuickPick(items, {
-            placeHolder: 'Navegue entre os Agentes: Qual fluxo/agente você deseja executar?'
-        });
-        if (selectedOption) {
-            const pipeline = selectedOption.pipeline;
-            const globalRules = engine.getGlobalRules();
-            await executePipelineWithProgress(pipeline, rootPath, globalRules);
-        }
-    });
     const sidebarProvider = new sidebar_provider_1.HubSidebarProvider(context.extensionUri);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(sidebar_provider_1.HubSidebarProvider.viewType, sidebarProvider));
-    context.subscriptions.push(disposable);
+    let disposable1 = vscode.commands.registerCommand('hub.runPhase1', async () => {
+        await executePhase("AGENTE_NEGOCIO_FOURSYS", "user_story.md", "Fase 1: Refinamento", ".md", context);
+    });
+    let disposable2 = vscode.commands.registerCommand('hub.runPhase2', async () => {
+        await executePhase("AGENTE_ARQUITETO_FOURSYS", "output_agente_negocio_foursys.md", "Fase 2: Desenho Técnico", ".md", context);
+    });
+    let disposable3 = vscode.commands.registerCommand('hub.runPhase3', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders)
+            return;
+        const rootPath = workspaceFolders[0].uri.fsPath;
+        // Verifica dinamicamente se é Angular (package.json) ou Java (pom.xml)
+        const isAngular = fs.existsSync(path.join(rootPath, 'package.json'));
+        const agentName = isAngular ? "AGENTE_DESENVOLVEDOR_ANGULAR" : "AGENTE_DESENVOLVEDOR_JAVA";
+        const inputContext = "output_agente_arquiteto_foursys.md";
+        const ext = isAngular ? ".ts" : ".java";
+        await executePhase(agentName, inputContext, "Fase 3: Desenvolvimento", ext, context);
+    });
+    context.subscriptions.push(disposable1, disposable2, disposable3);
 }
-async function executePipelineWithProgress(pipeline, rootPath, globalRules) {
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: `Hub de Governança: Executando ${pipeline.name}`,
-        cancellable: true
-    }, async (progress, token) => {
-        const totalSteps = pipeline.steps.length;
-        for (let i = 0; i < totalSteps; i++) {
-            if (token.isCancellationRequested) {
-                return;
-            }
-            const step = pipeline.steps[i];
-            const percent = ((i + 1) / totalSteps) * 100;
-            progress.report({
-                increment: 100 / totalSteps,
-                message: `[${i + 1}/${totalSteps}] ${step.agent} trabalhando...`
-            });
-            // Verifica o arquivo de contexto de entrada
-            const inputPath = path.join(rootPath, step.input_context);
-            let contextContent = "";
-            if (!fs.existsSync(inputPath)) {
-                // Arquivo não existe! Vamos auto-criar um template para o usuário.
-                const template = `# História de Usuário / Requisito\n\n**Título:** [Insira o título aqui]\n\n**Descrição:**\nComo um [ator],\nEu quero [ação],\nPara que [valor].\n\n**Critérios de Aceite:**\n- [ ] Critério 1\n`;
-                fs.writeFileSync(inputPath, template);
-                const doc = await vscode.workspace.openTextDocument(inputPath);
-                await vscode.window.showTextDocument(doc, { preview: false });
-                vscode.window.showWarningMessage(`Contexto ausente! Criei um template para '${step.input_context}'. Preencha e rode a pipeline novamente.`);
-                return; // Pausa a execução
-            }
-            else {
-                // Lê o conteúdo real do arquivo para passar para a IA
-                contextContent = fs.readFileSync(inputPath, 'utf8');
-            }
-            // Chama a API do Copilot passando o conteúdo real
-            const generatedContent = await ai_client_1.AIClient.sendPromptToCopilot(step.agent, contextContent, globalRules);
-            // Simula a escrita de um arquivo em disco
-            const outputPath = path.join(rootPath, `output_${step.agent.toLowerCase()}${step.expected_output_extension}`);
-            fs.writeFileSync(outputPath, generatedContent);
-            if (step.require_human_approval && i < totalSteps - 1) {
-                const doc = await vscode.workspace.openTextDocument(outputPath);
-                await vscode.window.showTextDocument(doc, { preview: false });
-                const approve = await vscode.window.showInformationMessage(`O ${step.agent} gerou o arquivo. Você aprova a continuação para o próximo agente?`, { modal: true }, 'Aprovar', 'Rejeitar');
-                if (approve !== 'Aprovar') {
-                    vscode.window.showWarningMessage('Fluxo interrompido pelo usuário na fase de aprovação.');
-                    return;
+function detectProjectContext(rootPath) {
+    if (fs.existsSync(path.join(rootPath, 'pom.xml'))) {
+        return "Java Spring Boot Project";
+    }
+    else if (fs.existsSync(path.join(rootPath, 'package.json'))) {
+        return "Node/Angular Project";
+    }
+    else if (fs.existsSync(path.join(rootPath, 'cobol'))) {
+        return "COBOL Legacy System";
+    }
+    return "Tecnologia não identificada automaticamente.";
+}
+async function executePhase(agentName, inputContextFile, phaseName, expectedOutputExtension, context) {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        vscode.window.showErrorMessage('Abra uma pasta no VS Code para executar o Hub.');
+        return;
+    }
+    const rootPath = workspaceFolders[0].uri.fsPath;
+    const globalStoragePath = context.globalStorageUri.fsPath;
+    const inputPath = path.join(rootPath, inputContextFile);
+    if (!fs.existsSync(inputPath)) {
+        if (phaseName.includes("Fase 1")) {
+            const template = `# História de Usuário / Requisito\n\n**Título:** [Insira o título aqui]\n\n**Descrição:**\nComo um [ator],\nEu quero [ação],\nPara que [valor].\n\n**Critérios de Aceite:**\n- [ ] Critério 1\n`;
+            fs.writeFileSync(inputPath, template);
+            const doc = await vscode.workspace.openTextDocument(inputPath);
+            await vscode.window.showTextDocument(doc, { preview: false });
+            vscode.window.showWarningMessage(`Criei um template para '${inputContextFile}'. Preencha e clique na Fase 1 novamente.`);
+            return;
+        }
+        else {
+            vscode.window.showErrorMessage(`O arquivo base '${inputContextFile}' não foi encontrado. Você executou a fase anterior?`);
+            return;
+        }
+    }
+    const doc = await vscode.workspace.openTextDocument(inputPath);
+    await vscode.window.showTextDocument(doc, { preview: false });
+    let welcomeMsg = `Arquivo '${inputContextFile}' pronto. Clique em Pronto quando quiser que o Agente atue.`;
+    const ready = await vscode.window.showInformationMessage(welcomeMsg, "Estou Pronto!", "Cancelar");
+    if (ready !== "Estou Pronto!")
+        return;
+    const contextContent = fs.readFileSync(inputPath, 'utf8');
+    const projectContext = detectProjectContext(rootPath);
+    const hasMockup = fs.existsSync(path.join(rootPath, 'ui_mockup.png'));
+    let rulePath = "";
+    if (phaseName.includes("Fase 1")) {
+        rulePath = path.join(globalStoragePath, "agentes_foursys", "catalog", "playbook", "fase1_refinamento_negocio", "FASE1_REFINAMENTO_NEGOCIO.md");
+    }
+    else if (phaseName.includes("Fase 2")) {
+        rulePath = path.join(globalStoragePath, "agentes_foursys", "catalog", "playbook", "fase2_desenho_tecnico", "FASE2_ESPECIFICACAO_TECNICA.md");
+    }
+    else {
+        let skillFile = "spring_boot/AGENTE_SPRING_FOURSYS.md";
+        if (agentName === "AGENTE_DESENVOLVEDOR_ANGULAR")
+            skillFile = "angular/AGENTE_ANGULAR_FOURSYS.md";
+        rulePath = path.join(globalStoragePath, "agentes_foursys", "catalog", "agents_skills", skillFile);
+    }
+    let globalRules = "Siga o Clean Code e melhores práticas corporativas.";
+    try {
+        if (fs.existsSync(rulePath)) {
+            globalRules = fs.readFileSync(rulePath, 'utf8');
+        }
+    }
+    catch (e) {
+        console.error(e);
+    }
+    let extraInstruction = "";
+    if (phaseName.includes("Fase 3")) {
+        extraInstruction = "\n\nIMPORTANTE PARA A FASE 3: Gere APENAS blocos de código-fonte (sem textos explicativos antes ou depois). Inicie o conteúdo de CADA arquivo com um comentário contendo o caminho relativo de onde ele deve ser salvo no projeto. Exemplo prático: `// FILEPATH: src/main/java/com/foursys/Main.java` ou `// FILEPATH: src/app/login/login.component.ts`. Use a tag Markdown ``` para isolar o código.";
+    }
+    const finalPrompt = contextContent + extraInstruction;
+    const outputChannel = vscode.window.createOutputChannel("AI Governance Hub");
+    outputChannel.show(true);
+    outputChannel.appendLine(`[Iniciando ${agentName}...]\n`);
+    try {
+        const generatedContent = await ai_client_1.AIClient.sendPromptToCopilot(agentName, finalPrompt, globalRules, projectContext, hasMockup, async (chunk) => {
+            outputChannel.append(chunk);
+        });
+        outputChannel.appendLine("\n\n[Finalizado. Salvando arquivo...]");
+        let savedFiles = [];
+        if (phaseName.includes("Fase 3")) {
+            // Regex procura por blocos de código e tenta capturar o comentário FILEPATH na primeira linha
+            const codeBlockRegex = /```[\w]*\n(?:(?:\/\/|\/\*|<!--)?\s*(?:FILEPATH|PATH|Arquivo):\s*([^\n]+)\n)?([\s\S]*?)```/gi;
+            let match;
+            let fileCount = 0;
+            while ((match = codeBlockRegex.exec(generatedContent)) !== null) {
+                let filePath = match[1] ? match[1].trim() : `src/generated/output_codigo_${fileCount}${expectedOutputExtension}`;
+                // Remove qualquer comentário que possa ter sobrado no final da linha (ex: --> ou */)
+                filePath = filePath.replace(/(-->|\*\/)$/, '').trim();
+                const codeContent = match[2].trim();
+                const fullPath = path.join(rootPath, filePath);
+                const dirPath = path.dirname(fullPath);
+                if (!fs.existsSync(dirPath)) {
+                    fs.mkdirSync(dirPath, { recursive: true });
                 }
+                fs.writeFileSync(fullPath, codeContent);
+                savedFiles.push(fullPath);
+                fileCount++;
+            }
+            // Fallback se a IA não gerou em blocos mapeáveis
+            if (savedFiles.length === 0) {
+                const fallbackPath = path.join(rootPath, `src/generated/output_${agentName.toLowerCase()}${expectedOutputExtension}`);
+                const dirPath = path.dirname(fallbackPath);
+                if (!fs.existsSync(dirPath))
+                    fs.mkdirSync(dirPath, { recursive: true });
+                fs.writeFileSync(fallbackPath, generatedContent);
+                savedFiles.push(fallbackPath);
             }
         }
-        vscode.window.showInformationMessage('✨ Pipeline executada com sucesso! Todos os artefatos foram gerados.');
-    });
+        else {
+            const outputPath = path.join(rootPath, `output_${agentName.toLowerCase()}${expectedOutputExtension}`);
+            fs.writeFileSync(outputPath, generatedContent);
+            savedFiles.push(outputPath);
+        }
+        for (const file of savedFiles) {
+            const outDoc = await vscode.workspace.openTextDocument(file);
+            await vscode.window.showTextDocument(outDoc, { preview: false, viewColumn: vscode.ViewColumn.Active });
+        }
+        vscode.window.showInformationMessage(`✨ ${phaseName} concluída! Verifique o arquivo gerado.`);
+        // Opção C: Dispara o Chat Lateral para dar o efeito "Wow" da PoC
+        const mainGeneratedFile = savedFiles.length > 0 ? savedFiles[0] : `output_${agentName.toLowerCase()}${expectedOutputExtension}`;
+        const filename = path.basename(mainGeneratedFile);
+        const chatQuery = `@workspace Acabei de gerar o arquivo \`${filename}\` através do AI Governance Hub Foursys (${phaseName}). Faça um resumo rápido (máximo 3 bullets) sobre o que foi gerado neste arquivo.`;
+        try {
+            await vscode.commands.executeCommand('workbench.action.chat.open', { query: chatQuery });
+        }
+        catch (chatErr) {
+            console.log("Chat panel não pôde ser aberto", chatErr);
+        }
+    }
+    catch (e) {
+        outputChannel.appendLine(`\n[AVISO]: ${e.message}`);
+        outputChannel.appendLine(`\nComo a Inteligência Artificial atual não permite integração direta, abrindo modo manual...`);
+        const promptCompleto = `Atue como ${agentName}. Siga as regras corporativas abaixo:
+---
+${globalRules}
+---
+[CONTEXTO TÉCNICO: ${projectContext}]
+${hasMockup ? "IMPORTANTE: Existe um 'ui_mockup.png'. Siga o layout visual." : ""}
+
+Tarefa: Baseado no documento a seguir, execute sua fase do SDD. Retorne APENAS o conteúdo final (Código puro ou Markdown).
+
+[DOCUMENTO DE ENTRADA]
+${contextContent}`;
+        try {
+            await vscode.env.clipboard.writeText(promptCompleto);
+        }
+        catch (err) { }
+        const promptDoc = await vscode.workspace.openTextDocument({
+            content: promptCompleto,
+            language: "markdown"
+        });
+        await vscode.window.showTextDocument(promptDoc, { preview: false, viewColumn: vscode.ViewColumn.Beside });
+        vscode.window.showWarningMessage(`Automação bloqueada pela LLM atual. Copie o texto da aba ao lado e cole no Chat!`);
+    }
 }
 function deactivate() { }
 //# sourceMappingURL=extension.js.map

@@ -43,7 +43,7 @@ Fase 5: MODERNIZACAO LEGADO (COBOL)
 
 [*] AGENT SKILLS (HABILIDADES INTEGRADAS):
 ------------------------------------------
--> BACKEND (JAVA): Testing, Kafka, Feign Client, Rest Client.
+-> BACKEND (JAVA): Testing, Kafka, MongoDB, Feign Client, Rest Client.
 -> FRONTEND (ANGULAR): Signals, Components, Forms, Routing.
 
 💡 EXEMPLO DE COMANDO NO CHAT:

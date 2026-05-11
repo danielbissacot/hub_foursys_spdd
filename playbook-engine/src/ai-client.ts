@@ -60,11 +60,10 @@ ${systemPrompt}`;
             let fullResponse = '';
             for await (const chunk of response.text) {
                 fullResponse += chunk;
-                // Streaming: mostra progresso no output
-                outputChannel.append(chunk);
             }
 
-            outputChannel.appendLine('\n[IA] Resposta recebida com sucesso. ✅');
+            outputChannel.appendLine('[IA] Resposta recebida com sucesso. ✅');
+            outputChannel.appendLine('[IA] Analisando conteúdo para extração...');
             return fullResponse;
         } catch (error: any) {
             const errorMsg = `[IA ERRO] ${error.message || error}`;

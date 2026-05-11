@@ -2,7 +2,7 @@
   "name": "agentes-foursys",
   "displayName": "Agentes Foursys - AI Governance Hub",
   "description": "Orquestrador dinâmico de engenharia de software baseado em Playbooks do catálogo AI Governance Hub.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "foursys",
   "engines": {
     "vscode": "^1.96.0"

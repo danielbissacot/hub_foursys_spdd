@@ -42,7 +42,7 @@ const sidebar_provider_1 = require("./sidebar-provider");
 const ai_client_1 = require("./ai-client");
 const catalog_loader_1 = require("./catalog-loader");
 // ============================================================
-// Playbook Engine V1.0.0 - VERSÃO ESTÁVEL RESTAURADA
+// Playbook Engine V1.0.1 - REFINAMENTO DE LOGS E EXTRAÇÃO
 // ============================================================
 const OUTPUT_CHANNEL_NAME = 'Agentes Foursys';
 const DOC_FOLDER = 'doc_projeto';
@@ -370,31 +370,37 @@ function getWorkspaceRoot() {
     return folders ? folders[0].uri.fsPath : null;
 }
 function extractAndSaveFiles(response, rootPath, outputChannel) {
+    outputChannel.appendLine('------------------------------------------------------------');
+    outputChannel.appendLine('[SISTEMA] 📂 Iniciando extração de arquivos...');
     // Regex melhorado: Busca // FILEPATH: e captura tudo até o próximo marcador ou fim de bloco de código
     const fileRegex = /\/\/\s*FILEPATH:\s*([^\s\n]+)\s*\n([\s\S]*?)(?=\/\/\s*FILEPATH:|$)/gi;
     let match;
     let count = 0;
-    // Limpeza prévia: Se a resposta vier envolvida em blocos de markdown, tentamos focar no conteúdo interno
-    // mas o regex acima já é desenhado para ignorar o que está fora do marcador.
     while ((match = fileRegex.exec(response)) !== null) {
         let filePath = match[1].trim();
         let code = match[2].trim();
-        // Limpeza profunda de resquícios de markdown (crases no final ou início do bloco capturado)
+        // Limpeza profunda de resquícios de markdown
         code = code.replace(/```[\w]*\s*$/, '').trim();
-        // Se o caminho for relativo, junta com o root
         const fullPath = path.isAbsolute(filePath) ? filePath : path.join(rootPath, filePath);
         const dir = path.dirname(fullPath);
         try {
             if (!fs.existsSync(dir))
                 fs.mkdirSync(dir, { recursive: true });
             fs.writeFileSync(fullPath, code);
-            outputChannel.appendLine(`[SAVE] ${filePath}`);
+            outputChannel.appendLine(`[SAVE] ✅ ${filePath}`);
             count++;
         }
         catch (err) {
-            outputChannel.appendLine(`[ERRO SAVE] ${filePath}: ${err.message}`);
+            outputChannel.appendLine(`[ERRO SAVE] ❌ ${filePath}: ${err.message}`);
         }
     }
+    if (count > 0) {
+        outputChannel.appendLine(`[SISTEMA] 🚀 Finalizado: ${count} arquivo(s) criado(s)/atualizado(s).`);
+    }
+    else {
+        outputChannel.appendLine(`[SISTEMA] ℹ️  Nenhum arquivo foi extraído desta resposta.`);
+    }
+    outputChannel.appendLine('------------------------------------------------------------');
     return count;
 }
 function collectSourceFiles(rootPath, technology) {

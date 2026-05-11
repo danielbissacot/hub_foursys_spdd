@@ -83,7 +83,7 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
 
     switch (command) {
         case 'constitution':
-            playbookPath = path.join(catalogPath, 'sdd-engine', 'foursys-constitution.md');
+            playbookPath = path.join(catalogPath, 'playbook', 'sdd', 'foursys-constitution.md');
             outputPath = path.join(docPath, 'constitution.md');
             taskName = 'Criação da Constituição';
             break;
@@ -100,7 +100,7 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
             taskName = 'Planejamento (Plan)';
             break;
         case 'tasks':
-            playbookPath = path.join(catalogPath, 'sdd-engine', 'foursys-tasks.md');
+            playbookPath = path.join(catalogPath, 'playbook', 'sdd', 'foursys-tasks.md');
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
             taskName = 'Quebra de Tarefas (Tasks)';

@@ -54,18 +54,26 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
 
     const savedPath = context.globalState.get<string>('catalogPath');
     const catalogPath = findCatalogPath(rootPath, savedPath || '');
-    
+
+    // DIAGNÓSTICO — abre o Output e registra o estado atual
+    outputChannel.show(true);
+    outputChannel.appendLine(`\n[SDD] ▶ Fase: ${command}`);
+    outputChannel.appendLine(`[SDD] 📁 Workspace: ${rootPath}`);
+    outputChannel.appendLine(`[SDD] 💾 Catálogo salvo: ${savedPath || 'nenhum'}`);
+    outputChannel.appendLine(`[SDD] 📂 Catálogo resolvido: ${catalogPath || 'NÃO ENCONTRADO'}`);
+
     if (!catalogPath) {
         const msg = '❌ Catálogo não encontrado. Por favor, aponte para a pasta /catalog do seu Hub.';
+        outputChannel.appendLine(`[SDD] ❌ Caminhos testados:\n  - ${rootPath}\\catalog\n  - ${rootPath}\\agentes_foursys\\catalog`);
         if (chatResponse) chatResponse.markdown(msg);
         else {
-            const select = 'Selecionar Pasta';
+            const select = 'Selecionar Pasta do Catálogo';
             vscode.window.showErrorMessage(msg, select).then(selection => {
                 if (selection === select) {
                     vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: 'Selecionar Catálogo' }).then(uris => {
                         if (uris && uris[0]) {
                             context.globalState.update('catalogPath', uris[0].fsPath);
-                            vscode.window.showInformationMessage('✅ Catálogo configurado com sucesso!');
+                            vscode.window.showInformationMessage(`✅ Catálogo salvo! Clique novamente no botão da fase.`);
                         }
                     });
                 }
@@ -114,6 +122,17 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
             taskName = 'Implementação Física';
             isDev = true;
             break;
+    }
+
+    outputChannel.appendLine(`[SDD] 📄 Playbook: ${playbookPath}`);
+    outputChannel.appendLine(`[SDD] ✅ Playbook existe: ${playbookPath ? fs.existsSync(playbookPath) : false}`);
+
+    if (!playbookPath || !fs.existsSync(playbookPath)) {
+        const msg = `❌ Playbook não encontrado: ${playbookPath || '(vazio)'}\n\nCrie a pasta catalog/playbook/sdd/ com os arquivos foursys-constitution.md e foursys-tasks.md.`;
+        outputChannel.appendLine(`[SDD] ❌ ERRO: Playbook ausente.`);
+        if (chatResponse) chatResponse.markdown(msg);
+        else vscode.window.showErrorMessage(msg);
+        return;
     }
 
     if (playbookPath && fs.existsSync(playbookPath)) {

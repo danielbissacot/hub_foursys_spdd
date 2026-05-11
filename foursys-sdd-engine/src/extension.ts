@@ -63,23 +63,28 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
     outputChannel.appendLine(`[SDD] 📂 Catálogo resolvido: ${catalogPath || 'NÃO ENCONTRADO'}`);
 
     if (!catalogPath) {
-        const msg = '❌ Catálogo não encontrado. Por favor, aponte para a pasta /catalog do seu Hub.';
-        outputChannel.appendLine(`[SDD] ❌ Caminhos testados:\n  - ${rootPath}\\catalog\n  - ${rootPath}\\agentes_foursys\\catalog`);
-        if (chatResponse) chatResponse.markdown(msg);
-        else {
-            const select = 'Selecionar Pasta do Catálogo';
-            vscode.window.showErrorMessage(msg, select).then(selection => {
-                if (selection === select) {
-                    vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: 'Selecionar Catálogo' }).then(uris => {
-                        if (uris && uris[0]) {
-                            context.globalState.update('catalogPath', uris[0].fsPath);
-                            vscode.window.showInformationMessage(`✅ Catálogo salvo! Clique novamente no botão da fase.`);
-                        }
-                    });
-                }
-            });
+        const needsCatalog = ['specify', 'plan', 'implement'];
+        outputChannel.appendLine(`[SDD] ⚠️ Catálogo externo não encontrado. Fases 'specify', 'plan' e 'implement' não estarão disponíveis.`);
+        if (needsCatalog.includes(command)) {
+            const msg = '❌ Catálogo não encontrado. Aponte para a pasta /catalog do seu Hub para usar esta fase.';
+            outputChannel.appendLine(`[SDD] ❌ Caminhos testados:\n  - ${rootPath}\\catalog\n  - ${rootPath}\\agentes_foursys\\catalog`);
+            if (chatResponse) chatResponse.markdown(msg);
+            else {
+                const select = 'Selecionar Pasta do Catálogo';
+                vscode.window.showErrorMessage(msg, select).then(selection => {
+                    if (selection === select) {
+                        vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: 'Selecionar Catálogo' }).then(uris => {
+                            if (uris && uris[0]) {
+                                context.globalState.update('catalogPath', uris[0].fsPath);
+                                vscode.window.showInformationMessage(`✅ Catálogo salvo! Clique novamente no botão da fase.`);
+                            }
+                        });
+                    }
+                });
+            }
+            return;
         }
-        return;
+        // constitution e tasks continuam com playbooks embutidos
     }
 
     const docPath = getDocPath(rootPath);
@@ -89,26 +94,29 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
     let taskName = '';
     let isDev = false;
 
+    // Playbooks embutidos no plugin (sempre disponíveis)
+    const builtinSDD = context.extensionUri.fsPath;
+
     switch (command) {
         case 'constitution':
-            playbookPath = path.join(catalogPath, 'playbook', 'sdd', 'foursys-constitution.md');
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md');
             outputPath = path.join(docPath, 'constitution.md');
             taskName = 'Criação da Constituição';
             break;
         case 'specify':
-            playbookPath = path.join(catalogPath, 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
+            if (catalogPath) playbookPath = path.join(catalogPath, 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
             outputPath = path.join(docPath, 'user_story.md');
             contextFiles = [path.join(docPath, 'constitution.md')];
             taskName = 'Especificação (Specify)';
             break;
         case 'plan':
-            playbookPath = path.join(catalogPath, 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
+            if (catalogPath) playbookPath = path.join(catalogPath, 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
             outputPath = path.join(docPath, 'implementation_plan.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
             taskName = 'Planejamento (Plan)';
             break;
         case 'tasks':
-            playbookPath = path.join(catalogPath, 'playbook', 'sdd', 'foursys-tasks.md');
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md');
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
             taskName = 'Quebra de Tarefas (Tasks)';
@@ -116,7 +124,7 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
         case 'implement':
             const storyPath = path.join(docPath, 'user_story.md');
             const tech = detectTechnology(storyPath);
-            playbookPath = findAgentSkill(catalogPath, tech || '') || '';
+            if (catalogPath) playbookPath = findAgentSkill(catalogPath, tech || '') || '';
             outputPath = path.join(docPath, 'output_desenvolvimento.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md'), path.join(docPath, 'task_list.md')];
             taskName = 'Implementação Física';

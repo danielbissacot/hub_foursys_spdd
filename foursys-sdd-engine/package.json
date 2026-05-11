@@ -4,6 +4,11 @@
   "description": "Motor de Spec-Driven Development (SDD) orquestrado com Agentes Foursys.",
   "version": "0.1.1",
   "publisher": "foursys",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danielbissacot/ai-governance-hub"
+  },
+  "homepage": "https://github.com/danielbissacot/ai-governance-hub/tree/ai-governance-plugin/foursys-sdd-engine",
   "engines": {
     "vscode": "^1.96.0"
   },

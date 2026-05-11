@@ -53,6 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
         let outputPath = '';
         let contextPath = '';
         let taskName = '';
+        let isDev = false;
 
         if (request.command === 'refinar') {
             playbookPath = path.join(catalogPath, 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
@@ -65,9 +66,13 @@ export function activate(context: vscode.ExtensionContext) {
             contextPath = path.join(docPath, 'output_refinamento.md');
             taskName = 'Desenho Técnico';
         } else if (request.command === 'desenvolver') {
-            response.markdown('🔄 **Agentes Foursys**: Iniciando Codificação...');
-            await vscode.commands.executeCommand('playbook.develop');
-            return;
+            const storyPath = path.join(docPath, 'user_story.md');
+            const tech = detectTechnology(storyPath);
+            playbookPath = findAgentSkill(catalogPath, tech || '') || '';
+            outputPath = path.join(docPath, 'output_desenvolvimento.md');
+            contextPath = path.join(docPath, 'implementation_plan.md');
+            taskName = 'Codificação';
+            isDev = true;
         } else if (request.command === 'review_angular' || request.command === 'review_java') {
             const tech = request.command === 'review_angular' ? 'angular' : 'spring_boot';
             playbookPath = findReviewPlaybook(catalogPath, tech) || '';
@@ -83,17 +88,47 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (playbookPath && fs.existsSync(playbookPath)) {
-            response.markdown(`🔄 **Agentes Foursys**: Executando **${taskName}**...`);
-            try {
-                const systemPrompt = loadPlaybook(playbookPath);
-                const userContext = fs.existsSync(contextPath) ? fs.readFileSync(contextPath, 'utf8') : '';
-                const fullText = await AIClient.sendPrompt(systemPrompt, userContext, outputChannel);
-                response.markdown(fullText);
-                fs.writeFileSync(outputPath, fullText);
-                response.markdown(`\n\n✅ **Salvo em**: \`doc_projeto/${path.basename(outputPath)}\``);
-            } catch (error: any) {
-                response.markdown(`❌ Erro: ${error.message}`);
-            }
+            response.markdown(`🔄 **Agentes Foursys**: Iniciando **${taskName}**...`);
+            
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: `Agentes Foursys: ${taskName}...`,
+                cancellable: false
+            }, async () => {
+                try {
+                    const systemPrompt = loadPlaybook(playbookPath);
+                    const userContext = fs.existsSync(contextPath) ? fs.readFileSync(contextPath, 'utf8') : '';
+                    
+                    let finalPrompt = userContext;
+                    if (isDev) {
+                        finalPrompt = `DESENVOLVA O CÓDIGO AGORA SEGUINDO ESTE PLANO TÉCNICO.
+VOCÊ DEVE SEGUIR ESTE FORMATO DE SAÍDA OBRIGATORIAMENTE:
+
+// FILEPATH: caminho/do/arquivo.ts
+import { ... } from '...';
+// ... resto do código ...
+
+REGRAS:
+1. NÃO FAÇA PERGUNTAS, NÃO DÊ EXPLICAÇÕES.
+2. APENAS O CÓDIGO COM OS MARCADORES // FILEPATH:.
+3. CUMPRA O PLANO ABAIXO:
+\n${userContext}`;
+                    }
+
+                    const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel);
+                    response.markdown(fullText);
+                    
+                    if (isDev) {
+                        const filesCreated = extractAndSaveFiles(fullText, rootPath, outputChannel);
+                        response.markdown(`\n\n🚀 **Desenvolvimento Concluído!** ${filesCreated} arquivos criados/atualizados.`);
+                    } else {
+                        fs.writeFileSync(outputPath, fullText);
+                        response.markdown(`\n\n✅ **Resultado salvo em**: \`doc_projeto/${path.basename(outputPath)}\``);
+                    }
+                } catch (error: any) {
+                    response.markdown(`❌ Erro: ${error.message}`);
+                }
+            });
         }
     });
 
@@ -202,18 +237,29 @@ Para [benefício].
         const storyPath = path.join(docPath, 'user_story.md');
         const planPath = path.join(docPath, 'implementation_plan.md');
         const tech = detectTechnology(storyPath);
-        const agentPath = findAgentSkill(catalogPath, tech || '');
+        if (!tech) {
+            vscode.window.showErrorMessage('❌ Tecnologia não encontrada no arquivo user_story.md. Por favor, informe se é Angular, Java ou COBOL.');
+            return;
+        }
+
+        const agentPath = findAgentSkill(catalogPath, tech);
         if (!agentPath) {
-            vscode.window.showErrorMessage(`❌ Agente de desenvolvimento para ${tech} não encontrado.`);
+            vscode.window.showErrorMessage(`❌ Agente de desenvolvimento para "${tech}" não encontrado no catálogo.`);
             return;
         }
         
         outputChannel.show();
         openCopilotChat(agentPath, planPath);
-        try {
-            const systemPrompt = loadPlaybook(agentPath);
-            const plan = fs.readFileSync(planPath, 'utf8');
-            const devPrompt = `DESENVOLVA O CÓDIGO AGORA SEGUINDO ESTE PLANO TÉCNICO.
+        
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Agentes Foursys: Gerando código...",
+            cancellable: false
+        }, async () => {
+            try {
+                const systemPrompt = loadPlaybook(agentPath);
+                const plan = fs.readFileSync(planPath, 'utf8');
+                const devPrompt = `DESENVOLVA O CÓDIGO AGORA SEGUINDO ESTE PLANO TÉCNICO.
 VOCÊ DEVE SEGUIR ESTE FORMATO DE SAÍDA OBRIGATORIAMENTE:
 
 // FILEPATH: caminho/do/arquivo.ts
@@ -228,10 +274,14 @@ REGRAS:
 2. APENAS O CÓDIGO COM OS MARCADORES // FILEPATH:.
 3. CUMPRA O PLANO ABAIXO:
 \n${plan}`;
-            const response = await AIClient.sendPrompt(systemPrompt, devPrompt, outputChannel);
-            const filesCreated = extractAndSaveFiles(response, rootPath, outputChannel);
-            vscode.window.showInformationMessage(`🚀 Desenvolvimento concluído! ${filesCreated} arquivos criados.`);
-        } catch (error: any) { outputChannel.appendLine(`[ERRO] ${error.message}`); }
+                const response = await AIClient.sendPrompt(systemPrompt, devPrompt, outputChannel);
+                const filesCreated = extractAndSaveFiles(response, rootPath, outputChannel);
+                vscode.window.showInformationMessage(`🚀 Desenvolvimento concluído! ${filesCreated} arquivos criados.`);
+            } catch (error: any) { 
+                outputChannel.appendLine(`[ERRO] ${error.message}`); 
+                vscode.window.showErrorMessage(`Erro no desenvolvimento: ${error.message}`);
+            }
+        });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('playbook.unitTests', async () => {
@@ -244,9 +294,14 @@ REGRAS:
         }
         const docPath = getDocPath(rootPath);
         const storyPath = path.join(docPath, 'user_story.md');
-        const tech = detectTechnology(storyPath) || '';
+        const tech = detectTechnology(storyPath);
+        if (!tech) {
+            vscode.window.showErrorMessage('❌ Tecnologia não encontrada para gerar os testes. Verifique o arquivo user_story.md.');
+            return;
+        }
         
         outputChannel.show();
+        outputChannel.appendLine(`[Testes] Iniciando Qualidade para ${tech}...`);
         const reviewPath = findReviewPlaybook(catalogPath, tech);
         if (reviewPath) {
             const reviewPrompt = loadPlaybook(reviewPath);

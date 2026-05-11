@@ -41,6 +41,9 @@ ${systemPrompt}`;
             }
 
             outputChannel.appendLine('[IA] Resposta recebida com sucesso. ✅');
+            outputChannel.appendLine('------------------------------------------------------------');
+            outputChannel.appendLine(fullResponse);
+            outputChannel.appendLine('------------------------------------------------------------');
             outputChannel.appendLine('[IA] Analisando conteúdo para extração...');
             return fullResponse;
         } catch (error: any) {

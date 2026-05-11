@@ -187,6 +187,7 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
             }
 
             const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel);
+            outputChannel.show(true); // Foca no output para mostrar a resposta
             if (chatResponse) { chatResponse.markdown(fullText); }
 
             if (isDev) {

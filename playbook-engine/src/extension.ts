@@ -345,18 +345,33 @@ function getWorkspaceRoot(): string | null {
 }
 
 function extractAndSaveFiles(response: string, rootPath: string, outputChannel: vscode.OutputChannel): number {
-    const fileRegex = /\/\/\s*FILEPATH:\s*(.+)\n([\s\S]*?)(?=\/\/\s*FILEPATH:|```|$)/gi;
+    // Regex melhorado: Busca // FILEPATH: e captura tudo até o próximo marcador ou fim de bloco de código
+    const fileRegex = /\/\/\s*FILEPATH:\s*([^\s\n]+)\s*\n([\s\S]*?)(?=\/\/\s*FILEPATH:|$)/gi;
     let match;
     let count = 0;
+    
+    // Limpeza prévia: Se a resposta vier envolvida em blocos de markdown, tentamos focar no conteúdo interno
+    // mas o regex acima já é desenhado para ignorar o que está fora do marcador.
+
     while ((match = fileRegex.exec(response)) !== null) {
         let filePath = match[1].trim();
-        let code = match[2].trim().replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-        const fullPath = path.join(rootPath, filePath);
+        let code = match[2].trim();
+
+        // Limpeza profunda de resquícios de markdown (crases no final ou início do bloco capturado)
+        code = code.replace(/```[\w]*\s*$/, '').trim();
+        
+        // Se o caminho for relativo, junta com o root
+        const fullPath = path.isAbsolute(filePath) ? filePath : path.join(rootPath, filePath);
         const dir = path.dirname(fullPath);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(fullPath, code);
-        outputChannel.appendLine(`[SAVE] ${filePath}`);
-        count++;
+        
+        try {
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(fullPath, code);
+            outputChannel.appendLine(`[SAVE] ${filePath}`);
+            count++;
+        } catch (err: any) {
+            outputChannel.appendLine(`[ERRO SAVE] ${filePath}: ${err.message}`);
+        }
     }
     return count;
 }

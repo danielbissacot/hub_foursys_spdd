@@ -6,7 +6,7 @@ import { loadPlaybook, detectTechnology, findAgentSkill, findCatalogPath, listAv
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 
 // ============================================================
-// Foursys SDD Engine V1.2.1 - O MAESTRO DA ENGENHARIA (Conversacional)
+// Foursys SDD Engine V1.2.2 - O MAESTRO DA ENGENHARIA (Full Streaming)
 // ============================================================
 
 const DOC_FOLDER = 'doc_projeto';
@@ -28,7 +28,7 @@ async function openFile(filePath: string) {
 
 export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('Foursys SDD');
-    outputChannel.appendLine('[Foursys SDD] Motor Conversacional Inicializado!');
+    outputChannel.appendLine('[Foursys SDD] Motor V1.2.2 Online!');
 
     const agentes = vscode.chat.createChatParticipant('foursys_sdd', async (request, chatContext, response, token) => {
         await executeSDDPhase(request.command || '', response, context, outputChannel);
@@ -37,13 +37,11 @@ export function activate(context: vscode.ExtensionContext) {
     agentes.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'logo.png');
     context.subscriptions.push(agentes);
 
-    // COMANDOS DA SIDEBAR
     context.subscriptions.push(vscode.commands.registerCommand('foursys.constitution', () => executeSDDPhase('constitution', null, context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.specify', () => executeSDDPhase('specify', null, context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.plan', () => executeSDDPhase('plan', null, context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.tasks', () => executeSDDPhase('tasks', null, context, outputChannel)));
     
-    // O botão IMPLEMENT agora abre o chat em vez de rodar silencioso
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', () => {
         vscode.commands.executeCommand('workbench.action.chat.open', { 
             query: '@foursys_sdd /implement ' 
@@ -69,6 +67,8 @@ async function executeSDDPhase(command: string, chatResponse: vscode.ChatRespons
     outputChannel.show(true);
     outputChannel.appendLine(`\n[SDD] ▶ Iniciando: ${command}`);
 
+    if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD**: Iniciando fase **${command.toUpperCase()}**...\n\n`); }
+
     const needsCatalog = ['specify', 'plan', 'implement'];
     if (!catalogPath && needsCatalog.includes(command)) {
         const msg = '❌ Catálogo não encontrado. Configure o Hub primeiro.';
@@ -81,47 +81,43 @@ async function executeSDDPhase(command: string, chatResponse: vscode.ChatRespons
     let playbookPath = '';
     let outputPath = '';
     let contextFiles: string[] = [];
-    let taskName = '';
     let isDev = false;
     const builtinSDD = context.extensionUri.fsPath;
+
+    // Feedback visual de carregamento
+    if (chatResponse) { chatResponse.report({ message: 'Buscando Playbook e Regras...' }); }
 
     switch (command) {
         case 'constitution':
             playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md');
             outputPath = path.join(docPath, 'constitution.md');
-            taskName = 'Constitution';
             break;
         case 'specify':
             playbookPath = path.join(catalogPath || '', 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
             outputPath = path.join(docPath, 'user_story.md');
             contextFiles = [path.join(docPath, 'constitution.md')];
-            taskName = 'Specify';
             break;
         case 'plan':
             playbookPath = path.join(catalogPath || '', 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
             outputPath = path.join(docPath, 'implementation_plan.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
-            taskName = 'Plan';
             break;
         case 'tasks':
             playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md');
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
-            taskName = 'Tasks';
             break;
         case 'implement':
             outputPath = path.join(rootPath, 'output_desenvolvimento.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md'), path.join(docPath, 'task_list.md')];
-            taskName = 'Implement';
             isDev = true;
 
-            // Busca automática do Agente Skill com base na tecnologia detectada
             const storyPath = path.join(docPath, 'user_story.md');
             const tech = detectTechnology(storyPath);
             playbookPath = findAgentSkill(catalogPath || '', tech || '') || '';
             
             if (!playbookPath) {
-                const msg = `⚠️ Tecnologia não detectada ou Agente não encontrado no Hub. \nEscreva no chat: "Use o Agente [Nome]" para eu saber qual usar.`;
+                const msg = `⚠️ Tecnologia não detectada. No chat: "@foursys_sdd /implement use o Agente [Java/Angular/COBOL]"`;
                 if (chatResponse) { chatResponse.markdown(msg); }
                 return;
             }
@@ -134,68 +130,64 @@ async function executeSDDPhase(command: string, chatResponse: vscode.ChatRespons
             const template = `# User Story\n\n**TECNOLOGIA:** [Angular / Spring Boot / COBOL]\n\n**NECESSIDADE:**\nDESCREVA AQUI o que você precisa construir...`;
             fs.writeFileSync(outputPath, template);
             await openFile(outputPath);
+            if (chatResponse) { chatResponse.markdown('📝 Descreva sua necessidade no arquivo aberto e rode o comando novamente.'); }
             return;
         }
     }
 
     if (!playbookPath || !fs.existsSync(playbookPath)) {
-        const msg = `❌ Playbook ausente: ${playbookPath}`;
+        const msg = `❌ Playbook não encontrado.`;
         if (chatResponse) { chatResponse.markdown(msg); }
         return;
     }
 
-    if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD**: Rodando **${taskName}**...\n\n`); }
+    if (chatResponse) { chatResponse.report({ message: 'Preparando contexto para a IA...' }); }
 
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: `Foursys SDD: ${taskName}...`,
-        cancellable: false
-    }, async () => {
-        try {
-            const systemPrompt = loadPlaybook(playbookPath);
-            let userContext = '';
-            contextFiles.forEach(file => {
-                if (fs.existsSync(file)) {
-                    userContext += `\n--- ARQUIVO: ${path.basename(file)} ---\n${fs.readFileSync(file, 'utf8')}\n`;
-                }
-            });
-
-            let finalPrompt = '';
-            if (command === 'specify') {
-                finalPrompt = `Gere a User Story baseada nesta necessidade:\n\n${fs.readFileSync(outputPath, 'utf8')}\n\n${userContext}`;
-            } else if (command === 'plan') {
-                finalPrompt = `Gere o Plano de Implementação Técnica:\n\n${userContext}`;
-            } else if (command === 'tasks') {
-                finalPrompt = `Gere a lista de tarefas atômicas:\n\n${userContext}`;
-            } else if (isDev) {
-                finalPrompt = `DESENVOLVA O CÓDIGO COMPLETO:\n\n${userContext}`;
-            } else {
-                finalPrompt = `Execute a tarefa.\n\n${userContext || 'Inicie agora.'}`;
+    try {
+        const systemPrompt = loadPlaybook(playbookPath);
+        let userContext = '';
+        contextFiles.forEach(file => {
+            if (fs.existsSync(file)) {
+                userContext += `\n--- ARQUIVO: ${path.basename(file)} ---\n${fs.readFileSync(file, 'utf8')}\n`;
             }
+        });
 
-            // STREAMING: Enviando pedaço por pedaço para o Chat
-            let accumulatedText = '';
-            const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, (chunk) => {
-                accumulatedText += chunk;
-                if (chatResponse) {
-                    chatResponse.markdown(chunk); // Envia o chunk para o chat em tempo real
-                }
-            });
-
-            if (isDev) {
-                const filesCreated = extractAndSaveFiles(fullText, rootPath, outputChannel);
-                const msg = `\n\n🚀 **Implementação Concluída!** ${filesCreated} arquivos gerados.`;
-                if (chatResponse) { chatResponse.markdown(msg); }
-                else { vscode.window.showInformationMessage(msg); }
-            } else {
-                fs.writeFileSync(outputPath, fullText);
-                await openFile(outputPath);
-            }
-        } catch (error: any) {
-            if (chatResponse) { chatResponse.markdown(`❌ Erro: ${error.message}`); }
-            else { vscode.window.showErrorMessage(`Erro: ${error.message}`); }
+        let finalPrompt = '';
+        if (command === 'specify') {
+            finalPrompt = `Gere a User Story baseada nesta necessidade:\n\n${fs.readFileSync(outputPath, 'utf8')}\n\n${userContext}`;
+        } else if (command === 'plan') {
+            finalPrompt = `Gere o Plano de Implementação Técnica:\n\n${userContext}`;
+        } else if (command === 'tasks') {
+            finalPrompt = `Gere a lista de tarefas atômicas:\n\n${userContext}`;
+        } else if (isDev) {
+            finalPrompt = `DESENVOLVA O CÓDIGO COMPLETO:\n\n${userContext}`;
+        } else {
+            finalPrompt = `Execute a tarefa.\n\n${userContext || 'Inicie agora.'}`;
         }
-    });
+
+        if (chatResponse) { chatResponse.report({ message: 'Aguardando resposta do modelo...' }); }
+
+        const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, (chunk) => {
+            if (chatResponse) {
+                chatResponse.markdown(chunk); // STREAMING REAL PARA O CHAT
+            }
+        });
+
+        if (isDev) {
+            if (chatResponse) { chatResponse.report({ message: 'Extraindo arquivos gerados...' }); }
+            const filesCreated = extractAndSaveFiles(fullText, rootPath, outputChannel);
+            const msg = `\n\n🚀 **Implementação Concluída!** ${filesCreated} arquivos gerados.`;
+            if (chatResponse) { chatResponse.markdown(msg); }
+            else { vscode.window.showInformationMessage(msg); }
+        } else {
+            fs.writeFileSync(outputPath, fullText);
+            await openFile(outputPath);
+            if (chatResponse) { chatResponse.markdown(`\n\n✅ **Artefato salvo**: ${path.basename(outputPath)}`); }
+        }
+    } catch (error: any) {
+        if (chatResponse) { chatResponse.markdown(`❌ Erro: ${error.message}`); }
+        else { vscode.window.showErrorMessage(`Erro: ${error.message}`); }
+    }
 }
 
 function getWorkspaceRoot(): string | null {

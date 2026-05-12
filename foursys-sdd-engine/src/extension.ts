@@ -85,7 +85,7 @@ async function executeSDDPhase(command: string, chatResponse: vscode.ChatRespons
     const builtinSDD = context.extensionUri.fsPath;
 
     // Feedback visual de carregamento
-    if (chatResponse) { chatResponse.report({ message: 'Buscando Playbook e Regras...' }); }
+    if (chatResponse) { chatResponse.progress('Buscando Playbook e Regras...'); }
 
     switch (command) {
         case 'constitution':
@@ -141,7 +141,7 @@ async function executeSDDPhase(command: string, chatResponse: vscode.ChatRespons
         return;
     }
 
-    if (chatResponse) { chatResponse.report({ message: 'Preparando contexto para a IA...' }); }
+    if (chatResponse) { chatResponse.progress('Preparando contexto para a IA...'); }
 
     try {
         const systemPrompt = loadPlaybook(playbookPath);
@@ -165,7 +165,7 @@ async function executeSDDPhase(command: string, chatResponse: vscode.ChatRespons
             finalPrompt = `Execute a tarefa.\n\n${userContext || 'Inicie agora.'}`;
         }
 
-        if (chatResponse) { chatResponse.report({ message: 'Aguardando resposta do modelo...' }); }
+        if (chatResponse) { chatResponse.progress('Aguardando resposta do modelo...'); }
 
         const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, (chunk) => {
             if (chatResponse) {
@@ -174,7 +174,7 @@ async function executeSDDPhase(command: string, chatResponse: vscode.ChatRespons
         });
 
         if (isDev) {
-            if (chatResponse) { chatResponse.report({ message: 'Extraindo arquivos gerados...' }); }
+            if (chatResponse) { chatResponse.progress('Extraindo arquivos gerados...'); }
             const filesCreated = extractAndSaveFiles(fullText, rootPath, outputChannel);
             const msg = `\n\n🚀 **Implementação Concluída!** ${filesCreated} arquivos gerados.`;
             if (chatResponse) { chatResponse.markdown(msg); }

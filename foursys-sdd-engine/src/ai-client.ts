@@ -4,7 +4,8 @@ export class AIClient {
     static async sendPrompt(
         systemPrompt: string,
         userPrompt: string,
-        outputChannel: vscode.OutputChannel
+        outputChannel: vscode.OutputChannel,
+        onChunk?: (chunk: string) => void
     ): Promise<string> {
         outputChannel.appendLine(`[IA] Enviando prompt para o modelo de IA...`);
 
@@ -36,14 +37,15 @@ ${systemPrompt}`;
             const response = await model.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
 
             let fullResponse = '';
+            outputChannel.appendLine('------------------------------------------------------------');
             for await (const chunk of response.text) {
                 fullResponse += chunk;
+                if (onChunk) { onChunk(chunk); }
+                outputChannel.append(chunk); // Mostra no output em tempo real
             }
+            outputChannel.appendLine('\n------------------------------------------------------------');
 
             outputChannel.appendLine('[IA] Resposta recebida com sucesso. ✅');
-            outputChannel.appendLine('------------------------------------------------------------');
-            outputChannel.appendLine(fullResponse);
-            outputChannel.appendLine('------------------------------------------------------------');
             outputChannel.appendLine('[IA] Analisando conteúdo para extração...');
             return fullResponse;
         } catch (error: any) {

@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AIClient } from './ai-client';
-import { loadPlaybook, detectTechnology, findAgentSkill, findCatalogPath, listAvailableSkills } from './catalog-loader';
+import { loadPlaybook, detectTechnology, findAgentSkill, findCatalogPath, getAvailableSkills, findSkillPlaybook } from './catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 
 // ============================================================
-// Foursys SDD Engine V1.2.5 - O MAESTRO DA ENGENHARIA (Isolamento Total)
+// Foursys SDD Engine V1.2.7 - O MAESTRO DA ENGENHARIA (Dynamic Skills)
 // ============================================================
 
 const DOC_FOLDER = 'doc_projeto';
@@ -28,7 +28,7 @@ async function openFile(filePath: string) {
 
 export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('Foursys SDD');
-    outputChannel.appendLine('[Foursys SDD] Motor V1.2.5 - Proteção de Contexto Ativa!');
+    outputChannel.appendLine('[Foursys SDD] Motor V1.2.7 Online!');
 
     const agentes = vscode.chat.createChatParticipant('foursys_sdd', async (request, chatContext, response, token) => {
         let referencesContext = '';
@@ -71,21 +71,7 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
     const builtinSDD = context.extensionUri.fsPath;
 
     outputChannel.show(true);
-    outputChannel.appendLine(`\n[SDD] 🛡️ Verificando Isolamento em: ${rootPath}`);
-    outputChannel.appendLine(`[SDD] 📂 Pasta de Documentos: ${docPath}`);
-
-    // Bloqueio de execução se estiver na raiz do Hub (para evitar vazamento de contexto de desenvolvimento)
-    if (rootPath.toLowerCase().endsWith('ai-governance-hub')) {
-        outputChannel.appendLine(`[AVISO] Você está rodando o plugin dentro do Hub. Use uma pasta de projeto separada para testes reais.`);
-    }
-
-    if (command === 'implement' && userInstruction.trim() === '' && referencesContext === '') {
-        if (chatResponse) {
-            chatResponse.markdown(`Sou seu **AGENTE_FOURSYS** de desenvolvimento, Qual Skill deseja usar **JAVA, ANGULAR ou COBOL**?\n\n`);
-            chatResponse.markdown(`🚀 digite o \`/implement\` e chame a skill que precisa (ou anexe o Agente com #) e peça o que precisa desenvolver.`);
-        }
-        return;
-    }
+    outputChannel.appendLine(`\n[SDD] ▶ Iniciando: ${command}`);
 
     if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD**: Iniciando fase **${command.toUpperCase()}**...\n\n`); }
 
@@ -104,7 +90,7 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
         case 'specify':
             playbookPath = path.join(catalogPath || '', 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
             outputPath = path.join(docPath, 'user_story.md');
-            contextFiles = [path.join(docPath, 'constitution.md')]; // SÓ LÊ DA PASTA DOC_PROJETO
+            contextFiles = [path.join(docPath, 'constitution.md')];
             break;
         case 'plan':
             playbookPath = path.join(catalogPath || '', 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
@@ -121,25 +107,59 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md'), path.join(docPath, 'task_list.md')];
             isDev = true;
 
-            const agentMatch = referencesContext.match(/--- REFERENCIA EXTERNA: (AGENTE_[^\s]+)\.md ---/i);
-            if (agentMatch) {
-                const agentName = agentMatch[1].toLowerCase().replace('agente_', '');
-                playbookPath = findAgentSkill(catalogPath || '', agentName) || '';
+            // 1. Tenta encontrar se o usuário já especificou uma SKILL no prompt
+            const skillMatch = userInstruction.match(/SKILL_[^\s]+/i);
+            if (skillMatch) {
+                playbookPath = findSkillPlaybook(catalogPath || '', skillMatch[0]) || '';
             }
 
+            // 2. Se não achou Skill, tenta o Agente via Referência
+            if (!playbookPath) {
+                const agentMatch = referencesContext.match(/--- REFERENCIA EXTERNA: (AGENTE_[^\s]+)\.md ---/i);
+                if (agentMatch) {
+                    const agentName = agentMatch[1].toLowerCase().replace('agente_', '');
+                    playbookPath = findAgentSkill(catalogPath || '', agentName) || '';
+                }
+            }
+
+            // 3. Se ainda não achou, tenta detectar a tecnologia
+            let tech = '';
             if (!playbookPath) {
                 const storyPath = path.join(docPath, 'user_story.md');
-                let tech = detectTechnology(storyPath);
+                tech = detectTechnology(storyPath) || '';
                 const lowerPrompt = userInstruction.toLowerCase();
                 if (lowerPrompt.includes('java')) tech = 'spring_boot';
                 if (lowerPrompt.includes('angular')) tech = 'angular';
                 if (lowerPrompt.includes('cobol')) tech = 'cobol';
-                playbookPath = findAgentSkill(catalogPath || '', tech || '') || '';
+                
+                // Se detectou a tech mas o usuário não deu ordens, mostra o Menu de Skills
+                if (tech && userInstruction.trim() === '' && referencesContext === '') {
+                    const skills = getAvailableSkills(catalogPath || '', tech);
+                    if (chatResponse) {
+                        const agentName = tech.toUpperCase().replace('_', ' ');
+                        chatResponse.markdown(`Olá! Sou o **AGENTE_${tech.toUpperCase()}_FOURSYS**. Qual Skill ou Component Pattern do Hub você deseja que eu utilize para esta tarefa?\n\n`);
+                        if (skills.length > 0) {
+                            chatResponse.markdown(`**Skills disponíveis:**\n${skills.map(s => `* \`#${s}\``).join('\n')}`);
+                        } else {
+                            chatResponse.markdown(`*(Nenhuma skill específica encontrada, usarei o Agente base)*`);
+                        }
+                    }
+                    return;
+                }
+                playbookPath = findAgentSkill(catalogPath || '', tech) || '';
+            }
+
+            // Se nada foi encontrado, pede ajuda
+            if (!playbookPath) {
+                if (chatResponse) {
+                    chatResponse.markdown(`Sou seu **AGENTE_FOURSYS** de desenvolvimento, Qual Skill deseja usar **JAVA, ANGULAR ou COBOL**?\n\n`);
+                    chatResponse.markdown(`🚀 digite o \`/implement\` e chame a skill que precisa e peça a ela o que precisa desenvolver.`);
+                }
+                return;
             }
             break;
     }
 
-    // PROTEÇÃO EXTRA: Se for Specify e não houver instrução nem arquivo preenchido, para aqui.
     if (command === 'specify' && userInstruction.trim() === '') {
         const fileExists = fs.existsSync(outputPath);
         const content = fileExists ? fs.readFileSync(outputPath, 'utf8') : '';
@@ -158,27 +178,41 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
     }
 
     try {
-        const systemPrompt = loadPlaybook(playbookPath);
+        const playbookName = path.basename(playbookPath, '.md');
+        outputChannel.appendLine(`[SDD] 🧠 Usando Playbook: ${playbookName}`);
+
+        const systemPromptRaw = loadPlaybook(playbookPath);
+        // INJEÇÃO DE ADRENALINA: Instrução agressiva para evitar intros e conversas fiadas
+        const systemPrompt = `VOCÊ É O MAESTRO DA ENGENHARIA FOURSYS. 
+FOCO: EXECUÇÃO TÉCNICA PURA. 
+REGRAS: 
+1. IGNORE QUALQUER SAUDAÇÃO OU INTRODUÇÃO DO PLAYBOOK ABAIXO.
+2. NÃO SE APRESENTE. NÃO DIGA "OLÁ" OU "ENTENDIDO".
+3. VÁ DIRETO PARA A GERAÇÃO DOS ARQUIVOS USANDO O PADRÃO // FILEPATH: ...
+4. ANTES DE CADA BLOCO DE CÓDIGO, ESCREVA UMA LINHA DIZENDO O QUE ESTÁ FAZENDO (Ex: "Implementando Service de Usuários...").
+
+PLAYBOOK BASE:
+${systemPromptRaw}`;
+
         let userContext = referencesContext; 
-        
-        outputChannel.appendLine(`[SDD] 📝 Compilando Contexto Isolado...`);
         contextFiles.forEach(file => {
             if (fs.existsSync(file)) {
-                outputChannel.appendLine(`[CONTEXTO] Incluindo: ${path.basename(file)}`);
                 userContext += `\n--- ARQUIVO DO PROJETO: ${path.basename(file)} ---\n${fs.readFileSync(file, 'utf8')}\n`;
             }
         });
 
-        const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL: ${userInstruction}\n\n` : '';
+        const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL DO DESENVOLVEDOR: ${userInstruction}\n\n` : '';
         let finalPrompt = '';
 
         if (isDev) {
-            finalPrompt = `${instruction}ESCREVA O CÓDIGO COMPLETO AGORA. USE // FILEPATH: ... PARA CADA ARQUIVO. CONTEXTO:\n${userContext}`;
+            finalPrompt = `${instruction}ESCREVA O CÓDIGO COMPLETO AGORA SEGUINDO A TASK LIST. 
+CONTEXTO:\n${userContext}`;
         } else {
-            finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO. CONTEXTO DO PROJETO ATUAL:\n${userContext}`;
+            finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO. 
+CONTEXTO:\n${userContext}`;
         }
 
-        if (chatResponse) { chatResponse.progress('IA processando...'); }
+        if (chatResponse) { chatResponse.progress('IA trabalhando na sua solicitação...'); }
 
         const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }
@@ -186,7 +220,9 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
 
         if (isDev) {
             const filesCreated = extractAndSaveFiles(fullText, rootPath, outputChannel);
-            if (filesCreated > 0 && chatResponse) { chatResponse.markdown(`\n\n🚀 **Implementação Finalizada!** ${filesCreated} arquivos gerados.`); }
+            if (filesCreated > 0 && chatResponse) { 
+                chatResponse.markdown(`\n\n🚀 **Implementação Finalizada!** ${filesCreated} arquivos foram atualizados no seu workspace.`); 
+            }
         } else {
             fs.writeFileSync(outputPath, fullText);
             await openFile(outputPath);

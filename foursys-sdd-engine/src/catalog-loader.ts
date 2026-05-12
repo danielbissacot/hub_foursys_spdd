@@ -63,3 +63,53 @@ export function listAvailableSkills(catalogPath: string): { label: string, path:
 
     return folders;
 }
+
+/**
+ * Busca todas as skills (arquivos SKILL_*.md) disponiveis para uma tecnologia
+ */
+export function getAvailableSkills(catalogPath: string, technology: string): string[] {
+    const techPath = path.join(catalogPath, 'agents_skills', technology);
+    if (!fs.existsSync(techPath)) return [];
+
+    const skills: string[] = [];
+    const walkSync = (dir: string) => {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                walkSync(fullPath);
+            } else if (file.startsWith('SKILL_') && file.endsWith('.md')) {
+                skills.push(file.replace('.md', ''));
+            }
+        }
+    };
+
+    walkSync(techPath);
+    return skills;
+}
+
+/**
+ * Localiza o caminho completo de um playbook de skill pelo nome (ex: SKILL_ANGULAR_SIGNALS)
+ */
+export function findSkillPlaybook(catalogPath: string, skillName: string): string | null {
+    const skillsRoot = path.join(catalogPath, 'agents_skills');
+    if (!fs.existsSync(skillsRoot)) return null;
+
+    let foundPath: string | null = null;
+    const walkSync = (dir: string) => {
+        if (foundPath) return;
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                walkSync(fullPath);
+            } else if (file.toUpperCase() === `${skillName.toUpperCase()}.md`) {
+                foundPath = fullPath;
+                return;
+            }
+        }
+    };
+
+    walkSync(skillsRoot);
+    return foundPath;
+}

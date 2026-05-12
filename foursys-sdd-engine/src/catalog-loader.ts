@@ -44,3 +44,22 @@ export function findCatalogPath(workspaceRoot: string, globalStoragePath: string
     if (fs.existsSync(globalCatalog)) return globalCatalog;
     return null;
 }
+
+export function listAvailableSkills(catalogPath: string): { label: string, path: string }[] {
+    const skillsPath = path.join(catalogPath, 'agents_skills');
+    if (!fs.existsSync(skillsPath)) return [];
+
+    const folders = fs.readdirSync(skillsPath, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => {
+            const folderName = dirent.name;
+            const label = folderName.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            const agentFile = path.join(skillsPath, folderName, `AGENTE_${folderName.toUpperCase()}_FOURSYS.md`);
+            return {
+                label: `Agente ${label}`,
+                path: fs.existsSync(agentFile) ? agentFile : path.join(skillsPath, folderName) // Fallback para a pasta
+            };
+        });
+
+    return folders;
+}

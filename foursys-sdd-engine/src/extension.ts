@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AIClient } from './ai-client';
-import { loadPlaybook, detectTechnology, findAgentSkill, findCatalogPath } from './catalog-loader';
+import { loadPlaybook, detectTechnology, findAgentSkill, findCatalogPath, listAvailableSkills } from './catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 
 // ============================================================
@@ -134,21 +134,32 @@ async function executeSDDPhase(command: string, chatResponse: any, context: vsco
         }
     }
 
-    // Lógica especial para Implement (Seleção de Agente)
+    // Lógica especial para Implement (Menu Dinâmico de Agentes)
     if (command === 'implement') {
-        const storyPath = path.join(docPath, 'user_story.md');
-        let tech = detectTechnology(storyPath);
+        const availableSkills = catalogPath ? listAvailableSkills(catalogPath) : [];
         
-        if (!tech) {
-            const selection = await vscode.window.showQuickPick(['Angular', 'Spring Boot', 'COBOL'], {
-                placeHolder: 'Qual tecnologia vamos implementar?'
+        if (availableSkills.length > 0) {
+            const selection = await vscode.window.showQuickPick(availableSkills.map(s => s.label), {
+                placeHolder: '🤖 Escolha o Agente Especialista para esta implementação:',
+                ignoreFocusOut: true
             });
             if (!selection) return;
-            tech = selection === 'Spring Boot' ? 'spring_boot' : selection.toLowerCase();
+            const selectedSkill = availableSkills.find(s => s.label === selection);
+            playbookPath = selectedSkill ? selectedSkill.path : '';
+        } else {
+            // Fallback se não encontrar a pasta agents_skills
+            const storyPath = path.join(docPath, 'user_story.md');
+            let tech = detectTechnology(storyPath);
+            if (!tech) {
+                const selection = await vscode.window.showQuickPick(['Angular', 'Spring Boot', 'COBOL'], {
+                    placeHolder: 'Qual tecnologia vamos implementar?'
+                });
+                if (!selection) return;
+                tech = selection === 'Spring Boot' ? 'spring_boot' : selection.toLowerCase();
+            }
+            playbookPath = findAgentSkill(catalogPath || '', tech) || '';
         }
-        
-        playbookPath = findAgentSkill(catalogPath || '', tech) || '';
-        outputChannel.appendLine(`[SDD] 🤖 Usando Agente Especialista: ${tech.toUpperCase()}`);
+        outputChannel.appendLine(`[SDD] 🤖 Agente Carregado: ${path.basename(playbookPath)}`);
     }
 
     if (!playbookPath || !fs.existsSync(playbookPath)) {

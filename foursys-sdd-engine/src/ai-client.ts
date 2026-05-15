@@ -20,17 +20,9 @@ export class AIClient {
             }
 
             const model = models[0];
-            
-            const instructionsPrefix = `VOCÊ É O AGENTE DE ENGENHARIA FOURSYS SDD. 
-Siga estritamente as regras da CONSTITUIÇÃO e do PLAYBOOK fornecidos abaixo. 
-NÃO faça perguntas, NÃO seja educado, NÃO ofereça ajuda adicional. 
-GERE APENAS O CONTEÚDO TÉCNICO SOLICITADO NO FORMATO ESPECIFICADO.
-
-PLAYBOOK / INSTRUÇÕES:
-${systemPrompt}`;
 
             const messages = [
-                vscode.LanguageModelChatMessage.User(instructionsPrefix),
+                vscode.LanguageModelChatMessage.User(systemPrompt),
                 vscode.LanguageModelChatMessage.User(`EXECUTAR AGORA SOBRE ESTE CONTEXTO:\n${userPrompt}`)
             ];
 

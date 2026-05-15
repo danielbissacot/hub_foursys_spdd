@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AIClient } from './ai-client';
-import { loadPlaybook, detectTechnology, findAgentSkill, findCatalogPath, getAvailableSkills, findSkillPlaybook } from './catalog-loader';
+import { loadPlaybook, findCatalogPath } from './catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 
 // ============================================================
-// Foursys SDD Engine V1.2.7 - O MAESTRO DA ENGENHARIA (Dynamic Skills)
+// Foursys SDD Engine V2.1 - Híbrido (Orquestrador + Nativo)
 // ============================================================
 
 const DOC_FOLDER = 'doc_projeto';
@@ -28,8 +28,9 @@ async function openFile(filePath: string) {
 
 export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('Foursys SDD');
-    outputChannel.appendLine('[Foursys SDD] Motor V1.2.7 Online!');
+    outputChannel.appendLine('[Foursys SDD] Motor V2.1 Híbrido Online!');
 
+    // Restaurado o Chat Participant apenas para orquestrar as respostas de Documentação
     const agentes = vscode.chat.createChatParticipant('foursys_sdd', async (request, chatContext, response, token) => {
         let referencesContext = '';
         for (const ref of request.references) {
@@ -46,14 +47,16 @@ export function activate(context: vscode.ExtensionContext) {
     agentes.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'logo.png');
     context.subscriptions.push(agentes);
 
+    // Fases 0 a 3: Acionam o Motor Antigo para garantir a criação física dos arquivos SDD
     context.subscriptions.push(vscode.commands.registerCommand('foursys.constitution', () => executeSDDPhase('constitution', '', '', null, context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.specify', () => executeSDDPhase('specify', '', '', null, context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.plan', () => executeSDDPhase('plan', '', '', null, context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.tasks', () => executeSDDPhase('tasks', '', '', null, context, outputChannel)));
     
+    // Fase 4: Codificação usa Copilot Nativo empoderado pela pasta .github
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', () => {
         vscode.commands.executeCommand('workbench.action.chat.open', { 
-            query: '@foursys_sdd /implement ' 
+            query: 'Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill correspondente à tecnologia do projeto (ex: #agente-angular-foursys ou #agente-spring-foursys).' 
         });
     }));
 
@@ -71,20 +74,20 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
     const builtinSDD = context.extensionUri.fsPath;
 
     outputChannel.show(true);
-    outputChannel.appendLine(`\n[SDD] ▶ Iniciando: ${command}`);
+    outputChannel.appendLine(`\n[SDD] ▶ Iniciando documentação: ${command}`);
 
-    if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD**: Iniciando fase **${command.toUpperCase()}**...\n\n`); }
+    if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD**: Iniciando fase de especificação **${command.toUpperCase()}**...\n\n`); }
 
     let playbookPath = '';
     let outputPath = '';
     let contextFiles: string[] = [];
-    let isDev = false;
 
-    if (chatResponse) { chatResponse.progress('Buscando Playbook e Regras...'); }
+    if (chatResponse) { chatResponse.progress('Buscando Playbook e Regras do Hub...'); }
 
     switch (command) {
         case 'constitution':
-            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md');
+            playbookPath = path.join(catalogPath || '', 'playbook', 'sdd', 'foursys-constitution.md');
+            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md'); }
             outputPath = path.join(docPath, 'constitution.md');
             break;
         case 'specify':
@@ -92,71 +95,31 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
             outputPath = path.join(docPath, 'user_story.md');
             contextFiles = [path.join(docPath, 'constitution.md')];
             break;
+        case 'clarify':
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-clarify.md');
+            outputPath = ''; // Clarify não salva arquivo obrigatoriamente, mas vamos salvar se o dev quiser
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
+            break;
         case 'plan':
             playbookPath = path.join(catalogPath || '', 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
             outputPath = path.join(docPath, 'implementation_plan.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
             break;
+        case 'analyze':
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-analyze.md');
+            outputPath = path.join(docPath, 'analysis_report.md');
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md'), path.join(docPath, 'implementation_plan.md')];
+            break;
         case 'tasks':
-            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md');
+            playbookPath = path.join(catalogPath || '', 'playbook', 'sdd', 'foursys-tasks.md');
+            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md'); }
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
             break;
-        case 'implement':
-            outputPath = path.join(rootPath, 'output_desenvolvimento.md');
+        case 'checklist':
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-checklist.md');
+            outputPath = path.join(docPath, 'quality_checklist.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md'), path.join(docPath, 'task_list.md')];
-            isDev = true;
-
-            // 1. Tenta encontrar se o usuário já especificou uma SKILL no prompt
-            const skillMatch = userInstruction.match(/SKILL_[^\s]+/i);
-            if (skillMatch) {
-                playbookPath = findSkillPlaybook(catalogPath || '', skillMatch[0]) || '';
-            }
-
-            // 2. Se não achou Skill, tenta o Agente via Referência
-            if (!playbookPath) {
-                const agentMatch = referencesContext.match(/--- REFERENCIA EXTERNA: (AGENTE_[^\s]+)\.md ---/i);
-                if (agentMatch) {
-                    const agentName = agentMatch[1].toLowerCase().replace('agente_', '');
-                    playbookPath = findAgentSkill(catalogPath || '', agentName) || '';
-                }
-            }
-
-            // 3. Se ainda não achou, tenta detectar a tecnologia
-            let tech = '';
-            if (!playbookPath) {
-                const storyPath = path.join(docPath, 'user_story.md');
-                tech = detectTechnology(storyPath) || '';
-                const lowerPrompt = userInstruction.toLowerCase();
-                if (lowerPrompt.includes('java')) tech = 'spring_boot';
-                if (lowerPrompt.includes('angular')) tech = 'angular';
-                if (lowerPrompt.includes('cobol')) tech = 'cobol';
-                
-                // Se detectou a tech mas o usuário não deu ordens, mostra o Menu de Skills
-                if (tech && userInstruction.trim() === '' && referencesContext === '') {
-                    const skills = getAvailableSkills(catalogPath || '', tech);
-                    if (chatResponse) {
-                        const agentName = tech.toUpperCase().replace('_', ' ');
-                        chatResponse.markdown(`Olá! Sou o **AGENTE_${tech.toUpperCase()}_FOURSYS**. Qual Skill ou Component Pattern do Hub você deseja que eu utilize para esta tarefa?\n\n`);
-                        if (skills.length > 0) {
-                            chatResponse.markdown(`**Skills disponíveis:**\n${skills.map(s => `* \`#${s}\``).join('\n')}`);
-                        } else {
-                            chatResponse.markdown(`*(Nenhuma skill específica encontrada, usarei o Agente base)*`);
-                        }
-                    }
-                    return;
-                }
-                playbookPath = findAgentSkill(catalogPath || '', tech) || '';
-            }
-
-            // Se nada foi encontrado, pede ajuda
-            if (!playbookPath) {
-                if (chatResponse) {
-                    chatResponse.markdown(`Sou seu **AGENTE_FOURSYS** de desenvolvimento, Qual Skill deseja usar **JAVA, ANGULAR ou COBOL**?\n\n`);
-                    chatResponse.markdown(`🚀 digite o \`/implement\` e chame a skill que precisa e peça a ela o que precisa desenvolver.`);
-                }
-                return;
-            }
             break;
     }
 
@@ -173,7 +136,7 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
     }
 
     if (!playbookPath || !fs.existsSync(playbookPath)) {
-        if (chatResponse) { chatResponse.markdown(`⚠️ Agente ou Playbook não encontrado.`); }
+        if (chatResponse) { chatResponse.markdown(`⚠️ Agente ou Playbook não encontrado em ${playbookPath}`); }
         return;
     }
 
@@ -182,14 +145,13 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
         outputChannel.appendLine(`[SDD] 🧠 Usando Playbook: ${playbookName}`);
 
         const systemPromptRaw = loadPlaybook(playbookPath);
-        // INJEÇÃO DE ADRENALINA: Instrução agressiva para evitar intros e conversas fiadas
-        const systemPrompt = `VOCÊ É O MAESTRO DA ENGENHARIA FOURSYS. 
-FOCO: EXECUÇÃO TÉCNICA PURA. 
-REGRAS: 
-1. IGNORE QUALQUER SAUDAÇÃO OU INTRODUÇÃO DO PLAYBOOK ABAIXO.
-2. NÃO SE APRESENTE. NÃO DIGA "OLÁ" OU "ENTENDIDO".
-3. VÁ DIRETO PARA A GERAÇÃO DOS ARQUIVOS USANDO O PADRÃO // FILEPATH: ...
-4. ANTES DE CADA BLOCO DE CÓDIGO, ESCREVA UMA LINHA DIZENDO O QUE ESTÁ FAZENDO (Ex: "Implementando Service de Usuários...").
+        const systemPrompt = `VOCÊ É O AGENTE DE ENGENHARIA FOURSYS SDD.
+FOCO: GERAÇÃO DE DOCUMENTAÇÃO DE SOFTWARE.
+REGRAS ESTRITAS:
+1. IGNORE SAUDAÇÕES. NÃO faça perguntas desnecessárias.
+2. GERE O DOCUMENTO MARKDOWN DIRETAMENTE, sem introduções.
+3. Siga estritamente a CONSTITUIÇÃO e o PLAYBOOK fornecidos abaixo.
+4. GERE APENAS O CONTEÚDO TÉCNICO SOLICITADO NO FORMATO ESPECIFICADO.
 
 PLAYBOOK BASE:
 ${systemPromptRaw}`;
@@ -201,33 +163,21 @@ ${systemPromptRaw}`;
             }
         });
 
-        const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL DO DESENVOLVEDOR: ${userInstruction}\n\n` : '';
-        let finalPrompt = '';
+        const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL: ${userInstruction}\n\n` : '';
+        const finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO.\nCONTEXTO:\n${userContext}`;
 
-        if (isDev) {
-            finalPrompt = `${instruction}ESCREVA O CÓDIGO COMPLETO AGORA SEGUINDO A TASK LIST. 
-CONTEXTO:\n${userContext}`;
-        } else {
-            finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO. 
-CONTEXTO:\n${userContext}`;
-        }
-
-        if (chatResponse) { chatResponse.progress('IA trabalhando na sua solicitação...'); }
+        if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 
         const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }
         });
 
-        if (isDev) {
-            const filesCreated = extractAndSaveFiles(fullText, rootPath, outputChannel);
-            if (filesCreated > 0 && chatResponse) { 
-                chatResponse.markdown(`\n\n🚀 **Implementação Finalizada!** ${filesCreated} arquivos foram atualizados no seu workspace.`); 
-            }
-        } else {
+        if (outputPath) {
             fs.writeFileSync(outputPath, fullText);
             await openFile(outputPath);
-            if (chatResponse) { chatResponse.markdown(`\n\n✅ **Salvo em**: ${path.basename(outputPath)}`); }
+            if (chatResponse) { chatResponse.markdown(`\n\n✅ **Salvo e Aberto com Sucesso em**: ${path.basename(outputPath)}`); }
         }
+        
     } catch (error: any) {
         if (chatResponse) { chatResponse.markdown(`❌ Erro: ${error.message}`); }
     }
@@ -236,25 +186,6 @@ CONTEXTO:\n${userContext}`;
 function getWorkspaceRoot(): string | null {
     const folders = vscode.workspace.workspaceFolders;
     return folders ? folders[0].uri.fsPath : null;
-}
-
-function extractAndSaveFiles(response: string, rootPath: string, outputChannel: vscode.OutputChannel): number {
-    const fileRegex = /\/\/\s*FILEPATH:\s*([^\s\n]+)\s*\n([\s\S]*?)(?=\/\/\s*FILEPATH:|$)/gi;
-    let match;
-    let count = 0;
-    while ((match = fileRegex.exec(response)) !== null) {
-        const filePath = match[1].trim();
-        const code = match[2].trim().replace(/```[\w]*\s*$/, '').trim();
-        const fullPath = path.isAbsolute(filePath) ? filePath : path.join(rootPath, filePath);
-        const dir = path.dirname(fullPath);
-        try {
-            if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
-            fs.writeFileSync(fullPath, code);
-            outputChannel.appendLine(`[SAVE] ✅ ${filePath}`);
-            count++;
-        } catch (err: any) { outputChannel.appendLine(`[ERRO] ${filePath}: ${err.message}`); }
-    }
-    return count;
 }
 
 export function deactivate() {}

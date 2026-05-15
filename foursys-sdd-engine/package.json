@@ -2,7 +2,7 @@
   "name": "foursys-sdd-engine",
   "displayName": "Foursys SDD Engine - AI Governance Hub",
   "description": "Motor de Spec-Driven Development (SDD) orquestrado com Agentes Foursys.",
-  "version": "0.1.1",
+  "version": "2.3.0",
   "publisher": "foursys",
   "repository": {
     "type": "git",

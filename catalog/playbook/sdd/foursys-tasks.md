@@ -34,11 +34,15 @@ Cada tarefa deve ser:
 # 📋 Lista de Tarefas: [Nome da Feature]
 
 ### 🌐 Impactos Sistêmicos (OBRIGATÓRIO)
-| Arquivo Global | Impacto Previsto |
-|----------------|------------------|
-| `app.config.ts` | [Ex: Adicionar provideHttpClient] |
-| `app.routes.ts` | [Ex: Registrar rota da feature] |
-| `index.html`   | [Ex: Adicionar fonte/biblioteca] |
+> [!IMPORTANT]
+> **ESTA SEÇÃO É OBRIGATÓRIA.** Se você não gerar esta tabela, sua resposta será rejeitada por violação de governança.
+> Identifique todos os arquivos globais que precisam de alteração (ex: `app.config.ts`, `app.routes.ts`) ANTES das tarefas de codificação.
+
+| Arquivo Global | Impacto Previsto | Modificação Necessária |
+|----------------|------------------|------------------------|
+| `app.config.ts` | [Ex: Adicionar provideHttpClient] | [Descrição da mudança] |
+| `app.routes.ts` | [Ex: Registrar rota da feature] | [Descrição da mudança] |
+| `index.html`   | [Ex: Adicionar fonte/biblioteca] | [Descrição da mudança] |
 
 ### 📝 Tarefas de Implementação
 

@@ -1,2 +1,6 @@
-
-.env.hub
+node_modules/
+dist/
+.env
+*.log
+.vsix
+out/

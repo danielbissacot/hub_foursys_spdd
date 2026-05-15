@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD
 description: Decompõe um plano técnico em uma lista de tarefas granulares, atômicas e testáveis.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -28,6 +28,7 @@ Cada tarefa deve ser:
 1. **Atômica**: Faz apenas uma coisa (ex: "Criar o service de API").
 2. **Testável**: É possível verificar se ela está pronta.
 3. **Sequencial**: Respeita as dependências lógicas (ex: não dá para criar o componente sem o service).
+4. **Sistêmica**: Deve contemplar impactos em arquivos globais.
 
 ### ✅ FORMATO DE SAÍDA (Obrigatório)
 

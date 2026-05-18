@@ -2,14 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AIClient } from './ai-client';
-import { loadPlaybook, findCatalogPath } from './catalog-loader';
+import { loadPlaybook, findCatalogPath, detectTechnology } from './catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 
-// ============================================================
-// Foursys SDD Engine V2.1 - Híbrido (Orquestrador + Nativo)
-// ============================================================
-
 const DOC_FOLDER = 'doc_projeto';
+const WORKSPACE_CONTEXT_EXTS = ['.ts', '.java', '.html', '.cobol', '.cbl'];
+const WORKSPACE_CONTEXT_MAX_FILES = 5;
+const WORKSPACE_CONTEXT_MAX_LINES = 300;
 
 function getDocPath(rootPath: string): string {
     const docPath = path.join(rootPath, DOC_FOLDER);
@@ -26,37 +25,83 @@ async function openFile(filePath: string) {
     }
 }
 
+// Lê até WORKSPACE_CONTEXT_MAX_FILES arquivos reais do workspace para reduzir alucinações.
+// A IA para de inventar quando vê o código existente.
+function readWorkspaceContext(rootPath: string, technology: string | null): string {
+    if (!technology) { return ''; }
+
+    const srcPath = path.join(rootPath, 'src');
+    if (!fs.existsSync(srcPath)) { return ''; }
+
+    const collected: { filePath: string; mtime: number }[] = [];
+
+    const walk = (dir: string, depth: number) => {
+        if (depth > 6 || collected.length >= WORKSPACE_CONTEXT_MAX_FILES * 3) { return; }
+        let entries: fs.Dirent[];
+        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+        for (const entry of entries) {
+            if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'out') { continue; }
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full, depth + 1);
+            } else if (WORKSPACE_CONTEXT_EXTS.includes(path.extname(entry.name))) {
+                try {
+                    const stat = fs.statSync(full);
+                    collected.push({ filePath: full, mtime: stat.mtimeMs });
+                } catch { /* ignorar */ }
+            }
+        }
+    };
+
+    walk(srcPath, 0);
+
+    // Ordena pelos mais recentemente modificados e pega os primeiros N
+    collected.sort((a, b) => b.mtime - a.mtime);
+    const selected = collected.slice(0, WORKSPACE_CONTEXT_MAX_FILES);
+
+    if (selected.length === 0) { return ''; }
+
+    let context = '\n--- CÓDIGO REAL DO WORKSPACE (use como referência para nomes e estrutura) ---\n';
+    for (const { filePath } of selected) {
+        try {
+            const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+            const snippet = lines.slice(0, WORKSPACE_CONTEXT_MAX_LINES).join('\n');
+            context += `\n--- ARQUIVO EXISTENTE: ${path.relative(rootPath, filePath)} ---\n${snippet}\n`;
+        } catch { /* ignorar */ }
+    }
+    return context;
+}
+
 export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('Foursys SDD');
-    outputChannel.appendLine('[Foursys SDD] Motor V2.1 Híbrido Online!');
+    outputChannel.appendLine('[Foursys SDD] Motor V2.4.0 Anti-Alucinação Online!');
 
-    // Restaurado o Chat Participant apenas para orquestrar as respostas de Documentação
-    const agentes = vscode.chat.createChatParticipant('foursys_sdd', async (request, chatContext, response, token) => {
+    const agentes = vscode.chat.createChatParticipant('foursys_sdd', async (request, _chatContext, response, token) => {
         let referencesContext = '';
         for (const ref of request.references) {
             if (ref.value instanceof vscode.Uri) {
                 try {
                     const doc = await vscode.workspace.openTextDocument(ref.value);
                     referencesContext += `\n--- REFERENCIA EXTERNA: ${path.basename(ref.value.fsPath)} ---\n${doc.getText()}\n`;
-                } catch (e) {}
+                } catch { /* ignorar */ }
             }
         }
-        await executeSDDPhase(request.command || '', request.prompt, referencesContext, response, context, outputChannel);
+        await executeSDDPhase(request.command || '', request.prompt, referencesContext, response, token, context, outputChannel);
     });
 
     agentes.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'logo.png');
     context.subscriptions.push(agentes);
 
-    // Fases 0 a 3: Acionam o Motor Antigo para garantir a criação física dos arquivos SDD
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.constitution', () => executeSDDPhase('constitution', '', '', null, context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.specify', () => executeSDDPhase('specify', '', '', null, context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.plan', () => executeSDDPhase('plan', '', '', null, context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.tasks', () => executeSDDPhase('tasks', '', '', null, context, outputChannel)));
-    
-    // Fase 4: Codificação usa Copilot Nativo empoderado pela pasta .github
+    const commandToken = () => new vscode.CancellationTokenSource().token;
+
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.constitution', () => executeSDDPhase('constitution', '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.specify',      () => executeSDDPhase('specify',      '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.plan',         () => executeSDDPhase('plan',         '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.tasks',        () => executeSDDPhase('tasks',        '', '', null, commandToken(), context, outputChannel)));
+
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', () => {
-        vscode.commands.executeCommand('workbench.action.chat.open', { 
-            query: 'Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill correspondente à tecnologia do projeto (ex: #agente-angular-foursys ou #agente-spring-foursys).' 
+        vscode.commands.executeCommand('workbench.action.chat.open', {
+            query: 'Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill correspondente à tecnologia do projeto (ex: #agente-angular-foursys ou #agente-spring-foursys).'
         });
     }));
 
@@ -64,9 +109,17 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(FoursysSDDSidebarProvider.viewType, sidebarProvider));
 }
 
-async function executeSDDPhase(command: string, userInstruction: string, referencesContext: string, chatResponse: vscode.ChatResponseStream | null, context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel) {
+async function executeSDDPhase(
+    command: string,
+    userInstruction: string,
+    referencesContext: string,
+    chatResponse: vscode.ChatResponseStream | null,
+    token: vscode.CancellationToken,
+    context: vscode.ExtensionContext,
+    outputChannel: vscode.OutputChannel
+) {
     const rootPath = getWorkspaceRoot();
-    if (!rootPath) return;
+    if (!rootPath) { return; }
 
     const savedPath = context.globalState.get<string>('catalogPath');
     const catalogPath = findCatalogPath(rootPath, savedPath || '');
@@ -74,9 +127,9 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
     const builtinSDD = context.extensionUri.fsPath;
 
     outputChannel.show(true);
-    outputChannel.appendLine(`\n[SDD] ▶ Iniciando documentação: ${command}`);
+    outputChannel.appendLine(`\n[SDD] ▶ Iniciando fase: ${command}`);
 
-    if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD**: Iniciando fase de especificação **${command.toUpperCase()}**...\n\n`); }
+    if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD**: Iniciando fase **${command.toUpperCase()}**...\n\n`); }
 
     let playbookPath = '';
     let outputPath = '';
@@ -90,32 +143,40 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
             if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md'); }
             outputPath = path.join(docPath, 'constitution.md');
             break;
+
         case 'specify':
             playbookPath = path.join(catalogPath || '', 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
+            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-specify.md'); }
             outputPath = path.join(docPath, 'user_story.md');
             contextFiles = [path.join(docPath, 'constitution.md')];
             break;
+
         case 'clarify':
             playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-clarify.md');
-            outputPath = ''; // Clarify não salva arquivo obrigatoriamente, mas vamos salvar se o dev quiser
+            outputPath = '';
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
             break;
+
         case 'plan':
             playbookPath = path.join(catalogPath || '', 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
+            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-plan.md'); }
             outputPath = path.join(docPath, 'implementation_plan.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
             break;
+
         case 'analyze':
             playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-analyze.md');
             outputPath = path.join(docPath, 'analysis_report.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md'), path.join(docPath, 'implementation_plan.md')];
             break;
+
         case 'tasks':
             playbookPath = path.join(catalogPath || '', 'playbook', 'sdd', 'foursys-tasks.md');
             if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md'); }
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
             break;
+
         case 'checklist':
             playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-checklist.md');
             outputPath = path.join(docPath, 'quality_checklist.md');
@@ -136,7 +197,9 @@ async function executeSDDPhase(command: string, userInstruction: string, referen
     }
 
     if (!playbookPath || !fs.existsSync(playbookPath)) {
-        if (chatResponse) { chatResponse.markdown(`⚠️ Agente ou Playbook não encontrado em ${playbookPath}`); }
+        const msg = `⚠️ Playbook não encontrado: ${playbookPath}`;
+        if (chatResponse) { chatResponse.markdown(msg); }
+        outputChannel.appendLine(`[SDD] ${msg}`);
         return;
     }
 
@@ -156,28 +219,35 @@ REGRAS ESTRITAS:
 PLAYBOOK BASE:
 ${systemPromptRaw}`;
 
-        let userContext = referencesContext; 
+        // Detecta tecnologia para injetar contexto real do workspace
+        const userStoryPath = path.join(docPath, 'user_story.md');
+        const technology = detectTechnology(userStoryPath);
+
+        let userContext = referencesContext;
         contextFiles.forEach(file => {
             if (fs.existsSync(file)) {
                 userContext += `\n--- ARQUIVO DO PROJETO: ${path.basename(file)} ---\n${fs.readFileSync(file, 'utf8')}\n`;
             }
         });
 
+        // Injeta código real do workspace — principal redutor de alucinação
+        userContext += readWorkspaceContext(rootPath, technology);
+
         const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL: ${userInstruction}\n\n` : '';
         const finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO.\nCONTEXTO:\n${userContext}`;
 
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 
-        const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, (chunk) => {
+        const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, token, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }
         });
 
         if (outputPath) {
             fs.writeFileSync(outputPath, fullText);
             await openFile(outputPath);
-            if (chatResponse) { chatResponse.markdown(`\n\n✅ **Salvo e Aberto com Sucesso em**: ${path.basename(outputPath)}`); }
+            if (chatResponse) { chatResponse.markdown(`\n\n✅ **Salvo em**: ${path.basename(outputPath)}`); }
         }
-        
+
     } catch (error: any) {
         if (chatResponse) { chatResponse.markdown(`❌ Erro: ${error.message}`); }
     }

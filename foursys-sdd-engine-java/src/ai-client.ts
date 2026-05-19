@@ -11,11 +11,10 @@ export class AIClient {
         outputChannel.appendLine(`[IA] Enviando prompt para o modelo de IA...`);
 
         try {
-            const models = await vscode.lm.selectChatModels({
-                vendor: 'copilot',
-                family: 'gpt-4o'
-            });
-
+            let models = await vscode.lm.selectChatModels({ vendor: 'copilot', family: 'gpt-4o' });
+            if (models.length === 0) {
+                models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
+            }
             if (models.length === 0) {
                 throw new Error('Nenhum modelo de IA disponível. Verifique se o GitHub Copilot está ativo.');
             }

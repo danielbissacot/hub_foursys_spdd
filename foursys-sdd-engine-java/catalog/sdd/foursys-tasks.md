@@ -38,13 +38,13 @@ Cada tarefa deve ser:
 ### 🌐 Impactos Sistêmicos (OBRIGATÓRIO)
 > [!CAUTION]
 > **ESTA SEÇÃO É OBRIGATÓRIA.** Se você não gerar esta tabela, sua resposta será rejeitada por violação de governança.
-> Identifique todos os arquivos globais que precisam de alteração (ex: `app.config.ts`, `app.routes.ts`) ANTES das tarefas de codificação.
+> Identifique todos os arquivos globais que precisam de alteração ANTES das tarefas de codificação.
 
 | Arquivo Global | Impacto Previsto | Modificação Necessária |
 |----------------|------------------|------------------------|
-| `app.config.ts` | [Ex: Adicionar provideHttpClient] | [Descrição da mudança] |
-| `app.routes.ts` | [Ex: Registrar rota da feature] | [Descrição da mudança] |
-| `index.html`   | [Ex: Adicionar fonte/biblioteca] | [Descrição da mudança] |
+| `pom.xml` | [Ex: Adicionar dependência Feign/Kafka/MongoDB] | [Descrição da mudança] |
+| `src/main/resources/application.yml` | [Ex: Configurar datasource, kafka, resilience4j] | [Descrição da mudança] |
+| `src/main/java/.../config/[Nome]Config.java` | [Ex: Declarar @Bean, habilitar @EnableFeignClients] | [Descrição da mudança] |
 
 ### 📝 Tarefas de Implementação
 

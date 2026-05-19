@@ -21,8 +21,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         const updateWebview = () => {
             const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
             const isConnected = this._checkConnection(workspaceRoot);
-            const isAngular = this._isAngularWorkspace(workspaceRoot);
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, isAngular);
+            webviewView.webview.html = this._getHtmlForWebview(isConnected);
         };
 
         updateWebview();
@@ -99,30 +98,16 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    private _isAngularWorkspace(workspaceRoot: string): boolean {
-        if (!workspaceRoot) return false;
-        const packageJsonPath = path.join(workspaceRoot, 'package.json');
-        const angularJsonPath = path.join(workspaceRoot, 'angular.json');
-        
-        if (fs.existsSync(angularJsonPath)) return true;
-        if (fs.existsSync(packageJsonPath)) {
-            try {
-                const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-                return !!(pkg.dependencies?.['@angular/core'] || pkg.devDependencies?.['@angular/core']);
-            } catch (e) {
-                return false;
-            }
-        }
-        return false;
-    }
-
     private _injectCopilotCustomizations(workspaceRoot: string, catalogPath: string) {
         try {
             const githubDir = path.join(workspaceRoot, '.github');
             if (!fs.existsSync(githubDir)) fs.mkdirSync(githubDir, { recursive: true });
 
-            // 1. Inject Instructions
-            const constitutionPath = path.join(catalogPath, 'playbook', 'sdd', 'foursys-constitution.md');
+            // 1. Inject Instructions — Java plugin uses its own builtin constitution (Java-specific)
+            const builtinJavaConstitution = path.join(this._context.extensionUri.fsPath, 'catalog', 'sdd', 'foursys-constitution.md');
+            const constitutionPath = fs.existsSync(builtinJavaConstitution)
+                ? builtinJavaConstitution
+                : path.join(catalogPath, 'playbook', 'sdd', 'foursys-constitution.md');
             if (fs.existsSync(constitutionPath)) {
                 fs.copyFileSync(constitutionPath, path.join(githubDir, 'copilot-instructions.md'));
             }
@@ -131,9 +116,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const skillsDir = path.join(githubDir, 'skills');
             if (!fs.existsSync(skillsDir)) fs.mkdirSync(skillsDir, { recursive: true });
 
-            // From catalog/agents_skills (Recursive)
+            // Java plugin: inject only Spring Boot skills — prevents Angular/COBOL skills from polluting Copilot context
             const agentsSkillsPath = path.join(catalogPath, 'agents_skills');
-            if (fs.existsSync(agentsSkillsPath)) {
+            const javaSkillsPath = path.join(agentsSkillsPath, 'spring_boot');
+            const skillsScanRoot = fs.existsSync(javaSkillsPath) ? javaSkillsPath : agentsSkillsPath;
+            if (fs.existsSync(skillsScanRoot)) {
                 const getFilesRecursively = (dir: string): string[] => {
                     let results: string[] = [];
                     const list = fs.readdirSync(dir);
@@ -149,7 +136,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     return results;
                 };
 
-                const allSkillFiles = getFilesRecursively(agentsSkillsPath);
+                const allSkillFiles = getFilesRecursively(skillsScanRoot);
                 for (const fullPath of allSkillFiles) {
                     const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
                     fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));
@@ -174,7 +161,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
 
 
-    private _getHtmlForWebview(isConnected: boolean, isAngular: boolean) {
+    private _getHtmlForWebview(isConnected: boolean) {
         return `<!DOCTYPE html>
             <html lang="pt-BR">
             <head>
@@ -274,7 +261,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             <body>
                 <div class="header">
                     <h3 class="title">🚀 Foursys SDD Engine</h3>
-                    <span class="version">v2.4.0 JAVA (SDD + COPILOT NATIVO)</span>
+                    <span class="version">v2.0.1 JAVA (SDD + COPILOT NATIVO)</span>
                 </div>
 
                 <div class="${isConnected ? '' : 'disabled'}">

@@ -2,7 +2,7 @@
   "name": "foursys-sdd-engine-java",
   "displayName": "Foursys SDD Engine Java - AI Governance Hub",
   "description": "Motor SDD especializado para Java 21 + Spring Boot com Skills corrigidas (auditoria 2026-05-19).",
-  "version": "2.4.0",
+  "version": "2.0.1",
   "publisher": "foursys",
   "repository": {
     "type": "git",

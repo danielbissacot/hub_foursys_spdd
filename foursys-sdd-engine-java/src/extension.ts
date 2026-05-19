@@ -6,7 +6,7 @@ import { loadPlaybook, findCatalogPath, detectTechnology } from './catalog-loade
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 
 const DOC_FOLDER = 'doc_projeto';
-const WORKSPACE_CONTEXT_EXTS = ['.ts', '.java', '.html', '.cobol', '.cbl'];
+const WORKSPACE_CONTEXT_EXTS = ['.java', '.yml', '.yaml', '.xml', '.properties', '.cobol', '.cbl'];
 const WORKSPACE_CONTEXT_MAX_FILES = 5;
 const WORKSPACE_CONTEXT_MAX_LINES = 300;
 
@@ -74,7 +74,7 @@ function readWorkspaceContext(rootPath: string, technology: string | null): stri
 
 export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('Foursys SDD');
-    outputChannel.appendLine('[Foursys SDD] Motor V2.4.0 Anti-Alucinação Online!');
+    outputChannel.appendLine('[Foursys SDD] Motor V2.0.1 Java Online!');
 
     const agentes = vscode.chat.createChatParticipant('foursys_sdd', async (request, _chatContext, response, token) => {
         let referencesContext = '';
@@ -101,7 +101,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', () => {
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: 'Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill correspondente à tecnologia do projeto (ex: #agente-angular-foursys ou #agente-spring-foursys).'
+            query: 'Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill Java: #agente-spring-foursys.'
         });
     }));
 
@@ -137,50 +137,29 @@ async function executeSDDPhase(
 
     if (chatResponse) { chatResponse.progress('Buscando Playbook e Regras do Hub...'); }
 
+    // Java plugin: builtin playbooks have priority — prevents Hub's Angular playbooks from overriding
     switch (command) {
         case 'constitution':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'sdd', 'foursys-constitution.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md');
             outputPath = path.join(docPath, 'constitution.md');
             break;
 
         case 'specify':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-specify.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-specify.md');
             outputPath = path.join(docPath, 'user_story.md');
             contextFiles = [path.join(docPath, 'constitution.md')];
             break;
 
-        case 'clarify':
-            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-clarify.md');
-            outputPath = '';
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
-            break;
-
         case 'plan':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-plan.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-plan.md');
             outputPath = path.join(docPath, 'implementation_plan.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
             break;
 
-        case 'analyze':
-            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-analyze.md');
-            outputPath = path.join(docPath, 'analysis_report.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md'), path.join(docPath, 'implementation_plan.md')];
-            break;
-
         case 'tasks':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'sdd', 'foursys-tasks.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md');
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
-            break;
-
-        case 'checklist':
-            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-checklist.md');
-            outputPath = path.join(docPath, 'quality_checklist.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md'), path.join(docPath, 'task_list.md')];
             break;
     }
 
@@ -188,7 +167,7 @@ async function executeSDDPhase(
         const fileExists = fs.existsSync(outputPath);
         const content = fileExists ? fs.readFileSync(outputPath, 'utf8') : '';
         if (!fileExists || content.trim() === '' || content.includes('DESCREVA AQUI')) {
-            const template = `# User Story\n\n**TECNOLOGIA:** [Angular / Spring Boot / COBOL]\n\n**NECESSIDADE:**\nDESCREVA AQUI o que você precisa construir...`;
+            const template = `# User Story\n\n**TECNOLOGIA:** Spring Boot\n\n**NECESSIDADE:**\nDESCREVA AQUI o que você precisa construir...`;
             fs.writeFileSync(outputPath, template);
             await openFile(outputPath);
             if (chatResponse) { chatResponse.markdown('📝 Por favor, descreva sua necessidade no arquivo `user_story.md` e rode o comando novamente.'); }
@@ -234,7 +213,10 @@ ${systemPromptRaw}`;
         userContext += readWorkspaceContext(rootPath, technology);
 
         const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL: ${userInstruction}\n\n` : '';
-        const finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO.\nCONTEXTO:\n${userContext}`;
+        const contextSection = userContext.trim() !== ''
+            ? `CONTEXTO DO PROJETO:\n${userContext}`
+            : 'Não há contexto adicional. Gere o documento AGORA com base estritamente no PLAYBOOK acima. NÃO solicite contexto. NÃO faça perguntas.';
+        const finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO.\n\n${contextSection}`;
 
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 

@@ -30,18 +30,22 @@ A saída deve ser um arquivo Markdown contendo:
    - Security by Design: Validação de inputs e tratamento de erros em todas as camadas.
    - Escopo Blindado: Não crie arquivos fora da Task List. Documentos de auditoria vão para /doc_projeto/evidencias/.
 
-2. 💻 STACK TÉCNICA E PADRÕES (Baseado na tecnologia informada: Angular, Java ou COBOL)
-   - Se Angular 18+: Uso de Signals, Standalone Components (obrigatório), OnPush Change Detection, provideHttpClient(withFetch()).
-   - Se Java 21+: Spring Boot 3.x, Records, Imutabilidade, Arquitetura Hexagonal, Validação de Bean (JSR 380).
-   - Se COBOL: Padrões de mainframe, nomes de variáveis significativos, tratamento de arquivos.
+2. 💻 STACK TÉCNICA E PADRÕES — Java 21 + Spring Boot 3.x (OBRIGATÓRIO)
+   - Linguagem: Java 21 com Records e Sealed Classes onde aplicável.
+   - Framework: Spring Boot 3.x com Arquitetura Hexagonal.
+   - Imutabilidade: prefira Records e campos final.
+   - Validação: Bean Validation (JSR 380) — @NotNull, @Size, @Valid em todos os inputs.
+   - Injeção de Dependência: via construtor (nunca @Autowired em campo).
+   - NÃO use padrões Angular, TypeScript ou COBOL nesta constituição.
 
-3. 📏 REGRAS DE OURO (GOLDEN RULES)
+3. 📏 REGRAS DE OURO (GOLDEN RULES) — APENAS JAVA
+   ⚠️ NÃO ADICIONE regras Angular (inject(), Signals, app.config.ts, WCAG, NG1). Este projeto é exclusivamente Java/Spring Boot.
    - Regra 1 (Siga o Plano): Não invente caminhos.
    - Regra 2 (Filepath): Todo código deve ter // FILEPATH:.
-   - Regra 3 (Build First): Valide app.config.ts e app.routes.ts ANTES de gerar qualquer componente.
+   - Regra 3 (Build First): Valide pom.xml e application.yml ANTES de gerar qualquer classe.
    - Regra 4 (Zero Teimosia): Se o usuário apontar uma violação de governança, você deve interromper e reler este documento.
    - Regra 5 (Atomic Edits): Toda edição deve manter a integridade total do arquivo.
-   - Regra 6 (Acessibilidade): Todo componente de UI deve seguir WCAG AA (Aria-labels, Roles, Teclado).
+   - Regra 6 (Exceções de Domínio): Nunca use RuntimeException genérica — sempre lance exceções de domínio específicas.
    - Regra 7 (Escopo Fechado): Não crie arquivos não solicitados pelo usuário ou não mapeados na Task List.
 
 4. 🧪 QUALIDADE E TESTES
@@ -49,8 +53,13 @@ A saída deve ser um arquivo Markdown contendo:
    - Uso de Mocks para dependências externas.
    - Padrão AAA (Arrange, Act, Assert).
 
-5. 📁 ESTRUTURA DE ARQUIVOS
-   - Defina onde cada tipo de arquivo deve morar (ex: src/app/services para Angular).
+5. 📁 ESTRUTURA DE ARQUIVOS (Arquitetura Hexagonal — Java)
+   - `src/main/java/.../domain/` — Entidades, Records, interfaces de porta
+   - `src/main/java/.../application/usecase/` — Casos de uso (orquestração)
+   - `src/main/java/.../infrastructure/adapter/` — Adapters de entrada (REST) e saída (DB, Kafka, Feign)
+   - `src/main/java/.../infrastructure/config/` — Classes @Configuration e @Bean
+   - `src/main/resources/` — application.yml e perfis (application-dev.yml, application-prod.yml)
+   - `src/test/java/` — Testes unitários e de integração (espelha a estrutura de main)
 
 ### 🏁 FINALIZAÇÃO
 Ao gerar o documento, adicione no final:

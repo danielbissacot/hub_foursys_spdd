@@ -12,41 +12,11 @@ export function loadPlaybook(filePath: string): string {
 
 export function detectTechnology(userStoryPath: string): string | null {
     if (!fs.existsSync(userStoryPath)) { return null; }
-    const content = fs.readFileSync(userStoryPath, 'utf8');
-
-    // Prioridade: campo de cabeçalho explícito "Tecnologia: X"
-    const techHeaderRegex = /Tecnologia\s*[:\-]\s*([^\r\n]*)/i;
-    const headerMatch = content.match(techHeaderRegex);
-    if (headerMatch && headerMatch[1]) {
-        const explicit = headerMatch[1].toLowerCase().replace(/[\[\]\(\)]/g, '').replace(/informe[:\s]*/i, '').trim();
-        if (explicit.includes('angular')) { return 'angular'; }
-        if (explicit.includes('java') || explicit.includes('spring')) { return 'spring_boot'; }
-        if (explicit.includes('cobol')) { return 'cobol'; }
-    }
-
-    // Fallback: contagem de ocorrências no texto completo — evita falso positivo por primeiro match
-    const text = content.toLowerCase();
-    const scores: Record<string, number> = { angular: 0, spring_boot: 0, cobol: 0 };
-    scores.angular     = (text.match(/\bangular\b/g) || []).length;
-    scores.spring_boot = (text.match(/\b(java|spring)\b/g) || []).length;
-    scores.cobol       = (text.match(/\bcobol\b/g) || []).length;
-
-    const best = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-    if (best[0][1] === 0) { return null; }
-    // Empate → inconclusivo
-    if (best[0][1] === best[1][1]) { return null; }
-    return best[0][0];
+    return 'angular';
 }
 
-export function findAgentSkill(catalogPath: string, technology: string): string | null {
-    const agentMap: Record<string, string> = {
-        'angular': 'agents_skills/angular/AGENTE_ANGULAR_FOURSYS.md',
-        'spring_boot': 'agents_skills/spring_boot/AGENTE_SPRING_FOURSYS.md',
-        'cobol': 'agents_skills/cobol/AGENTE_COBOL_FOURSYS.md',
-    };
-    const relativePath = agentMap[technology];
-    if (!relativePath) return null;
-    const fullPath = path.join(catalogPath, relativePath);
+export function findAgentSkill(catalogPath: string, _technology: string): string | null {
+    const fullPath = path.join(catalogPath, 'agents_skills/angular/AGENTE_ANGULAR_FOURSYS.md');
     return fs.existsSync(fullPath) ? fullPath : null;
 }
 

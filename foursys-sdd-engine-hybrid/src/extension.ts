@@ -10,27 +10,33 @@ const DOC_FOLDER = 'doc_projeto';
 const WORKSPACE_CONTEXT_MAX_FILES = 5;
 const WORKSPACE_CONTEXT_MAX_LINES = 300;
 
-// Mend Advise — instalação e configuração automática
-const MEND_EXTENSION_ID  = 'mend.mend-for-developers';
-const MEND_LICENSE_SECRET = 'foursys.mendLicenseKey';
-const MEND_API_URL        = 'https://dss-appsec.mend.io/api';
-const MEND_API_TOKEN      = 'ef149a32-1038-40b2-9917-436a1266ed17';
+// Mend Advise — ID correto na marketplace VS Code
+const MEND_EXTENSION_ID   = 'Mend.mend-advise';
+const MEND_LICENSE_SECRET  = 'foursys.mendLicenseKey';
+const MEND_API_TOKEN       = 'ef149a32-1038-40b2-9917-436a1266ed17';
 
 async function ensureMendAdvise(
     context: vscode.ExtensionContext,
     outputChannel: vscode.OutputChannel
 ): Promise<void> {
-    // Sem popup — instalação agora é via botão na sidebar
+    // Sem popup — instalação é via botão na sidebar
     if (!vscode.extensions.getExtension(MEND_EXTENSION_ID)) { return; }
 
-    // Configura licença apenas na primeira vez (verifica via secrets criptografados do SO)
-    const stored = await context.secrets.get(MEND_LICENSE_SECRET);
-    if (!stored) {
+    // Notifica o dev sobre a chave de licença apenas uma vez
+    const notified = await context.secrets.get(MEND_LICENSE_SECRET);
+    if (!notified) {
         await context.secrets.store(MEND_LICENSE_SECRET, MEND_API_TOKEN);
-        const mendConfig = vscode.workspace.getConfiguration('mend');
-        await mendConfig.update('apiKey', MEND_API_TOKEN, vscode.ConfigurationTarget.Global);
-        await mendConfig.update('wssUrl',  MEND_API_URL,   vscode.ConfigurationTarget.Global);
-        outputChannel.appendLine('[Foursys] ✅ Mend: licença configurada automaticamente.');
+        outputChannel.appendLine('[Foursys] ✅ Mend Advise instalado.');
+        outputChannel.appendLine('[Foursys] 📋 Para ativar: Ctrl+Shift+P → "mend: Activate Mend Advise"');
+        outputChannel.appendLine(`[Foursys] 🔑 Chave de licença: ${MEND_API_TOKEN}`);
+        const choice = await vscode.window.showInformationMessage(
+            '✅ Mend Advise detectado! Execute "mend: Activate Mend Advise" no Command Palette para ativar.',
+            'Copiar Chave de Licença'
+        );
+        if (choice === 'Copiar Chave de Licença') {
+            await vscode.env.clipboard.writeText(MEND_API_TOKEN);
+            vscode.window.showInformationMessage('🔑 Chave copiada! Cole no wizard de ativação do Mend.');
+        }
     }
 }
 
@@ -141,12 +147,20 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }));
 
-    // Roda análise Mend Advise — tenta comando nativo, fallback para view
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.runMend', () => {
-        vscode.commands.executeCommand('mend.scan').then(undefined, () => {
-            vscode.commands.executeCommand('workbench.view.extension.mend').then(undefined, () => {
-                vscode.window.showInformationMessage('Abra o painel do Mend Advise manualmente para rodar a análise.');
-            });
+    // Roda análise Mend Advise — tenta múltiplos comandos possíveis em sequência
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.runMend', async () => {
+        const scanCandidates = ['mend.scanWorkspace', 'mend.scan', 'mend.runScan'];
+        for (const cmd of scanCandidates) {
+            try {
+                await vscode.commands.executeCommand(cmd);
+                return;
+            } catch { /* tenta próximo */ }
+        }
+        // Fallback: abre a view do Mend
+        vscode.commands.executeCommand('workbench.view.extension.mend-advise').then(undefined, () => {
+            vscode.window.showInformationMessage(
+                'Abra o painel do Mend Advise manualmente (Ctrl+Shift+P → "mend: Scan Workspace with Mend Advise").'
+            );
         });
     }));
 

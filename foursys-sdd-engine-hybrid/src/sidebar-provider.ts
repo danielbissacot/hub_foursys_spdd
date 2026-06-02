@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
 
-const MEND_EXT_ID = 'mend.mend-for-developers';
+const MEND_EXT_ID = 'Mend.mend-advise';
 
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'foursys-sdd-sidebar-view';
@@ -72,9 +72,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             'workbench.extensions.installExtension',
             MEND_EXT_ID
         );
-        vscode.window.showInformationMessage(
-            '✅ Mend Advise instalado. Reinicie o VS Code para ativar a licença automaticamente.'
+        const choice = await vscode.window.showInformationMessage(
+            '✅ Mend Advise instalado! Reinicie o VS Code e execute "mend: Activate Mend Advise" para ativar.',
+            'Copiar Chave de Licença'
         );
+        if (choice === 'Copiar Chave de Licença') {
+            await vscode.env.clipboard.writeText('ef149a32-1038-40b2-9917-436a1266ed17');
+            vscode.window.showInformationMessage('🔑 Chave copiada! Cole no wizard de ativação do Mend.');
+        }
     }
 
     private _detectStack(workspaceRoot: string): StackDetectionResult {

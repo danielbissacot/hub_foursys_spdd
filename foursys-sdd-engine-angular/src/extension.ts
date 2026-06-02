@@ -6,7 +6,7 @@ import { loadPlaybook, findCatalogPath, detectTechnology } from './catalog-loade
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 
 const DOC_FOLDER = 'doc_projeto';
-const WORKSPACE_CONTEXT_EXTS = ['.ts', '.java', '.html', '.cobol', '.cbl'];
+const WORKSPACE_CONTEXT_EXTS = ['.ts', '.html', '.scss', '.css'];
 const WORKSPACE_CONTEXT_MAX_FILES = 5;
 const WORKSPACE_CONTEXT_MAX_LINES = 300;
 
@@ -101,7 +101,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', () => {
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: 'Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill correspondente à tecnologia do projeto (ex: #agente-angular-foursys ou #agente-spring-foursys).'
+            query: 'Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill Angular (#agente-angular-foursys).'
         });
     }));
 
@@ -137,16 +137,15 @@ async function executeSDDPhase(
 
     if (chatResponse) { chatResponse.progress('Buscando Playbook e Regras do Hub...'); }
 
+    // Angular plugin: builtin playbooks have priority — prevents Hub's Java/generic playbooks from overriding
     switch (command) {
         case 'constitution':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'sdd', 'foursys-constitution.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-constitution.md');
             outputPath = path.join(docPath, 'constitution.md');
             break;
 
         case 'specify':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'fase1_refinamento_negocio', 'FASE1_REFINAMENTO_NEGOCIO.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-specify.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-specify.md');
             outputPath = path.join(docPath, 'user_story.md');
             contextFiles = [path.join(docPath, 'constitution.md')];
             break;
@@ -158,8 +157,7 @@ async function executeSDDPhase(
             break;
 
         case 'plan':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'fase2_desenho_tecnico', 'FASE2_ESPECIFICACAO_TECNICA.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-plan.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-plan.md');
             outputPath = path.join(docPath, 'implementation_plan.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
             break;
@@ -171,8 +169,7 @@ async function executeSDDPhase(
             break;
 
         case 'tasks':
-            playbookPath = path.join(catalogPath || '', 'playbook', 'sdd', 'foursys-tasks.md');
-            if (!fs.existsSync(playbookPath)) { playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md'); }
+            playbookPath = path.join(builtinSDD, 'catalog', 'sdd', 'foursys-tasks.md');
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
             break;
@@ -188,7 +185,7 @@ async function executeSDDPhase(
         const fileExists = fs.existsSync(outputPath);
         const content = fileExists ? fs.readFileSync(outputPath, 'utf8') : '';
         if (!fileExists || content.trim() === '' || content.includes('DESCREVA AQUI')) {
-            const template = `# User Story\n\n**TECNOLOGIA:** [Angular / Spring Boot / COBOL]\n\n**NECESSIDADE:**\nDESCREVA AQUI o que você precisa construir...`;
+            const template = `# User Story\n\n**TECNOLOGIA:** Angular\n\n**NECESSIDADE:**\nDESCREVA AQUI o que você precisa construir...`;
             fs.writeFileSync(outputPath, template);
             await openFile(outputPath);
             if (chatResponse) { chatResponse.markdown('📝 Por favor, descreva sua necessidade no arquivo `user_story.md` e rode o comando novamente.'); }

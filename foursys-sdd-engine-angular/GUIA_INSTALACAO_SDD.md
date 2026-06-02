@@ -17,7 +17,7 @@ Write-Host "✅ Catálogo SDD baixado com sucesso!" -ForegroundColor Cyan
 ### 2. Configurar o Motor no VS Code
 
 1. Abra o VS Code no seu projeto.
-2. Certifique-se de ter instalado o plugin `foursys-sdd-engine-0.1.1.vsix`.
+2. Certifique-se de ter instalado o plugin `foursys-sdd-engine-angular-2.4.0.vsix`.
 3. Abra a barra lateral **Foursys SDD**.
 4. Clique em **"0. Constitution"**.
 5. Quando o VS Code pedir para selecionar a pasta, escolha: 

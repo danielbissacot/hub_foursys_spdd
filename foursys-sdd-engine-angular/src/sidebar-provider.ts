@@ -121,8 +121,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const githubDir = path.join(workspaceRoot, '.github');
             if (!fs.existsSync(githubDir)) fs.mkdirSync(githubDir, { recursive: true });
 
-            // 1. Inject Instructions
-            const constitutionPath = path.join(catalogPath, 'playbook', 'sdd', 'foursys-constitution.md');
+            // 1. Inject Instructions — Angular plugin usa sua própria constituição builtin (Angular-específica)
+            const builtinAngularConstitution = path.join(this._context.extensionUri.fsPath, 'catalog', 'sdd', 'foursys-constitution.md');
+            const constitutionPath = fs.existsSync(builtinAngularConstitution)
+                ? builtinAngularConstitution
+                : path.join(catalogPath, 'playbook', 'sdd', 'foursys-constitution.md');
             if (fs.existsSync(constitutionPath)) {
                 fs.copyFileSync(constitutionPath, path.join(githubDir, 'copilot-instructions.md'));
             }
@@ -131,9 +134,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const skillsDir = path.join(githubDir, 'skills');
             if (!fs.existsSync(skillsDir)) fs.mkdirSync(skillsDir, { recursive: true });
 
-            // From catalog/agents_skills (Recursive)
+            // Angular plugin: inject only Angular skills — prevents Spring Boot/COBOL skills from polluting Copilot context
             const agentsSkillsPath = path.join(catalogPath, 'agents_skills');
-            if (fs.existsSync(agentsSkillsPath)) {
+            const angularSkillsPath = path.join(agentsSkillsPath, 'angular');
+            const skillsScanRoot = fs.existsSync(angularSkillsPath) ? angularSkillsPath : agentsSkillsPath;
+            if (fs.existsSync(skillsScanRoot)) {
                 const getFilesRecursively = (dir: string): string[] => {
                     let results: string[] = [];
                     const list = fs.readdirSync(dir);
@@ -149,7 +154,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     return results;
                 };
 
-                const allSkillFiles = getFilesRecursively(agentsSkillsPath);
+                const allSkillFiles = getFilesRecursively(skillsScanRoot);
                 for (const fullPath of allSkillFiles) {
                     const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
                     fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));

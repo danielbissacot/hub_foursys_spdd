@@ -30,10 +30,8 @@ A saída deve ser um arquivo Markdown contendo:
    - Security by Design: Validação de inputs e tratamento de erros em todas as camadas.
    - Escopo Blindado: Não crie arquivos fora da Task List. Documentos de auditoria vão para /doc_projeto/evidencias/.
 
-2. 💻 STACK TÉCNICA E PADRÕES (Baseado na tecnologia informada: Angular, Java ou COBOL)
-   - Se Angular 18+: Uso de Signals, Standalone Components (obrigatório), OnPush Change Detection, provideHttpClient(withFetch()).
-   - Se Java 21+: Spring Boot 3.x, Records, Imutabilidade, Arquitetura Hexagonal, Validação de Bean (JSR 380).
-   - Se COBOL: Padrões de mainframe, nomes de variáveis significativos, tratamento de arquivos.
+2. 💻 STACK TÉCNICA E PADRÕES (Angular 18+)
+   - Uso de Signals, Standalone Components (obrigatório), OnPush Change Detection, provideHttpClient(withFetch()).
 
 3. 📏 REGRAS DE OURO (GOLDEN RULES)
    - Regra 1 (Siga o Plano): Não invente caminhos.

@@ -1,4 +1,4 @@
-# Foursys SDD Engine
+# Foursys SDD Engine Angular
 
 O Maestro da Engenharia de Software Foursys. Este plugin implementa a metodologia **Spec-Driven Development (SDD)** integrada ao AI Governance Hub.
 

@@ -1,6 +1,6 @@
 {
-  "name": "foursys-sdd-engine",
-  "displayName": "Foursys SDD Engine - AI Governance Hub",
+  "name": "foursys-sdd-engine-angular",
+  "displayName": "Foursys SDD Engine Angular - AI Governance Hub",
   "description": "Motor de Spec-Driven Development (SDD) orquestrado com Agentes Foursys.",
   "version": "2.4.0",
   "publisher": "foursys",
@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/danielbissacot/ai-governance-hub"
   },
-  "homepage": "https://github.com/danielbissacot/ai-governance-hub/tree/ai-governance-plugin/foursys-sdd-engine",
+  "homepage": "https://github.com/danielbissacot/ai-governance-hub/tree/ai-governance-plugin/foursys-sdd-engine-angular",
   "engines": {
     "vscode": "^1.96.0"
   },

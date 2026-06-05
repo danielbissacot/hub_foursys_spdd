@@ -514,22 +514,22 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 <span class="step-number">3</span>
                 <span class="step-label"><span class="step-title">🤖 Scripts de Automação</span><span class="step-sub">Gerar código de teste</span></span>
             </button>
-            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaCoverage')">
+            <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')">
                 <span class="step-number">4</span>
+                <span class="step-label">
+                    <span class="step-title">🚀 Implementar Testes</span>
+                    <span class="step-sub">${qaScriptsReady ? 'Extrair e criar arquivos de teste' : 'Aguardando Scripts de Automação'}</span>
+                </span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaCoverage')">
+                <span class="step-number">5</span>
                 <span class="step-label"><span class="step-title">🔍 Review de Cobertura</span><span class="step-sub">Análise de cobertura</span></span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaReport')">
-                <span class="step-number">5</span>
+                <span class="step-number">6</span>
                 <span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span>
             </button>
         </div>
-        <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')" style="margin-top:8px;">
-            <span class="step-number">▶</span>
-            <span class="step-label">
-                <span class="step-title">🚀 Implementar Testes</span>
-                <span class="step-sub">${qaScriptsReady ? 'Extrair e criar arquivos de teste' : 'Aguardando Scripts de Automação'}</span>
-            </span>
-        </button>
     </div>
 
     <div class="mend-section">

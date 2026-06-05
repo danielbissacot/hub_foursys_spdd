@@ -49,7 +49,7 @@ function getDocPath(rootPath: string): string {
 async function openFile(filePath: string) {
     if (fs.existsSync(filePath)) {
         const doc = await vscode.workspace.openTextDocument(filePath);
-        await vscode.window.showTextDocument(doc);
+        await vscode.window.showTextDocument(doc, { preview: false });
     }
 }
 

@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD — Genérico
 description: Decompõe um plano técnico em tarefas granulares, atômicas e testáveis. Agnóstico de stack — exemplos de arquivos globais são substituídos em runtime pelo catalog-loader.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -21,13 +21,23 @@ Sua tarefa é analisar o Plano de Implementação (Implementation Plan) e a Cons
 - NÃO dê explicações longas.
 - NÃO crie arquivos de documentação ou checklists extras que não foram solicitados. Se gerar evidências automáticas de teste/acessibilidade, salve-as obrigatoriamente em `doc_projeto/evidencias/`.
 - Gere APENAS o checklist em Markdown.
+- Se uma tarefa é estimada em M ou L, QUEBRE em subtarefas antes de listar. Tarefas L não são aceitas.
+- Tarefas de TESTE devem ser listadas em seção separada das tarefas de implementação.
+
+### 📏 TABELA DE ESTIMATIVAS
+| Código | Duração    | Ação obrigatória                     |
+|--------|------------|--------------------------------------|
+| XS     | < 30 min   | Listar normalmente                   |
+| S      | até 1h     | Listar normalmente                   |
+| M      | 2–4h       | QUEBRAR em subtarefas menores        |
+| L      | > 4h       | OBRIGATÓRIO QUEBRAR — não aceito     |
 
 ### ✅ CRITÉRIOS PARA UMA BOA TAREFA
 Cada tarefa deve ser:
-1. **Atômica**: Faz apenas uma coisa (ex: "Criar o service de API").
-2. **Testável**: É possível verificar se ela está pronta.
-3. **Sequencial**: Respeita as dependências lógicas (ex: não dá para criar o componente sem o service).
-4. **Sistêmica**: Deve contemplar impactos em arquivos globais.
+1. **Atômica**: Faz apenas uma coisa.
+2. **Testável**: Tem um Critério de Conclusão verificável.
+3. **Sequencial**: Respeita dependências explícitas entre tarefas.
+4. **Sistêmica**: Contempla impactos em arquivos globais.
 
 ### ✅ FORMATO DE SAÍDA (Obrigatório)
 
@@ -47,12 +57,27 @@ Cada tarefa deve ser:
 - [ ] **Tarefa 01: [Título Curto]**
   - Descrição técnica: [O que deve ser feito em 1 frase]
   - Arquivo impactado: `caminho/do/arquivo`
+  - Estimativa: XS | S | M | L
+  - Critério de conclusão: [Como verificar que está done]
+  - Depende de: —
 
 - [ ] **Tarefa 02: [Título Curto]**
   - Descrição técnica: [O que deve ser feito em 1 frase]
   - Arquivo impactado: `caminho/do/arquivo`
+  - Estimativa: XS | S | M | L
+  - Critério de conclusão: [Como verificar que está done]
+  - Depende de: Tarefa 01
 
 ... (continue até cobrir todo o plano)
+
+### 🧪 Tarefas de Teste
+
+- [ ] **Teste 01: [Título Curto]**
+  - Descrição técnica: [O que deve ser testado]
+  - Arquivo impactado: `caminho/do/arquivo.spec`
+  - Estimativa: XS | S
+  - Critério de conclusão: [Cobertura ou cenário validado]
+  - Depende de: Tarefa XX
 
 ### 🏁 FINALIZAÇÃO
 Ao finalizar, pergunte:

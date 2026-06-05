@@ -274,23 +274,23 @@ async function executeSDDPhase(
             break;
         case 'qa-test-plan':
             outputPath = path.join(docPath, 'qa', 'plano_testes.md');
-            contextFiles = [path.join(docPath, 'user_story.md'), path.join(docPath, 'implementation_plan.md')];
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md'), path.join(docPath, 'implementation_plan.md')];
             break;
         case 'qa-test-cases':
             outputPath = path.join(docPath, 'qa', 'casos_teste.md');
-            contextFiles = [path.join(docPath, 'qa', 'plano_testes.md')];
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'plano_testes.md')];
             break;
         case 'qa-automation':
             outputPath = path.join(docPath, 'qa', 'scripts_automacao.md');
-            contextFiles = [path.join(docPath, 'qa', 'casos_teste.md')];
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'casos_teste.md')];
             break;
         case 'qa-coverage':
             outputPath = path.join(docPath, 'qa', 'review_cobertura.md');
-            contextFiles = [path.join(docPath, 'qa', 'scripts_automacao.md')];
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'scripts_automacao.md')];
             break;
         case 'qa-report':
             outputPath = path.join(docPath, 'qa', 'relatorio_qualidade.md');
-            contextFiles = [path.join(docPath, 'qa', 'review_cobertura.md')];
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'review_cobertura.md')];
             break;
     }
 
@@ -342,6 +342,8 @@ ${systemPromptRaw}`;
         });
 
         if (outputPath) {
+            const outputDir = path.dirname(outputPath);
+            if (!fs.existsSync(outputDir)) { fs.mkdirSync(outputDir, { recursive: true }); }
             // Pede confirmação ao desenvolvedor antes de sobrescrever arquivo com conteúdo existente
             if (fs.existsSync(outputPath)) {
                 const existing = fs.readFileSync(outputPath, 'utf8').trim();

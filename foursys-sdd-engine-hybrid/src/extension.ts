@@ -10,8 +10,8 @@ const DOC_FOLDER = 'doc_projeto';
 const WORKSPACE_CONTEXT_MAX_FILES = 5;
 const WORKSPACE_CONTEXT_MAX_LINES = 300;
 
-// Mend Advise — ID correto na marketplace VS Code
-const MEND_EXTENSION_ID   = 'Mend.mend-advise';
+// Mend Advise — ID correto na marketplace VS Code (case-sensitive no getExtension)
+const MEND_EXTENSION_ID   = 'mend.mend-advise';
 const MEND_LICENSE_SECRET  = 'foursys.mendLicenseKey';
 const MEND_API_TOKEN       = 'ef149a32-1038-40b2-9917-436a1266ed17';
 
@@ -147,20 +147,23 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }));
 
-    // Roda análise Mend Advise — tenta múltiplos comandos possíveis em sequência
+    // Mend Advise é passivo — escaneia automaticamente e exibe CVEs no painel Problems.
+    // Abre o Problems panel como ação principal; tenta comandos de scan explícitos antes (versões futuras).
     context.subscriptions.push(vscode.commands.registerCommand('foursys.runMend', async () => {
         const scanCandidates = ['mend.scanWorkspace', 'mend.scan', 'mend.runScan'];
         for (const cmd of scanCandidates) {
             try {
                 await vscode.commands.executeCommand(cmd);
                 return;
-            } catch { /* tenta próximo */ }
+            } catch { /* comando não existe nesta versão */ }
         }
-        // Fallback: abre a view do Mend
-        vscode.commands.executeCommand('workbench.view.extension.mend-advise').then(undefined, () => {
-            vscode.window.showInformationMessage(
-                'Abra o painel do Mend Advise manualmente (Ctrl+Shift+P → "mend: Scan Workspace with Mend Advise").'
-            );
+        // Abre o painel Problems (Ctrl+Shift+M) onde o Mend exibe os CVEs automaticamente
+        vscode.commands.executeCommand('workbench.panel.markers.view.focus').then(undefined, () => {
+            vscode.commands.executeCommand('workbench.view.extension.mend-advise').then(undefined, () => {
+                vscode.window.showInformationMessage(
+                    '🔒 Mend Advise escaneia automaticamente. Abra o painel Problems (Ctrl+Shift+M) para ver os CVEs detectados.'
+                );
+            });
         });
     }));
 

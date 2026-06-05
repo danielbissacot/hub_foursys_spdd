@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
 
-const MEND_EXT_ID = 'Mend.mend-advise';
+const MEND_EXT_ID = 'mend.mend-advise';
 
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'foursys-sdd-sidebar-view';
@@ -26,7 +26,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const isConnected = this._checkConnection(workspaceRoot);
             const detection = this._detectStack(workspaceRoot);
             const mendInstalled = !!vscode.extensions.getExtension(MEND_EXT_ID);
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled);
+            const mendInstalling = !!this._context.workspaceState.get('mendInstalling');
+            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling);
         };
 
         updateWebview();
@@ -60,6 +61,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     await this._installMend();
                     updateWebview();
                     break;
+                case 'ReloadWindow':
+                    vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    break;
                 case 'RunMend':
                     vscode.commands.executeCommand('foursys.runMend');
                     break;
@@ -68,17 +72,32 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     private async _installMend(): Promise<void> {
-        await vscode.commands.executeCommand(
-            'workbench.extensions.installExtension',
-            MEND_EXT_ID
-        );
-        const choice = await vscode.window.showInformationMessage(
-            '✅ Mend Advise instalado! Reinicie o VS Code e execute "mend: Activate Mend Advise" para ativar.',
-            'Copiar Chave de Licença'
-        );
-        if (choice === 'Copiar Chave de Licença') {
-            await vscode.env.clipboard.writeText('ef149a32-1038-40b2-9917-436a1266ed17');
-            vscode.window.showInformationMessage('🔑 Chave copiada! Cole no wizard de ativação do Mend.');
+        await this._context.workspaceState.update('mendInstalling', true);
+        try {
+            await vscode.commands.executeCommand(
+                'workbench.extensions.installExtension',
+                MEND_EXT_ID
+            );
+            const choice = await vscode.window.showInformationMessage(
+                '✅ Mend Advise instalado! Recarregue a janela para ativar.',
+                'Recarregar Agora',
+                'Copiar Chave de Licença'
+            );
+            if (choice === 'Recarregar Agora') {
+                vscode.commands.executeCommand('workbench.action.reloadWindow');
+            } else if (choice === 'Copiar Chave de Licença') {
+                await vscode.env.clipboard.writeText('ef149a32-1038-40b2-9917-436a1266ed17');
+                vscode.window.showInformationMessage('🔑 Chave copiada! Cole no wizard de ativação do Mend.');
+            }
+        } catch {
+            await this._context.workspaceState.update('mendInstalling', false);
+            const choice = await vscode.window.showWarningMessage(
+                '⚠️ Não foi possível instalar o Mend Advise automaticamente. Instale manualmente pela marketplace.',
+                'Abrir no Marketplace'
+            );
+            if (choice === 'Abrir no Marketplace') {
+                vscode.commands.executeCommand('workbench.extensions.search', 'mend.mend-advise');
+            }
         }
     }
 
@@ -204,7 +223,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean) {
+    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const config = stackId ? getStackConfig(stackId) : null;
         const stackName = config ? config.displayName : 'Não detectada';
@@ -307,7 +326,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         .mend-label { font-size: 9px; opacity: 0.6; text-transform: uppercase; margin-bottom: 5px; }
         .mend-status { font-size: 11px; margin-bottom: 6px; }
         .btn-mend {
-            background: ${mendInstalled ? '#1a6b1a' : 'rgba(255,107,0,0.8)'};
+            background: ${mendInstalled ? '#1a6b1a' : mendInstalling ? '#7a6000' : 'rgba(255,107,0,0.8)'};
             color: white;
             border: none;
             padding: 8px 12px;
@@ -369,7 +388,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         <div class="mend-label">🔒 Segurança</div>
         ${mendInstalled
             ? `<div class="mend-status">🟢 Mend Advise: ativo</div>
-               <button class="btn-mend" onclick="sendAction('RunMend')">🔍 Rodar Análise Mend</button>`
+               <button class="btn-mend" onclick="sendAction('RunMend')">🔍 Ver CVEs (Problems)</button>`
+            : mendInstalling
+            ? `<div class="mend-status">🟡 Mend instalando — recarregue a janela</div>
+               <button class="btn-mend" onclick="sendAction('ReloadWindow')">🔄 Recarregar Janela</button>`
             : `<div class="mend-status">🔴 Mend Advise: não instalado</div>
                <button class="btn-mend" onclick="sendAction('InstallMend')">📦 Instalar Mend Advise</button>`
         }

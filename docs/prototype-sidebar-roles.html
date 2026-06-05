@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foursys SDD — Protótipo Sidebar</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #252526;
+      color: #cccccc;
+      font-size: 13px;
+      line-height: 1.4;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: #1e1e1e;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .sidebar-header {
+      padding: 14px 15px 10px;
+      border-bottom: 1px solid #3c3c3c;
+    }
+    .header-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ff6b00;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-version {
+      font-size: 9px;
+      color: #6d6d6d;
+      margin-top: 2px;
+    }
+
+    /* ── Role Tabs ── */
+    .role-tabs {
+      display: flex;
+      border-bottom: 1px solid #3c3c3c;
+      background: #252526;
+    }
+    .role-tab {
+      flex: 1;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 11px;
+      color: #8c8c8c;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .role-tab:hover { color: #cccccc; }
+    .role-tab.active {
+      color: #ff6b00;
+      border-bottom-color: #ff6b00;
+      font-weight: 600;
+    }
+    .role-tab .tab-icon { display: block; font-size: 16px; margin-bottom: 2px; }
+
+    /* ── Scroll body ── */
+    .sidebar-body {
+      padding: 12px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+
+    /* ── Stack Badge ── */
+    .stack-badge {
+      background: rgba(255, 107, 0, 0.12);
+      border: 1px solid rgba(255, 107, 0, 0.4);
+      border-radius: 4px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .stack-info { flex: 1; min-width: 0; }
+    .stack-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #ff6b00;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stack-source {
+      font-size: 9px;
+      color: #6d6d6d;
+      margin-top: 1px;
+    }
+    .btn-switch-stack {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 107, 0, 0.5);
+      background: transparent;
+      color: #ff6b00;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-switch-stack:hover { background: rgba(255, 107, 0, 0.15); }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6d6d6d;
+      margin-bottom: -6px;
+    }
+
+    /* ── Workflow Buttons ── */
+    .workflow-panel { display: none; flex-direction: column; gap: 6px; }
+    .workflow-panel.active { display: flex; }
+
+    .workflow-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 4px;
+      border: 1px solid #3c3c3c;
+      background: #2d2d2d;
+      color: #cccccc;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .workflow-btn:hover {
+      background: #3a3a3a;
+      transform: translateX(2px);
+    }
+    .step-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255, 107, 0, 0.2);
+      border: 1px solid rgba(255, 107, 0, 0.5);
+      color: #ff6b00;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .btn-icon { font-size: 14px; flex-shrink: 0; }
+    .btn-label { flex: 1; }
+    .btn-sublabel { font-size: 10px; color: #8c8c8c; display: block; margin-top: 1px; }
+
+    /* ── Security Section ── */
+    .security-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #2d2d2d;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      padding: 8px 10px;
+    }
+    .security-info { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+    .mend-status { font-size: 12px; }
+    .btn-mend-run {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: none;
+      background: #1a6b1a;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-mend-run:hover { background: #238c23; }
+
+    /* ── Sync Button ── */
+    .btn-sync {
+      width: 100%;
+      padding: 10px;
+      border-radius: 4px;
+      border: none;
+      background: #ff6b00;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 107, 0, 0.35);
+      transition: background 0.15s;
+    }
+    .btn-sync:hover { background: #e05e00; }
+
+    /* ── Status Bar ── */
+    .status-bar {
+      padding: 8px 15px;
+      border-top: 1px solid #3c3c3c;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: #8c8c8c;
+      background: #252526;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f44336;
+      box-shadow: 0 0 5px rgba(244, 67, 54, 0.6);
+      flex-shrink: 0;
+    }
+
+    /* ── Prototype label ── */
+    .proto-label {
+      font-size: 9px;
+      color: #5a5a5a;
+      text-align: center;
+      padding: 4px;
+      border-top: 1px solid #2d2d2d;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+
+  <!-- Header -->
+  <div class="sidebar-header">
+    <div class="header-title">🚀 Foursys SDD Hybrid</div>
+    <div class="header-version">v1.0.0 HYBRID (multi-stack) — protótipo</div>
+  </div>
+
+  <!-- Role Tabs -->
+  <div class="role-tabs">
+    <div class="role-tab active" onclick="showRole('po', this)">
+      <span class="tab-icon">📊</span>PO
+    </div>
+    <div class="role-tab" onclick="showRole('dev', this)">
+      <span class="tab-icon">💻</span>Dev
+    </div>
+    <div class="role-tab" onclick="showRole('qa', this)">
+      <span class="tab-icon">🧪</span>QA Auto
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="sidebar-body">
+
+    <!-- Stack Badge -->
+    <div class="stack-badge">
+      <div class="stack-info">
+        <div class="stack-name">Angular 18+</div>
+        <div class="stack-source">detectado: workspace</div>
+      </div>
+      <button class="btn-switch-stack" onclick="alert('Trocar Stack')">Trocar Stack</button>
+    </div>
+
+    <!-- Section: Workflow -->
+    <div class="section-label">Workflow SDD</div>
+
+    <!-- DEV Panel -->
+    <div class="workflow-panel" id="panel-dev">
+      <button class="workflow-btn" onclick="alert('Constitution — Gerar princípios de governança')">
+        <span class="step-badge">0</span>
+        <span class="btn-icon">🏛️</span>
+        <span class="btn-label">Constitution<span class="btn-sublabel">Governança do projeto</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Specify — Definir história de usuário')">
+        <span class="step-badge">1</span>
+        <span class="btn-icon">📝</span>
+        <span class="btn-label">Specify<span class="btn-sublabel">História de usuário</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Plan — Gerar plano técnico')">
+        <span class="step-badge">2</span>
+        <span class="btn-icon">📐</span>
+        <span class="btn-label">Plan<span class="btn-sublabel">Plano de implementação</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Tasks — Gerar checklist de tarefas')">
+        <span class="step-badge">3</span>
+        <span class="btn-icon">📋</span>
+        <span class="btn-label">Tasks<span class="btn-sublabel">Checklist granular</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Implement — Executar geração de código')">
+        <span class="step-badge">4</span>
+        <span class="btn-icon">🚀</span>
+        <span class="btn-label">Implement<span class="btn-sublabel">Geração de código</span></span>
+      </button>
+    </div>
+
+    <!-- PO Panel -->
+    <div class="workflow-panel active" id="panel-po">
+      <button class="workflow-btn" onclick="alert('Épico / Story — Criar ou refinar user story')">
+        <span class="step-badge">1</span>
+        <span class="btn-icon">📖</span>
+        <span class="btn-label">Épico / Story<span class="btn-sublabel">Criar ou refinar user story</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Critérios de Aceite — Definir DoD da história')">
+        <span class="step-badge">2</span>
+        <span class="btn-icon">✅</span>
+        <span class="btn-label">Critérios de Aceite<span class="btn-sublabel">DoD da história</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Backlog Refinement — Priorizar e estimar itens')">
+        <span class="step-badge">3</span>
+        <span class="btn-icon">🗂️</span>
+        <span class="btn-label">Backlog Refinement<span class="btn-sublabel">Priorizar e estimar</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Roadmap Sprint — Planejar próximo sprint')">
+        <span class="step-badge">4</span>
+        <span class="btn-icon">🗺️</span>
+        <span class="btn-label">Roadmap Sprint<span class="btn-sublabel">Planejar próximo sprint</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Definition of Done — Gerar DoD do projeto')">
+        <span class="step-badge">5</span>
+        <span class="btn-icon">📊</span>
+        <span class="btn-label">Definition of Done<span class="btn-sublabel">DoD do projeto</span></span>
+      </button>
+    </div>
+
+    <!-- QA Panel -->
+    <div class="workflow-panel" id="panel-qa">
+      <button class="workflow-btn" onclick="alert('Plano de Testes — Gerar estratégia de testes')">
+        <span class="step-badge">1</span>
+        <span class="btn-icon">🧪</span>
+        <span class="btn-label">Plano de Testes<span class="btn-sublabel">Estratégia de testes</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Casos de Teste — Gerar cenários BDD/Gherkin')">
+        <span class="step-badge">2</span>
+        <span class="btn-icon">📋</span>
+        <span class="btn-label">Casos de Teste<span class="btn-sublabel">Cenários BDD / Gherkin</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Scripts de Automação — Gerar código de teste')">
+        <span class="step-badge">3</span>
+        <span class="btn-icon">🤖</span>
+        <span class="btn-label">Scripts de Automação<span class="btn-sublabel">Gerar código de teste</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Review de Cobertura — Analisar cobertura de testes')">
+        <span class="step-badge">4</span>
+        <span class="btn-icon">🔍</span>
+        <span class="btn-label">Review de Cobertura<span class="btn-sublabel">Análise de cobertura</span></span>
+      </button>
+      <button class="workflow-btn" onclick="alert('Relatório de Qualidade — Gerar report final')">
+        <span class="step-badge">5</span>
+        <span class="btn-icon">📈</span>
+        <span class="btn-label">Relatório de Qualidade<span class="btn-sublabel">Report final de qualidade</span></span>
+      </button>
+    </div>
+
+    <!-- Security -->
+    <div class="section-label">🔒 Segurança</div>
+    <div class="security-row">
+      <div class="security-info">
+        <span class="mend-status">🟢</span>
+        <span>Mend Advise</span>
+      </div>
+      <button class="btn-mend-run" onclick="alert('Rodar Análise Mend')">Rodar Análise</button>
+    </div>
+
+    <!-- Sync -->
+    <button class="btn-sync" onclick="alert('Conectar ao Hub')">📥 CONECTAR AO HUB</button>
+
+  </div><!-- /sidebar-body -->
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="status-dot"></span>
+    <span>Status: Hub Desconectado</span>
+  </div>
+
+  <div class="proto-label">PROTÓTIPO — não altera arquivos do projeto</div>
+
+</div><!-- /sidebar -->
+
+<script>
+  function showRole(role, tabEl) {
+    document.querySelectorAll('.workflow-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + role).classList.add('active');
+    tabEl.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

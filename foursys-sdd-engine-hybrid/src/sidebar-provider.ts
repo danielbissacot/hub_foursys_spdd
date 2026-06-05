@@ -36,6 +36,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
         updateWebview();
 
+        // Atualiza sidebar quando arquivos em doc_projeto/ são criados ou modificados
+        const docWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/**/*.md');
+        docWatcher.onDidCreate(() => updateWebview());
+        docWatcher.onDidChange(() => updateWebview());
+        this._context.subscriptions.push(docWatcher);
+
         webviewView.webview.onDidReceiveMessage(async data => {
             switch (data.value) {
                 case 'Sync':
@@ -390,7 +396,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
         .btn-alert { background-color: #f44336 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
-        .btn-ready { border-left: 3px solid var(--foursys-orange); background: rgba(255,107,0,0.08); }
+        .btn-ready { border-left: 3px solid var(--foursys-orange); }
         .btn-implement-tests { background: rgba(76,175,80,0.15); border: 1px solid rgba(76,175,80,0.4); color: var(--vscode-foreground); }
         .disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
         .step-number {

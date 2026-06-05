@@ -68,7 +68,8 @@
       { "command": "foursys.qaTestCases",  "title": "Foursys QA: Casos de Teste (BDD)" },
       { "command": "foursys.qaAutomation", "title": "Foursys QA: Scripts de Automação" },
       { "command": "foursys.qaCoverage",   "title": "Foursys QA: Review de Cobertura" },
-      { "command": "foursys.qaReport",     "title": "Foursys QA: Relatório de Qualidade" }
+      { "command": "foursys.qaReport",     "title": "Foursys QA: Relatório de Qualidade" },
+      { "command": "foursys.qaImplement",  "title": "Foursys QA: Implementar Testes (extrair arquivos)" }
     ]
   },
   "scripts": {

@@ -98,5 +98,30 @@ const mock[Servico] = {
 - Prefira Vitest (`vi.fn()`) ao Jasmine (`jasmine.createSpy()`).
 - Isole cada teste — nunca compartilhe estado entre `it` blocks.
 
-Gere todos os scripts completos e funcionais, organizados por arquivo de spec.
+### 6. OBRIGATÓRIO — Marcação de Arquivo antes de Cada Bloco
+
+ANTES de cada bloco de código, adicione um comentário HTML com o caminho relativo do arquivo de destino:
+
+Regras de nomeação para Angular:
+- Gherkin `.feature` → `test/features/{slug}.feature`
+- TypeScript spec → `test/steps/{slug}.steps.ts`
+- Fixtures/helpers → `test/support/{nome}.ts`
+
+Exemplo:
+```
+<!-- file: test/features/autenticacao.feature -->
+```gherkin
+Feature: Autenticação
+  ...
+```
+
+<!-- file: test/steps/autenticacao.steps.ts -->
+```typescript
+describe('Autenticação', () => { ... });
+```
+```
+
+Este marcador é OBRIGATÓRIO — sem ele o plugin não consegue extrair e criar os arquivos automaticamente.
+
+Gere todos os scripts completos e funcionais, organizados por arquivo, com marcadores antes de cada bloco.
 ```

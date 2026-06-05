@@ -106,6 +106,30 @@ class [NomeUseCase]Test {
 - Tipos monetários: `BigDecimal` — nunca `Double` ou `Float`.
 - Cobertura mínima de 95% para camada de Domain e UseCase.
 
+### 4. OBRIGATÓRIO — Marcação de Arquivo antes de Cada Bloco
+
+ANTES de cada bloco de código, adicione um comentário HTML com o caminho relativo do arquivo de destino:
+
+Regras de nomeação para Spring Boot:
+- Gherkin `.feature` → `src/test/resources/features/{slug}.feature`
+- Java test class → `src/test/java/steps/{NomeDaClasse}.java`
+
+Exemplo:
+```
+<!-- file: src/test/resources/features/cadastro-cliente.feature -->
+```gherkin
+Feature: Cadastro de Cliente
+  ...
+```
+
+<!-- file: src/test/java/steps/CadastroClienteSteps.java -->
+```java
+public class CadastroClienteSteps { ... }
+```
+```
+
+Este marcador é OBRIGATÓRIO — sem ele o plugin não consegue extrair e criar os arquivos automaticamente.
+
 ### 4. Dependências Maven
 ```xml
 <dependency>

@@ -30,7 +30,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             if (!mendInstalled) { this._context.workspaceState.update('mendInstalling', false); }
             const mendInstalling = !!this._context.workspaceState.get('mendInstalling');
             const storyHasContent = this._checkStoryHasContent(workspaceRoot);
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent);
+            const qaScriptsReady = this._checkQaScriptsReady(workspaceRoot);
+            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady);
         };
 
         updateWebview();
@@ -74,6 +75,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'QaReport':
                     vscode.commands.executeCommand('foursys.qaReport');
+                    break;
+                case 'QaImplement':
+                    vscode.commands.executeCommand('foursys.qaImplement');
                     break;
                 case 'InstallMend':
                     await this._installMend();
@@ -137,6 +141,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             await this._context.workspaceState.update('activeStack', picked.stackId);
             vscode.window.showInformationMessage(`✅ Stack ativa: ${picked.label}`);
         }
+    }
+
+    private _checkQaScriptsReady(workspaceRoot: string): boolean {
+        if (!workspaceRoot) { return false; }
+        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'scripts_automacao.md'));
     }
 
     private _checkStoryHasContent(workspaceRoot: string): boolean {
@@ -217,18 +226,28 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             // Limpa skills anteriores de outras stacks
             for (const f of fs.readdirSync(skillsDir)) { fs.rmSync(path.join(skillsDir, f)); }
 
+            const getMdFiles = (dir: string): string[] => {
+                let result: string[] = [];
+                for (const f of fs.readdirSync(dir)) {
+                    const full = path.join(dir, f);
+                    if (fs.statSync(full).isDirectory()) { result = result.concat(getMdFiles(full)); }
+                    else if (f.endsWith('.md')) { result.push(full); }
+                }
+                return result;
+            };
+
             const activeSkillsPath = path.join(catalogPath, config.skillsFolder);
             if (fs.existsSync(activeSkillsPath)) {
-                const getFiles = (dir: string): string[] => {
-                    let result: string[] = [];
-                    for (const f of fs.readdirSync(dir)) {
-                        const full = path.join(dir, f);
-                        if (fs.statSync(full).isDirectory()) { result = result.concat(getFiles(full)); }
-                        else if (f.endsWith('.md')) { result.push(full); }
-                    }
-                    return result;
-                };
-                for (const fullPath of getFiles(activeSkillsPath)) {
+                for (const fullPath of getMdFiles(activeSkillsPath)) {
+                    const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                    fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));
+                }
+            }
+
+            // 2b. Skills compartilhadas (agnósticas de stack: playwright, tdd, verificacao, code-review)
+            const sharedSkillsPath = path.join(catalogPath, 'agents_skills', 'shared', 'skills');
+            if (fs.existsSync(sharedSkillsPath)) {
+                for (const fullPath of getMdFiles(sharedSkillsPath)) {
                     const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
                     fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));
                 }
@@ -249,7 +268,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false) {
+    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const config = stackId ? getStackConfig(stackId) : null;
         const stackName = config ? config.displayName : 'Não detectada';
@@ -372,6 +391,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         .btn-alert { background-color: #f44336 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
         .btn-ready { border-left: 3px solid var(--foursys-orange); background: rgba(255,107,0,0.08); }
+        .btn-implement-tests { background: rgba(76,175,80,0.15); border: 1px solid rgba(76,175,80,0.4); color: var(--vscode-foreground); }
         .disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
         .step-number {
             background: rgba(255,255,255,0.15);
@@ -497,6 +517,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 <span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span>
             </button>
         </div>
+        <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')" style="margin-top:8px;">
+            <span class="step-number">▶</span>
+            <span class="step-label">
+                <span class="step-title">🚀 Implementar Testes</span>
+                <span class="step-sub">${qaScriptsReady ? 'Extrair e criar arquivos de teste' : 'Aguardando Scripts de Automação'}</span>
+            </span>
+        </button>
     </div>
 
     <div class="mend-section">

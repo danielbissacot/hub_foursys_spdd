@@ -145,6 +145,38 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaCoverage',   () => executeSDDPhase('qa-coverage',   '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaReport',     () => executeSDDPhase('qa-report',     '', '', null, commandToken(), context, outputChannel)));
 
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement', async () => {
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
+        const scriptsPath = path.join(rootPath, DOC_FOLDER, 'qa', 'scripts_automacao.md');
+        if (!fs.existsSync(scriptsPath)) {
+            vscode.window.showWarningMessage('⚠️ Execute "Scripts de Automação" primeiro para gerar o arquivo de scripts.');
+            return;
+        }
+        const stackId = getActiveStackId(context);
+        const content = fs.readFileSync(scriptsPath, 'utf8');
+        const blocks = extractCodeBlocks(content, rootPath, stackId);
+        if (blocks.length === 0) {
+            vscode.window.showWarningMessage('⚠️ Nenhum bloco de código extraível encontrado. Verifique se o arquivo scripts_automacao.md contém blocos ```gherkin, ```typescript ou ```java com <!-- file: ... --> ou Feature: / describe(...).');
+            return;
+        }
+        const existing = blocks.filter(b => fs.existsSync(b.targetFile));
+        if (existing.length > 0) {
+            const choice = await vscode.window.showWarningMessage(
+                `⚠️ ${existing.length} arquivo(s) já existem. Sobrescrever?`,
+                { modal: true }, 'Sobrescrever', 'Cancelar'
+            );
+            if (choice !== 'Sobrescrever') { return; }
+        }
+        for (const block of blocks) {
+            const dir = path.dirname(block.targetFile);
+            if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
+            fs.writeFileSync(block.targetFile, block.content);
+            await openFile(block.targetFile);
+        }
+        vscode.window.showInformationMessage(`✅ ${blocks.length} arquivo(s) de teste criados com sucesso.`);
+    }));
+
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', async () => {
         const stackId = getActiveStackId(context);
         const config = getStackConfig(stackId);
@@ -377,6 +409,83 @@ ${systemPromptRaw}`;
 function getWorkspaceRoot(): string | null {
     const folders = vscode.workspace.workspaceFolders;
     return folders ? folders[0].uri.fsPath : null;
+}
+
+interface ExtractedBlock {
+    language: string;
+    content: string;
+    targetFile: string;
+}
+
+function slugify(text: string): string {
+    return text.trim().toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+function resolveTargetFile(lang: string, content: string, hint: string | null, rootPath: string, stackId: string): string | null {
+    if (hint) { return path.join(rootPath, hint); }
+
+    if (lang === 'gherkin') {
+        const m = content.match(/^Feature:\s*(.+)/m);
+        if (!m) { return null; }
+        const dir = stackId === 'spring_boot' ? 'src/test/resources/features' : 'test/features';
+        return path.join(rootPath, dir, `${slugify(m[1])}.feature`);
+    }
+    if (lang === 'typescript') {
+        const m = content.match(/describe\s*\(\s*['"`](.+?)['"`]/);
+        if (!m) { return null; }
+        return path.join(rootPath, 'test', 'steps', `${slugify(m[1])}.steps.ts`);
+    }
+    if (lang === 'java') {
+        const m = content.match(/class\s+(\w+)/);
+        if (!m) { return null; }
+        return path.join(rootPath, 'src', 'test', 'java', 'steps', `${m[1]}.java`);
+    }
+    return null;
+}
+
+function extractCodeBlocks(markdownContent: string, rootPath: string, stackId: string): ExtractedBlock[] {
+    const EXTRACTABLE = new Set(['gherkin', 'typescript', 'java']);
+    const FILE_HINT_RE = /<!--\s*file:\s*(.+?)\s*-->/i;
+    const lines = markdownContent.split('\n');
+    const blocks: ExtractedBlock[] = [];
+    let inBlock = false;
+    let lang = '';
+    let bodyLines: string[] = [];
+    let pendingHint: string | null = null;
+
+    for (const line of lines) {
+        if (!inBlock) {
+            const hintMatch = line.match(FILE_HINT_RE);
+            if (hintMatch) { pendingHint = hintMatch[1].trim(); continue; }
+
+            const openMatch = line.match(/^```(\w+)/);
+            if (openMatch) {
+                inBlock = true;
+                lang = openMatch[1].toLowerCase();
+                bodyLines = [];
+                continue;
+            }
+            if (line.trim() && !hintMatch) { pendingHint = null; }
+        } else {
+            if (line.startsWith('```')) {
+                const content = bodyLines.join('\n');
+                if (EXTRACTABLE.has(lang)) {
+                    const target = resolveTargetFile(lang, content, pendingHint, rootPath, stackId);
+                    if (target) { blocks.push({ language: lang, content, targetFile: target }); }
+                }
+                inBlock = false;
+                lang = '';
+                bodyLines = [];
+                pendingHint = null;
+            } else {
+                bodyLines.push(line);
+            }
+        }
+    }
+    return blocks;
 }
 
 export function deactivate() {}

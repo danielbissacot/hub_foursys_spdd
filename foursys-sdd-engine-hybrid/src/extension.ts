@@ -139,6 +139,12 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('foursys.plan',         () => executeSDDPhase('plan',         '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.tasks',        () => executeSDDPhase('tasks',        '', '', null, commandToken(), context, outputChannel)));
 
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestPlan',   () => executeSDDPhase('qa-test-plan',   '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestCases',  () => executeSDDPhase('qa-test-cases',  '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaAutomation', () => executeSDDPhase('qa-automation',  '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaCoverage',   () => executeSDDPhase('qa-coverage',   '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaReport',     () => executeSDDPhase('qa-report',     '', '', null, commandToken(), context, outputChannel)));
+
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', async () => {
         const stackId = getActiveStackId(context);
         const config = getStackConfig(stackId);
@@ -185,6 +191,24 @@ export function activate(context: vscode.ExtensionContext) {
 
     const sidebarProvider = new FoursysSDDSidebarProvider(context);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(FoursysSDDSidebarProvider.viewType, sidebarProvider));
+
+    // Notifica o usuário quando salva user_story.md com conteúdo real
+    context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(async (doc) => {
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
+        const storyPath = path.join(rootPath, DOC_FOLDER, 'user_story.md');
+        if (doc.uri.fsPath !== storyPath) { return; }
+        const content = doc.getText();
+        if (!content || content.includes('DESCREVA AQUI') || content.trim().length < 50) { return; }
+        const choice = await vscode.window.showInformationMessage(
+            '📝 História salva! Deseja analisar com o Foursys Specify agora?',
+            'Sim, Analisar',
+            'Depois'
+        );
+        if (choice === 'Sim, Analisar') {
+            vscode.commands.executeCommand('foursys.specify');
+        }
+    }));
 }
 
 async function executeSDDPhase(
@@ -247,6 +271,26 @@ async function executeSDDPhase(
         case 'tasks':
             outputPath = path.join(docPath, 'task_list.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
+            break;
+        case 'qa-test-plan':
+            outputPath = path.join(docPath, 'qa', 'plano_testes.md');
+            contextFiles = [path.join(docPath, 'user_story.md'), path.join(docPath, 'implementation_plan.md')];
+            break;
+        case 'qa-test-cases':
+            outputPath = path.join(docPath, 'qa', 'casos_teste.md');
+            contextFiles = [path.join(docPath, 'qa', 'plano_testes.md')];
+            break;
+        case 'qa-automation':
+            outputPath = path.join(docPath, 'qa', 'scripts_automacao.md');
+            contextFiles = [path.join(docPath, 'qa', 'casos_teste.md')];
+            break;
+        case 'qa-coverage':
+            outputPath = path.join(docPath, 'qa', 'review_cobertura.md');
+            contextFiles = [path.join(docPath, 'qa', 'scripts_automacao.md')];
+            break;
+        case 'qa-report':
+            outputPath = path.join(docPath, 'qa', 'relatorio_qualidade.md');
+            contextFiles = [path.join(docPath, 'qa', 'review_cobertura.md')];
             break;
     }
 

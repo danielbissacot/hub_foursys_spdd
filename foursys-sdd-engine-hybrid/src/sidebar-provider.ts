@@ -26,8 +26,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const isConnected = this._checkConnection(workspaceRoot);
             const detection = this._detectStack(workspaceRoot);
             const mendInstalled = !!vscode.extensions.getExtension(MEND_EXT_ID);
+            // Limpa estado "instalando" se Mend não está presente (desinstalado ou falhou)
+            if (!mendInstalled) { this._context.workspaceState.update('mendInstalling', false); }
             const mendInstalling = !!this._context.workspaceState.get('mendInstalling');
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling);
+            const storyHasContent = this._checkStoryHasContent(workspaceRoot);
+            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent);
         };
 
         updateWebview();
@@ -56,6 +59,21 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'Implement':
                     vscode.commands.executeCommand('foursys.implement');
+                    break;
+                case 'QaTestPlan':
+                    vscode.commands.executeCommand('foursys.qaTestPlan');
+                    break;
+                case 'QaTestCases':
+                    vscode.commands.executeCommand('foursys.qaTestCases');
+                    break;
+                case 'QaAutomation':
+                    vscode.commands.executeCommand('foursys.qaAutomation');
+                    break;
+                case 'QaCoverage':
+                    vscode.commands.executeCommand('foursys.qaCoverage');
+                    break;
+                case 'QaReport':
+                    vscode.commands.executeCommand('foursys.qaReport');
                     break;
                 case 'InstallMend':
                     await this._installMend();
@@ -121,6 +139,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    private _checkStoryHasContent(workspaceRoot: string): boolean {
+        if (!workspaceRoot) { return false; }
+        const storyPath = path.join(workspaceRoot, 'doc_projeto', 'user_story.md');
+        if (!fs.existsSync(storyPath)) { return false; }
+        const content = fs.readFileSync(storyPath, 'utf8');
+        return content.trim().length > 50 && !content.includes('DESCREVA AQUI');
+    }
+
     private _checkConnection(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
         return fs.existsSync(path.join(workspaceRoot, 'agentes_foursys', 'catalog'))
@@ -144,8 +170,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }, async () => {
             return new Promise<void>((resolve) => {
                 const cmd = exists
-                    ? 'git fetch origin hub-ia-arquitetura && git reset --hard origin/hub-ia-arquitetura'
-                    : 'git clone --branch hub-ia-arquitetura --depth 1 https://github.com/danielbissacot/ai-governance-hub.git agentes_foursys';
+                    ? 'git fetch origin main && git reset --hard origin/main'
+                    : 'git clone --filter=blob:none --no-checkout --depth 1 --branch main https://github.com/danielbissacot/hub_foursys_spdd.git agentes_foursys && cd agentes_foursys && git sparse-checkout init --cone && git sparse-checkout set catalog && git checkout main';
 
                 exec(cmd, { cwd: exists ? agentsPath : workspaceRoot }, (error) => {
                     if (error) {
@@ -223,7 +249,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false) {
+    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const config = stackId ? getStackConfig(stackId) : null;
         const stackName = config ? config.displayName : 'Não detectada';
@@ -280,6 +306,45 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
         .btn-trocar:hover { background: rgba(255,255,255,0.2); }
 
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            padding-bottom: 8px;
+        }
+        .tab-btn {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--vscode-panel-border);
+            color: var(--vscode-foreground);
+            border-radius: 4px;
+            padding: 6px 4px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: var(--foursys-orange);
+            border-color: var(--foursys-orange);
+            color: white;
+            opacity: 1;
+        }
+        .tab-btn:hover:not(.active) { opacity: 0.9; background: rgba(255,107,0,0.15); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .section-label {
+            font-size: 9px;
+            opacity: 0.5;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
         .btn {
             background-color: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
@@ -306,6 +371,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
         .btn-alert { background-color: #f44336 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+        .btn-ready { border-left: 3px solid var(--foursys-orange); background: rgba(255,107,0,0.08); }
         .disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
         .step-number {
             background: rgba(255,255,255,0.15);
@@ -313,9 +379,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             width: 18px; height: 18px;
             display: inline-flex;
             align-items: center; justify-content: center;
-            margin-right: 12px;
+            margin-right: 10px;
             font-weight: bold; font-size: 10px;
+            flex-shrink: 0;
         }
+        .step-label { display: flex; flex-direction: column; }
+        .step-title { font-size: 12px; font-weight: bold; }
+        .step-sub { font-size: 9px; opacity: 0.6; margin-top: 1px; }
+
         .mend-section {
             margin-top: 12px;
             padding: 10px;
@@ -355,40 +426,84 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 <body>
     <div class="header">
         <h3 class="title">🚀 Foursys SDD Hybrid</h3>
-        <span class="version">v1.0.0 HYBRID (multi-stack)</span>
+        <span class="version">v1.0.0 HYBRID (multi-stack) — protótipo</span>
     </div>
 
     <div class="stack-badge">
         <div class="stack-info">
-            <span class="stack-name">Stack: ${stackName}</span>
-            ${stackSource ? `<span class="stack-source">${stackSource}</span>` : ''}
+            <span class="stack-name">${stackName}</span>
+            ${stackSource ? `<span class="stack-source">destacado: ${stackSource}</span>` : ''}
         </div>
         <button class="btn-trocar" onclick="sendAction('SelectStack')">Trocar Stack</button>
     </div>
 
-    <div class="${isConnected ? '' : 'disabled'}">
-        <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Constitution')">
-            <span class="step-number">0</span> 🏛️ Constitution
-        </button>
-        <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Specify')">
-            <span class="step-number">1</span> 📝 Specify (Story)
-        </button>
-        <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Plan')">
-            <span class="step-number">2</span> 📐 Plan (Técnico)
-        </button>
-        <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Tasks')">
-            <span class="step-number">3</span> 📋 Tasks (Checklist)
-        </button>
-        <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Implement')">
-            <span class="step-number">4</span> 🚀 Implement (Copilot)
-        </button>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="dev" onclick="switchTab('dev')">Dev</button>
+        <button class="tab-btn" data-tab="qa" onclick="switchTab('qa')">QA Auto</button>
+    </div>
+
+    <!-- TAB DEV -->
+    <div id="tab-dev" class="tab-content active">
+        <div class="section-label">Workflow SDD</div>
+        <div class="${isConnected ? '' : 'disabled'}">
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Constitution')">
+                <span class="step-number">0</span>
+                <span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança & padrões</span></span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : storyHasContent ? 'btn-ready' : ''}" onclick="sendAction('Specify')">
+                <span class="step-number">1</span>
+                <span class="step-label">
+                    <span class="step-title">${storyHasContent ? '🔍 Specify (analisar)' : '📝 Specify (criar)'}</span>
+                    <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
+                </span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Plan')">
+                <span class="step-number">2</span>
+                <span class="step-label"><span class="step-title">📐 Plan (Técnico)</span><span class="step-sub">Especificação técnica</span></span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Tasks')">
+                <span class="step-number">3</span>
+                <span class="step-label"><span class="step-title">📋 Tasks (Checklist)</span><span class="step-sub">Decomposição em tarefas</span></span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Implement')">
+                <span class="step-number">4</span>
+                <span class="step-label"><span class="step-title">🚀 Implement (Copilot)</span><span class="step-sub">Codificação assistida</span></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TAB QA AUTO -->
+    <div id="tab-qa" class="tab-content">
+        <div class="section-label">Workflow SDD</div>
+        <div class="${isConnected ? '' : 'disabled'}">
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaTestPlan')">
+                <span class="step-number">1</span>
+                <span class="step-label"><span class="step-title">📝 Plano de Testes</span><span class="step-sub">Estratégia de testes</span></span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaTestCases')">
+                <span class="step-number">2</span>
+                <span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cenários BDD / Gherkin</span></span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaAutomation')">
+                <span class="step-number">3</span>
+                <span class="step-label"><span class="step-title">🤖 Scripts de Automação</span><span class="step-sub">Gerar código de teste</span></span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaCoverage')">
+                <span class="step-number">4</span>
+                <span class="step-label"><span class="step-title">🔍 Review de Cobertura</span><span class="step-sub">Análise de cobertura</span></span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaReport')">
+                <span class="step-number">5</span>
+                <span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span>
+            </button>
+        </div>
     </div>
 
     <div class="mend-section">
         <div class="mend-label">🔒 Segurança</div>
         ${mendInstalled
             ? `<div class="mend-status">🟢 Mend Advise: ativo</div>
-               <button class="btn-mend" onclick="sendAction('RunMend')">🔍 Ver CVEs (Problems)</button>`
+               <button class="btn-mend" onclick="sendAction('RunMend')">🔍 Rodar Análise</button>`
             : mendInstalling
             ? `<div class="mend-status">🟡 Mend instalando — recarregue a janela</div>
                <button class="btn-mend" onclick="sendAction('ReloadWindow')">🔄 Recarregar Janela</button>`
@@ -409,6 +524,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     <script>
         const vscode = acquireVsCodeApi();
         function sendAction(value) { vscode.postMessage({ value: value }); }
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
     </script>
 </body>
 </html>`;

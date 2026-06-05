@@ -46,7 +46,12 @@
           { "name": "specify", "description": "Define a especificação de negócio (User Story)" },
           { "name": "plan", "description": "Gera o plano de implementação técnica para a stack ativa" },
           { "name": "tasks", "description": "Quebra o plano em tarefas granulares" },
-          { "name": "implement", "description": "Executa a codificação baseada em tarefas e skills da stack ativa" }
+          { "name": "implement", "description": "Executa a codificação baseada em tarefas e skills da stack ativa" },
+          { "name": "qa-test-plan", "description": "Gera o Plano de Testes (estratégia e escopo)" },
+          { "name": "qa-test-cases", "description": "Gera Casos de Teste em BDD/Gherkin" },
+          { "name": "qa-automation", "description": "Gera scripts de automação de testes" },
+          { "name": "qa-coverage", "description": "Realiza review de cobertura de testes" },
+          { "name": "qa-report", "description": "Gera o Relatório de Qualidade final" }
         ]
       }
     ],
@@ -58,7 +63,12 @@
       {
         "command": "foursys.runMend",
         "title": "Foursys: Rodar Análise Mend Advise"
-      }
+      },
+      { "command": "foursys.qaTestPlan",   "title": "Foursys QA: Plano de Testes" },
+      { "command": "foursys.qaTestCases",  "title": "Foursys QA: Casos de Teste (BDD)" },
+      { "command": "foursys.qaAutomation", "title": "Foursys QA: Scripts de Automação" },
+      { "command": "foursys.qaCoverage",   "title": "Foursys QA: Review de Cobertura" },
+      { "command": "foursys.qaReport",     "title": "Foursys QA: Relatório de Qualidade" }
     ]
   },
   "scripts": {

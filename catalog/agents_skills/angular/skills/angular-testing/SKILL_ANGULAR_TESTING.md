@@ -684,12 +684,12 @@ vi.spyOn(service, 'method').mockReturnValue(of(data));
 
 Para padrões avançados de testes, veja:
 
-- [Vitest advanced patterns](references/vitest-advanced-patterns.MD)
-- [Component harnesses](references/component-harnesses.MD)
-- [Testing router](references/testing-router.MD)
-- [Testing forms](references/testing-forms.MD)
-- [Testing directives](references/testing-directives.MD)
-- [Testing pipes](references/testing-pipes.MD)
-- [E2E testing setup](references/e2e-testing-setup.MD)
-- [Test utilities](references/test-utilities.MD)
+- [Vitest advanced patterns](references/vitest-advanced-patterns.md)
+- [Component harnesses](references/component-harnesses.md)
+- [Testing router](references/testing-router.md)
+- [Testing forms](references/testing-forms.md)
+- [Testing directives](references/testing-directives.md)
+- [Testing pipes](references/testing-pipes.md)
+- [E2E testing setup](references/e2e-testing-setup.md)
+- [Test utilities](references/test-utilities.md)
 

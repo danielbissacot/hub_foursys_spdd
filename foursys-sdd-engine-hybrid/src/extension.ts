@@ -216,9 +216,49 @@ export function activate(context: vscode.ExtensionContext) {
         if (picked) {
             await context.workspaceState.update('activeStack', picked.stackId);
             vscode.window.showInformationMessage(`✅ Stack ativa: ${picked.label}`);
-            // Notifica a sidebar para atualizar o badge
             vscode.commands.executeCommand('foursys-sdd-sidebar-view.focus');
         }
+    }));
+
+    // Comando de seleção de Design System (usado pela sidebar Angular)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.selectDesignSystem', async () => {
+        const DS_OPTIONS = [
+            { label: 'Bradesco Liquid (Foursys)', id: 'bradesco-liquid' },
+            { label: 'Angular Material',          id: 'material'        },
+            { label: 'PrimeNG',                   id: 'primeng'         },
+            { label: 'Bootstrap',                 id: 'bootstrap'       },
+            { label: 'Tailwind CSS',              id: 'tailwind'        },
+            { label: 'Nenhum / Próprio',          id: 'none'            },
+        ];
+        const items = DS_OPTIONS.map(ds => ({ label: ds.label, description: ds.id, dsId: ds.id }));
+        const picked = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Selecione o Design System do projeto Angular',
+            title: 'Foursys SDD Hybrid — Design System Angular'
+        });
+        if (picked) {
+            await context.workspaceState.update('activeDesignSystem', picked.dsId);
+            vscode.window.showInformationMessage(`🎨 Design System: ${picked.label}`);
+        }
+    }));
+
+    // Comando para adicionar/substituir mockup de tela em doc_projeto/screens/
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.addMockup', async () => {
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
+        const files = await vscode.window.showOpenDialog({
+            canSelectMany: false,
+            filters: { 'Imagens': ['png', 'jpg', 'jpeg', 'svg', 'webp'] },
+            title: 'Selecione o mockup da tela'
+        });
+        if (!files || files.length === 0) { return; }
+        const srcFile = files[0].fsPath;
+        const ext = path.extname(srcFile);
+        const screensDir = path.join(rootPath, DOC_FOLDER, 'screens');
+        if (!fs.existsSync(screensDir)) { fs.mkdirSync(screensDir, { recursive: true }); }
+        const destFile = path.join(screensDir, `mockup${ext}`);
+        fs.copyFileSync(srcFile, destFile);
+        await openFile(destFile);
+        vscode.window.showInformationMessage('📸 Mockup salvo! Arraste o arquivo para o Copilot Chat como referência visual.');
     }));
 
     const sidebarProvider = new FoursysSDDSidebarProvider(context);
@@ -360,6 +400,17 @@ ${systemPromptRaw}`;
             }
         });
         userContext += readWorkspaceContext(rootPath, stackId);
+
+        // Nota de mockup de tela (apenas para specify)
+        if (command === 'specify') {
+            const screensDir = path.join(docPath, 'screens');
+            if (fs.existsSync(screensDir)) {
+                const mockupFiles = fs.readdirSync(screensDir).filter(f => /\.(png|jpg|jpeg|svg|webp)$/i.test(f));
+                if (mockupFiles.length > 0) {
+                    userContext += `\nATENÇÃO: Existe um mockup de tela em doc_projeto/screens/ (${mockupFiles.join(', ')}). Use-o como referência visual para refinar os critérios de aceite e detalhar a User Story.\n`;
+                }
+            }
+        }
 
         const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL: ${userInstruction}\n\n` : '';
         const contextSection = userContext.trim() !== ''

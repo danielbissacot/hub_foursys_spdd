@@ -69,7 +69,9 @@
       { "command": "foursys.qaAutomation", "title": "Foursys QA: Scripts de Automação" },
       { "command": "foursys.qaCoverage",   "title": "Foursys QA: Review de Cobertura" },
       { "command": "foursys.qaReport",     "title": "Foursys QA: Relatório de Qualidade" },
-      { "command": "foursys.qaImplement",  "title": "Foursys QA: Implementar Testes (extrair arquivos)" }
+      { "command": "foursys.qaImplement",       "title": "Foursys QA: Implementar Testes (extrair arquivos)" },
+      { "command": "foursys.selectDesignSystem", "title": "Foursys: Selecionar Design System Angular" },
+      { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" }
     ]
   },
   "scripts": {

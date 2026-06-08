@@ -31,7 +31,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const mendInstalling = !!this._context.workspaceState.get('mendInstalling');
             const storyHasContent = this._checkStoryHasContent(workspaceRoot);
             const qaScriptsReady = this._checkQaScriptsReady(workspaceRoot);
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady);
+            const mockupExists = this._checkMockupExists(workspaceRoot);
+            const activeDesignSystem = this._context.workspaceState.get<string>('activeDesignSystem') || null;
+            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, mockupExists, activeDesignSystem);
         };
 
         updateWebview();
@@ -41,6 +43,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         docWatcher.onDidCreate(() => updateWebview());
         docWatcher.onDidChange(() => updateWebview());
         this._context.subscriptions.push(docWatcher);
+
+        // Atualiza sidebar quando mockup é adicionado ou removido
+        const screensWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/screens/**');
+        screensWatcher.onDidCreate(() => updateWebview());
+        screensWatcher.onDidDelete(() => updateWebview());
+        this._context.subscriptions.push(screensWatcher);
 
         webviewView.webview.onDidReceiveMessage(async data => {
             switch (data.value) {
@@ -84,6 +92,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'QaImplement':
                     vscode.commands.executeCommand('foursys.qaImplement');
+                    break;
+                case 'SelectDesignSystem':
+                    await vscode.commands.executeCommand('foursys.selectDesignSystem');
+                    updateWebview();
+                    break;
+                case 'AddMockup':
+                    await vscode.commands.executeCommand('foursys.addMockup');
+                    updateWebview();
                     break;
                 case 'InstallMend':
                     await this._installMend();
@@ -162,6 +178,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         return content.trim().length > 50 && !content.includes('DESCREVA AQUI');
     }
 
+    private _checkMockupExists(workspaceRoot: string): boolean {
+        if (!workspaceRoot) { return false; }
+        const screensDir = path.join(workspaceRoot, 'doc_projeto', 'screens');
+        if (!fs.existsSync(screensDir)) { return false; }
+        return fs.readdirSync(screensDir).some(f => /\.(png|jpg|jpeg|svg|webp)$/i.test(f));
+    }
+
     private _checkConnection(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
         return fs.existsSync(path.join(workspaceRoot, 'agentes_foursys', 'catalog'))
@@ -197,7 +220,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                         this._context.globalState.update('catalogPath', catalogPath);
                         const detection = this._detectStack(workspaceRoot);
                         const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
-                        this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId);
+                        const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
+                        this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
                         vscode.window.showInformationMessage(
                             exists ? 'Agentes atualizados! (Copilot Skills Injetadas)' : 'Hub conectado com sucesso! (Copilot Skills Injetadas)'
                         );
@@ -208,7 +232,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    private _injectCopilotCustomizations(workspaceRoot: string, catalogPath: string, stackId: string) {
+    private _injectCopilotCustomizations(workspaceRoot: string, catalogPath: string, stackId: string, activeDesignSystem?: string) {
         try {
             const config = getStackConfig(stackId);
             const githubDir = path.join(workspaceRoot, '.github');
@@ -259,14 +283,16 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 }
             }
 
-            // 3. Design systems (agnóstico de stack)
+            // 3. Design systems — injetar apenas o selecionado (retrocompatível: todos se nenhum selecionado)
             const dsPath = path.join(catalogPath, 'design-systems');
             if (fs.existsSync(dsPath)) {
-                for (const file of fs.readdirSync(dsPath)) {
-                    if (file.endsWith('.md')) {
-                        const skillName = path.basename(file, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                        fs.copyFileSync(path.join(dsPath, file), path.join(skillsDir, `${skillName}.md`));
-                    }
+                const dsFiles = fs.readdirSync(dsPath).filter(f => f.endsWith('.md'));
+                const toInject = (activeDesignSystem && activeDesignSystem !== 'none')
+                    ? dsFiles.filter(f => path.basename(f, '.md') === activeDesignSystem)
+                    : dsFiles;
+                for (const file of toInject) {
+                    const skillName = path.basename(file, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                    fs.copyFileSync(path.join(dsPath, file), path.join(skillsDir, `${skillName}.md`));
                 }
             }
         } catch (e) {
@@ -274,7 +300,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false) {
+    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false, mockupExists: boolean = false, activeDesignSystem: string | null = null) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const config = stackId ? getStackConfig(stackId) : null;
         const stackName = config ? config.displayName : 'Não detectada';
@@ -284,6 +310,19 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         const stackBadgeStyle = stackUnknown
             ? 'background: #f44336;'
             : 'background: rgba(255,107,0,0.2); border: 1px solid rgba(255,107,0,0.5);';
+
+        const DS_NAMES: Record<string, string> = {
+            'bradesco-liquid': 'Bradesco Liquid',
+            'material': 'Angular Material',
+            'primeng': 'PrimeNG',
+            'bootstrap': 'Bootstrap',
+            'tailwind': 'Tailwind CSS',
+        };
+        const dsLabel = (activeDesignSystem && activeDesignSystem !== 'none')
+            ? (DS_NAMES[activeDesignSystem] || activeDesignSystem)
+            : 'Nenhum / Próprio';
+        const dsBtnLabel = (activeDesignSystem && activeDesignSystem !== 'none') ? 'Trocar' : 'Selecionar';
+        const showDsBadge = stackId === 'angular';
 
         return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -330,6 +369,36 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             white-space: nowrap;
         }
         .btn-trocar:hover { background: rgba(255,255,255,0.2); }
+
+        .ds-badge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            background: rgba(33,150,243,0.12);
+            border: 1px solid rgba(33,150,243,0.3);
+        }
+        .btn-mockup {
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.18);
+            color: var(--vscode-foreground);
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-left: 28px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0.7;
+            display: block;
+            width: calc(100% - 28px);
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .btn-mockup:hover { opacity: 1; border-style: solid; background: rgba(255,255,255,0.06); }
+        .btn-mockup.has-mockup { border-style: solid; border-color: rgba(76,175,80,0.45); opacity: 0.9; }
 
         .tabs {
             display: flex;
@@ -463,6 +532,15 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         <button class="btn-trocar" onclick="sendAction('SelectStack')">Trocar Stack</button>
     </div>
 
+    ${showDsBadge ? `
+    <div class="ds-badge">
+        <div class="stack-info">
+            <span class="stack-name">🎨 ${dsLabel}</span>
+            <span class="stack-source">design system</span>
+        </div>
+        <button class="btn-trocar" onclick="sendAction('SelectDesignSystem')">${dsBtnLabel}</button>
+    </div>` : ''}
+
     <div class="tabs">
         <button class="tab-btn active" data-tab="dev" onclick="switchTab('dev')">Dev</button>
         <button class="tab-btn" data-tab="qa" onclick="switchTab('qa')">QA Auto</button>
@@ -482,6 +560,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     <span class="step-title">${storyHasContent ? '🔍 Specify (analisar)' : '📝 Specify (criar)'}</span>
                     <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
                 </span>
+            </button>
+            <button class="btn-mockup ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')">
+                ${mockupExists ? '📸 Mockup: ✅ ver/trocar' : '📸 Adicionar Mockup de Tela'}
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Plan')">
                 <span class="step-number">2</span>

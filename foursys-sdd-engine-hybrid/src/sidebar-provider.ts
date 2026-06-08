@@ -111,6 +111,47 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'RunMend':
                     vscode.commands.executeCommand('foursys.runMend');
                     break;
+                case 'ViewSkills': {
+                    const globalStoragePath = this._context.globalStorageUri.fsPath;
+                    const skillsDir = path.join(globalStoragePath, 'skills');
+                    const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+                    const allFiles: { label: string; description: string; filepath: string }[] = [];
+                    if (fs.existsSync(skillsDir)) {
+                        for (const f of fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'))) {
+                            allFiles.push({ label: `📄 ${f}`, description: 'Hub Skill', filepath: path.join(skillsDir, f) });
+                        }
+                    }
+                    if (fs.existsSync(customSkillsDir)) {
+                        for (const f of fs.readdirSync(customSkillsDir).filter(f => f.endsWith('.md'))) {
+                            allFiles.push({ label: `✏️ ${f}`, description: 'Custom Skill', filepath: path.join(customSkillsDir, f) });
+                        }
+                    }
+                    if (allFiles.length === 0) {
+                        vscode.window.showInformationMessage('Nenhuma skill encontrada. Clique em Sincronizar primeiro.');
+                        break;
+                    }
+                    const picked = await vscode.window.showQuickPick(allFiles, {
+                        title: 'Foursys SDD — Skills Disponíveis',
+                        placeHolder: 'Selecione uma skill para visualizar'
+                    });
+                    if (picked) {
+                        vscode.window.showTextDocument(vscode.Uri.file(picked.filepath));
+                    }
+                    break;
+                }
+                case 'OpenCustomSkills': {
+                    const globalStoragePath = this._context.globalStorageUri.fsPath;
+                    const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+                    if (!fs.existsSync(customSkillsDir)) {
+                        fs.mkdirSync(customSkillsDir, { recursive: true });
+                        fs.writeFileSync(
+                            path.join(customSkillsDir, 'README.md'),
+                            `# Custom Skills\n\nColoque aqui seus arquivos .md de skills personalizadas.\nEstes arquivos NÃO são sobrescritos pelo Sync — são seus.\n\nApós adicionar/editar, clique em "Atualizar Skills" para aplicar.\n`
+                        );
+                    }
+                    vscode.env.openExternal(vscode.Uri.file(customSkillsDir));
+                    break;
+                }
             }
         });
     }
@@ -307,6 +348,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     const skillName = path.basename(file, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
                     fs.copyFileSync(path.join(dsPath, file), path.join(skillsDir, `${skillName}.md`));
                 }
+            }
+
+            // 4. Custom skills — do desenvolvedor, nunca sobrescritos, mesclados por cima
+            const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+            if (!fs.existsSync(customSkillsDir)) { fs.mkdirSync(customSkillsDir, { recursive: true }); }
+            for (const f of fs.readdirSync(customSkillsDir).filter(f => f.endsWith('.md'))) {
+                fs.copyFileSync(path.join(customSkillsDir, f), path.join(skillsDir, f));
             }
         } catch (e) {
             console.error('Erro ao injetar customizações do Copilot:', e);
@@ -562,6 +610,23 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             background: ${isConnected ? '#4caf50' : '#f44336'};
             box-shadow: 0 0 5px ${isConnected ? '#4caf50' : '#f44336'};
         }
+        .skills-actions {
+            display: flex; gap: 6px; margin-top: 8px;
+        }
+        .btn-skill {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--vscode-foreground);
+            border-radius: 4px;
+            padding: 5px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            text-align: center;
+            opacity: 0.7;
+            transition: all 0.2s;
+        }
+        .btn-skill:hover { opacity: 1; background: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
@@ -680,6 +745,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     <div class="status-bar">
         <div class="status-dot"></div>
         <span>Status: ${isConnected ? 'Hub Conectado' : 'Hub Desconectado'}</span>
+    </div>
+
+    <div class="skills-actions">
+        <button class="btn-skill" onclick="sendAction('ViewSkills')">🗂️ Ver Skills</button>
+        <button class="btn-skill" onclick="sendAction('OpenCustomSkills')">✏️ Custom Skills</button>
     </div>
 
     <script>

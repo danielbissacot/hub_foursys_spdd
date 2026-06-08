@@ -111,6 +111,47 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'RunMend':
                     vscode.commands.executeCommand('foursys.runMend');
                     break;
+                case 'ViewSkills': {
+                    const globalStoragePath = this._context.globalStorageUri.fsPath;
+                    const skillsDir = path.join(globalStoragePath, 'skills');
+                    const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+                    const allFiles: { label: string; description: string; filepath: string }[] = [];
+                    if (fs.existsSync(skillsDir)) {
+                        for (const f of fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'))) {
+                            allFiles.push({ label: `📄 ${f}`, description: 'Hub Skill', filepath: path.join(skillsDir, f) });
+                        }
+                    }
+                    if (fs.existsSync(customSkillsDir)) {
+                        for (const f of fs.readdirSync(customSkillsDir).filter(f => f.endsWith('.md'))) {
+                            allFiles.push({ label: `✏️ ${f}`, description: 'Custom Skill', filepath: path.join(customSkillsDir, f) });
+                        }
+                    }
+                    if (allFiles.length === 0) {
+                        vscode.window.showInformationMessage('Nenhuma skill encontrada. Clique em Sincronizar primeiro.');
+                        break;
+                    }
+                    const picked = await vscode.window.showQuickPick(allFiles, {
+                        title: 'Foursys SDD — Skills Disponíveis',
+                        placeHolder: 'Selecione uma skill para visualizar'
+                    });
+                    if (picked) {
+                        vscode.window.showTextDocument(vscode.Uri.file(picked.filepath));
+                    }
+                    break;
+                }
+                case 'OpenCustomSkills': {
+                    const globalStoragePath = this._context.globalStorageUri.fsPath;
+                    const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+                    if (!fs.existsSync(customSkillsDir)) {
+                        fs.mkdirSync(customSkillsDir, { recursive: true });
+                        fs.writeFileSync(
+                            path.join(customSkillsDir, 'README.md'),
+                            `# Custom Skills\n\nColoque aqui seus arquivos .md de skills personalizadas.\nEstes arquivos NÃO são sobrescritos pelo Sync — são seus.\n\nApós adicionar/editar, clique em "Atualizar Skills" para aplicar.\n`
+                        );
+                    }
+                    vscode.env.openExternal(vscode.Uri.file(customSkillsDir));
+                    break;
+                }
             }
         });
     }
@@ -186,6 +227,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     private _checkConnection(workspaceRoot: string): boolean {
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
+        if (fs.existsSync(path.join(globalStoragePath, 'hub', 'catalog'))) { return true; }
         if (!workspaceRoot) { return false; }
         return fs.existsSync(path.join(workspaceRoot, 'agentes_foursys', 'catalog'))
             || fs.existsSync(path.join(workspaceRoot, 'catalog'));
@@ -198,7 +241,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        const agentsPath = path.join(workspaceRoot, 'agentes_foursys');
+        // Hub fica no globalStorage — fora de qualquer projeto
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
+        fs.mkdirSync(globalStoragePath, { recursive: true });
+        const agentsPath = path.join(globalStoragePath, 'hub');
         const exists = fs.existsSync(agentsPath);
 
         return vscode.window.withProgress({
@@ -209,19 +255,21 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             return new Promise<void>((resolve) => {
                 const cmd = exists
                     ? 'git fetch origin main && git reset --hard origin/main'
-                    : 'git clone --filter=blob:none --no-checkout --depth 1 --branch main https://github.com/danielbissacot/hub_foursys_spdd.git agentes_foursys && cd agentes_foursys && git sparse-checkout init --cone && git sparse-checkout set catalog && git checkout main';
+                    : 'git clone --filter=blob:none --no-checkout --depth 1 --branch main https://github.com/danielbissacot/hub_foursys_spdd.git hub && cd hub && git sparse-checkout init --cone && git sparse-checkout set catalog && git checkout main';
 
-                exec(cmd, { cwd: exists ? agentsPath : workspaceRoot }, (error) => {
+                exec(cmd, { cwd: exists ? agentsPath : globalStoragePath }, (error) => {
                     if (error) {
                         vscode.window.showErrorMessage(`Erro na sincronização: ${error.message}`);
                         resolve();
                     } else {
-                        const catalogPath = path.join(workspaceRoot, 'agentes_foursys', 'catalog');
+                        const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
                         this._context.globalState.update('catalogPath', catalogPath);
                         const detection = this._detectStack(workspaceRoot);
                         const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
                         const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
                         this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
+                        this._cleanupLegacy(workspaceRoot);
+                        this._updateGitignore(workspaceRoot);
                         vscode.window.showInformationMessage(
                             exists ? 'Agentes atualizados! (Copilot Skills Injetadas)' : 'Hub conectado com sucesso! (Copilot Skills Injetadas)'
                         );
@@ -235,10 +283,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     private _injectCopilotCustomizations(workspaceRoot: string, catalogPath: string, stackId: string, activeDesignSystem?: string) {
         try {
             const config = getStackConfig(stackId);
-            const githubDir = path.join(workspaceRoot, '.github');
-            if (!fs.existsSync(githubDir)) { fs.mkdirSync(githubDir, { recursive: true }); }
+            const globalStoragePath = this._context.globalStorageUri.fsPath;
 
-            // 1. Inject copilot-instructions.md com a constitution da stack ativa
+            // 1. Constitution → global storage (fora do projeto)
             const builtinConstitution = path.join(
                 this._context.extensionUri.fsPath, 'catalog', 'sdd', config.playbookFolder, 'foursys-constitution.md'
             );
@@ -247,13 +294,20 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             );
             const constitutionSrc = fs.existsSync(builtinConstitution) ? builtinConstitution : fallbackConstitution;
             if (fs.existsSync(constitutionSrc)) {
-                fs.copyFileSync(constitutionSrc, path.join(githubDir, 'copilot-instructions.md'));
+                fs.copyFileSync(constitutionSrc, path.join(globalStoragePath, 'copilot-instructions.md'));
             }
 
-            // 2. Inject apenas as skills da stack ativa — isola o contexto do Copilot
-            const skillsDir = path.join(githubDir, 'skills');
+            // Stub mínimo no projeto — só identifica stack, não polui com skills
+            const githubDir = path.join(workspaceRoot, '.github');
+            if (!fs.existsSync(githubDir)) { fs.mkdirSync(githubDir, { recursive: true }); }
+            fs.writeFileSync(
+                path.join(githubDir, 'copilot-instructions.md'),
+                `# Foursys SDD — ${stackId}\nUse @foursys_sdd para geração guiada. Stack: ${stackId}.\n`
+            );
+
+            // 2. Skills → global storage — isola o contexto do Copilot, fora do projeto
+            const skillsDir = path.join(globalStoragePath, 'skills');
             if (!fs.existsSync(skillsDir)) { fs.mkdirSync(skillsDir, { recursive: true }); }
-            // Limpa skills anteriores de outras stacks
             for (const f of fs.readdirSync(skillsDir)) { fs.rmSync(path.join(skillsDir, f)); }
 
             const getMdFiles = (dir: string): string[] => {
@@ -295,8 +349,48 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     fs.copyFileSync(path.join(dsPath, file), path.join(skillsDir, `${skillName}.md`));
                 }
             }
+
+            // 4. Custom skills — do desenvolvedor, nunca sobrescritos, mesclados por cima
+            const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+            if (!fs.existsSync(customSkillsDir)) { fs.mkdirSync(customSkillsDir, { recursive: true }); }
+            for (const f of fs.readdirSync(customSkillsDir).filter(f => f.endsWith('.md'))) {
+                fs.copyFileSync(path.join(customSkillsDir, f), path.join(skillsDir, f));
+            }
         } catch (e) {
             console.error('Erro ao injetar customizações do Copilot:', e);
+        }
+    }
+
+    private _cleanupLegacy(workspaceRoot: string) {
+        try {
+            const legacyAgents = path.join(workspaceRoot, 'agentes_foursys');
+            if (fs.existsSync(legacyAgents)) {
+                fs.rmSync(legacyAgents, { recursive: true, force: true });
+            }
+            const legacySkills = path.join(workspaceRoot, '.github', 'skills');
+            if (fs.existsSync(legacySkills)) {
+                fs.rmSync(legacySkills, { recursive: true, force: true });
+            }
+        } catch (e) {
+            console.error('Erro ao remover artefatos legados:', e);
+        }
+    }
+
+    private _updateGitignore(workspaceRoot: string) {
+        try {
+            const gitignorePath = path.join(workspaceRoot, '.gitignore');
+            const toIgnore = ['.github/copilot-instructions.md', '.github/skills/', 'agentes_foursys/'];
+            let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+            let changed = false;
+            for (const entry of toIgnore) {
+                if (!content.includes(entry)) {
+                    content += `\n${entry}`;
+                    changed = true;
+                }
+            }
+            if (changed) { fs.writeFileSync(gitignorePath, content.trimStart()); }
+        } catch (e) {
+            console.error('Erro ao atualizar .gitignore:', e);
         }
     }
 
@@ -516,6 +610,23 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             background: ${isConnected ? '#4caf50' : '#f44336'};
             box-shadow: 0 0 5px ${isConnected ? '#4caf50' : '#f44336'};
         }
+        .skills-actions {
+            display: flex; gap: 6px; margin-top: 8px;
+        }
+        .btn-skill {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--vscode-foreground);
+            border-radius: 4px;
+            padding: 5px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            text-align: center;
+            opacity: 0.7;
+            transition: all 0.2s;
+        }
+        .btn-skill:hover { opacity: 1; background: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
@@ -634,6 +745,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     <div class="status-bar">
         <div class="status-dot"></div>
         <span>Status: ${isConnected ? 'Hub Conectado' : 'Hub Desconectado'}</span>
+    </div>
+
+    <div class="skills-actions">
+        <button class="btn-skill" onclick="sendAction('ViewSkills')">🗂️ Ver Skills</button>
+        <button class="btn-skill" onclick="sendAction('OpenCustomSkills')">✏️ Custom Skills</button>
     </div>
 
     <script>

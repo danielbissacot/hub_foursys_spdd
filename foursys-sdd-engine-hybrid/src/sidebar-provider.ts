@@ -561,9 +561,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
                 </span>
             </button>
+            ${stackId === 'angular' ? `
             <button class="btn-mockup ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')">
                 ${mockupExists ? '📸 Mockup: ✅ ver/trocar' : '📸 Adicionar Mockup de Tela'}
-            </button>
+            </button>` : ''}
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Plan')">
                 <span class="step-number">2</span>
                 <span class="step-label"><span class="step-title">📐 Plan (Técnico)</span><span class="step-sub">Especificação técnica</span></span>

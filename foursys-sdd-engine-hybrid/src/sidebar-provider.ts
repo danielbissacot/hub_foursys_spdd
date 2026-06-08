@@ -186,6 +186,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     private _checkConnection(workspaceRoot: string): boolean {
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
+        if (fs.existsSync(path.join(globalStoragePath, 'hub', 'catalog'))) { return true; }
         if (!workspaceRoot) { return false; }
         return fs.existsSync(path.join(workspaceRoot, 'agentes_foursys', 'catalog'))
             || fs.existsSync(path.join(workspaceRoot, 'catalog'));
@@ -198,7 +200,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             return;
         }
 
-        const agentsPath = path.join(workspaceRoot, 'agentes_foursys');
+        // Hub fica no globalStorage — fora de qualquer projeto
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
+        fs.mkdirSync(globalStoragePath, { recursive: true });
+        const agentsPath = path.join(globalStoragePath, 'hub');
         const exists = fs.existsSync(agentsPath);
 
         return vscode.window.withProgress({
@@ -209,19 +214,21 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             return new Promise<void>((resolve) => {
                 const cmd = exists
                     ? 'git fetch origin main && git reset --hard origin/main'
-                    : 'git clone --filter=blob:none --no-checkout --depth 1 --branch main https://github.com/danielbissacot/hub_foursys_spdd.git agentes_foursys && cd agentes_foursys && git sparse-checkout init --cone && git sparse-checkout set catalog && git checkout main';
+                    : 'git clone --filter=blob:none --no-checkout --depth 1 --branch main https://github.com/danielbissacot/hub_foursys_spdd.git hub && cd hub && git sparse-checkout init --cone && git sparse-checkout set catalog && git checkout main';
 
-                exec(cmd, { cwd: exists ? agentsPath : workspaceRoot }, (error) => {
+                exec(cmd, { cwd: exists ? agentsPath : globalStoragePath }, (error) => {
                     if (error) {
                         vscode.window.showErrorMessage(`Erro na sincronização: ${error.message}`);
                         resolve();
                     } else {
-                        const catalogPath = path.join(workspaceRoot, 'agentes_foursys', 'catalog');
+                        const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
                         this._context.globalState.update('catalogPath', catalogPath);
                         const detection = this._detectStack(workspaceRoot);
                         const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
                         const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
                         this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
+                        this._cleanupLegacy(workspaceRoot);
+                        this._updateGitignore(workspaceRoot);
                         vscode.window.showInformationMessage(
                             exists ? 'Agentes atualizados! (Copilot Skills Injetadas)' : 'Hub conectado com sucesso! (Copilot Skills Injetadas)'
                         );
@@ -235,10 +242,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     private _injectCopilotCustomizations(workspaceRoot: string, catalogPath: string, stackId: string, activeDesignSystem?: string) {
         try {
             const config = getStackConfig(stackId);
-            const githubDir = path.join(workspaceRoot, '.github');
-            if (!fs.existsSync(githubDir)) { fs.mkdirSync(githubDir, { recursive: true }); }
+            const globalStoragePath = this._context.globalStorageUri.fsPath;
 
-            // 1. Inject copilot-instructions.md com a constitution da stack ativa
+            // 1. Constitution → global storage (fora do projeto)
             const builtinConstitution = path.join(
                 this._context.extensionUri.fsPath, 'catalog', 'sdd', config.playbookFolder, 'foursys-constitution.md'
             );
@@ -247,13 +253,20 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             );
             const constitutionSrc = fs.existsSync(builtinConstitution) ? builtinConstitution : fallbackConstitution;
             if (fs.existsSync(constitutionSrc)) {
-                fs.copyFileSync(constitutionSrc, path.join(githubDir, 'copilot-instructions.md'));
+                fs.copyFileSync(constitutionSrc, path.join(globalStoragePath, 'copilot-instructions.md'));
             }
 
-            // 2. Inject apenas as skills da stack ativa — isola o contexto do Copilot
-            const skillsDir = path.join(githubDir, 'skills');
+            // Stub mínimo no projeto — só identifica stack, não polui com skills
+            const githubDir = path.join(workspaceRoot, '.github');
+            if (!fs.existsSync(githubDir)) { fs.mkdirSync(githubDir, { recursive: true }); }
+            fs.writeFileSync(
+                path.join(githubDir, 'copilot-instructions.md'),
+                `# Foursys SDD — ${stackId}\nUse @foursys_sdd para geração guiada. Stack: ${stackId}.\n`
+            );
+
+            // 2. Skills → global storage — isola o contexto do Copilot, fora do projeto
+            const skillsDir = path.join(globalStoragePath, 'skills');
             if (!fs.existsSync(skillsDir)) { fs.mkdirSync(skillsDir, { recursive: true }); }
-            // Limpa skills anteriores de outras stacks
             for (const f of fs.readdirSync(skillsDir)) { fs.rmSync(path.join(skillsDir, f)); }
 
             const getMdFiles = (dir: string): string[] => {
@@ -297,6 +310,39 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             }
         } catch (e) {
             console.error('Erro ao injetar customizações do Copilot:', e);
+        }
+    }
+
+    private _cleanupLegacy(workspaceRoot: string) {
+        try {
+            const legacyAgents = path.join(workspaceRoot, 'agentes_foursys');
+            if (fs.existsSync(legacyAgents)) {
+                fs.rmSync(legacyAgents, { recursive: true, force: true });
+            }
+            const legacySkills = path.join(workspaceRoot, '.github', 'skills');
+            if (fs.existsSync(legacySkills)) {
+                fs.rmSync(legacySkills, { recursive: true, force: true });
+            }
+        } catch (e) {
+            console.error('Erro ao remover artefatos legados:', e);
+        }
+    }
+
+    private _updateGitignore(workspaceRoot: string) {
+        try {
+            const gitignorePath = path.join(workspaceRoot, '.gitignore');
+            const toIgnore = ['.github/copilot-instructions.md', '.github/skills/', 'agentes_foursys/'];
+            let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+            let changed = false;
+            for (const entry of toIgnore) {
+                if (!content.includes(entry)) {
+                    content += `\n${entry}`;
+                    changed = true;
+                }
+            }
+            if (changed) { fs.writeFileSync(gitignorePath, content.trimStart()); }
+        } catch (e) {
+            console.error('Erro ao atualizar .gitignore:', e);
         }
     }
 

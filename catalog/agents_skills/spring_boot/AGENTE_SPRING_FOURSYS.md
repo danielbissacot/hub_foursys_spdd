@@ -39,6 +39,7 @@ Sua missão é implementar features seguindo os mais altos padrões de qualidade
 ## 🛠️ Minha Caixa de Ferramentas (Skills)
 Sempre que precisar executar tarefas técnicas repetitivas, seguirei os manuais de **Ações** da pasta local:
 - 📖 **Skills de Execução**: Consulte `skills/` para padrões de geração de massa, refatoração de records e criação de mappers.
+- 🏛️ **Validação MVC**: Consulte `playbook/fase3_portoes_qualidade/FASE3_VALIDACAO_MVC.md` para gerar laudo de conformidade e validar com `mvn clean verify`.
 
 ### DON'Ts ❌
 - Nunca exponha entidades de domínio diretamente via API.

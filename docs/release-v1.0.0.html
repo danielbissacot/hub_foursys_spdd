@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foursys SDD Engine Hybrid — Funcionalidades v1.0.0</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    :root {
+      --orange: #ff6b00;
+      --orange-light: rgba(255, 107, 0, 0.12);
+      --orange-border: rgba(255, 107, 0, 0.35);
+      --dark-bg: #1e1e1e;
+      --card-bg: #252526;
+      --border: #3e3e3e;
+      --text: #d4d4d4;
+      --text-muted: #888;
+      --badge-angular: #dd0031;
+      --badge-java: #e76f00;
+      --badge-node: #3c873a;
+      --badge-cobol: #5b5ea6;
+      --badge-generic: #555;
+    }
+
+    body {
+      background-color: var(--dark-bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* ─── Header ─── */
+    .hero {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2a1500 100%);
+      border-bottom: 2px solid var(--orange);
+      padding: 48px 0 36px;
+    }
+    .hero-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--orange);
+      letter-spacing: -0.5px;
+    }
+    .hero-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+    .version-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    /* ─── Section titles ─── */
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--orange);
+      border-left: 4px solid var(--orange);
+      padding-left: 12px;
+      margin-bottom: 20px;
+    }
+
+    /* ─── Cards ─── */
+    .feat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      height: 100%;
+      transition: border-color 0.2s;
+    }
+    .feat-card:hover { border-color: var(--orange-border); }
+    .feat-icon { font-size: 1.6rem; margin-bottom: 10px; }
+    .feat-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .feat-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .feat-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-top: 8px;
+    }
+    .tag-angular { background: rgba(221,0,49,0.15); color: #ff6b89; border: 1px solid rgba(221,0,49,0.3); }
+    .tag-all     { background: rgba(255,107,0,0.1);  color: #ff9048; border: 1px solid var(--orange-border); }
+    .tag-new     { background: rgba(76,175,80,0.12); color: #6fcf74; border: 1px solid rgba(76,175,80,0.3); }
+
+    /* ─── Workflow steps ─── */
+    .workflow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .step-num {
+      min-width: 28px; height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800;
+    }
+    .step-body .step-name { font-size: 0.9rem; font-weight: 700; color: #fff; }
+    .step-body .step-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ─── Stack badges ─── */
+    .stack-pill {
+      display: inline-block;
+      font-size: 0.72rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; margin: 3px;
+    }
+    .sp-angular { background: rgba(221,0,49,0.15); color: #ff6b89; border: 1px solid rgba(221,0,49,0.3); }
+    .sp-java    { background: rgba(231,111,0,0.15); color: #ffaa55; border: 1px solid rgba(231,111,0,0.3); }
+    .sp-node    { background: rgba(60,135,58,0.15); color: #6fcf74; border: 1px solid rgba(60,135,58,0.3); }
+    .sp-cobol   { background: rgba(91,94,166,0.15); color: #9d9fff; border: 1px solid rgba(91,94,166,0.3); }
+    .sp-generic { background: rgba(100,100,100,0.15); color: #aaa; border: 1px solid #555; }
+
+    /* ─── DS grid ─── */
+    .ds-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 0.82rem;
+      text-align: center;
+    }
+    .ds-card .ds-icon { font-size: 1.3rem; }
+    .ds-card .ds-name { font-weight: 700; color: #fff; font-size: 0.82rem; margin-top: 4px; }
+    .ds-card .ds-sub  { color: var(--text-muted); font-size: 0.72rem; }
+
+    /* ─── Global hub diagram ─── */
+    .hub-diagram {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      font-family: "Courier New", monospace;
+      font-size: 0.8rem;
+      color: #9cdcfe;
+      line-height: 1.7;
+    }
+    .hub-diagram .hl { color: var(--orange); font-weight: 700; }
+    .hub-diagram .ok { color: #6fcf74; }
+    .hub-diagram .dim { color: var(--text-muted); }
+
+    /* ─── Footer ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="container">
+    <div class="d-flex align-items-center gap-3 mb-2">
+      <span style="font-size:2rem;">🚀</span>
+      <h1 class="hero-title mb-0">
+        Foursys SDD Engine Hybrid
+        <span class="version-badge">v1.0.0</span>
+      </h1>
+    </div>
+    <p class="hero-subtitle">Motor SDD híbrido — VS Code Extension · Multi-stack · AI Governance Hub</p>
+    <p class="hero-subtitle mt-1" style="font-size:0.8rem;">
+      Gerado em <strong style="color:#ccc;">Junho 2026</strong> &nbsp;·&nbsp;
+      Publisher: <strong style="color:#ccc;">foursys</strong>
+    </p>
+  </div>
+</section>
+
+<div class="container py-5">
+
+  <!-- ══ PRÉ-REQUISITOS ══ -->
+  <section class="mb-5 mt-2">
+    <h2 class="section-title">⚠️ Pré-Requisitos</h2>
+    <div class="row g-3">
+
+      <div class="col-md-4">
+        <div class="feat-card" style="border-color: rgba(244,67,54,0.45);">
+          <div class="feat-icon">🗑️</div>
+          <div class="feat-title" style="color:#ff6b89;">Desinstalar versão anterior</div>
+          <div class="feat-desc">
+            Se já houver uma versão anterior do <strong style="color:#fff;">Foursys SDD Hub</strong> instalada no VS Code,
+            ela deve ser <strong style="color:#ff6b89;">desinstalada antes</strong> de instalar esta versão.
+            <br><br>
+            No VS Code: <code>Extensions → Foursys SDD → Uninstall</code>
+            <br><br>
+            Remova também a pasta <code>agentes_foursys/</code> do projeto caso ainda exista.
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="feat-card" style="border-color: rgba(0,122,204,0.45);">
+          <div class="feat-icon">💻</div>
+          <div class="feat-title" style="color:#6fb3f7;">VS Code obrigatório</div>
+          <div class="feat-desc">
+            Esta extensão funciona <strong style="color:#fff;">exclusivamente no Visual Studio Code</strong>.
+            <br><br>
+            Versão mínima requerida: <strong style="color:#fff;">VS Code 1.96.0</strong> ou superior.
+            <br><br>
+            Não é compatível com outros editores (IntelliJ, Eclipse, Vim, etc.).
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="feat-card" style="border-color: rgba(255,107,0,0.45);">
+          <div class="feat-icon">🤖</div>
+          <div class="feat-title" style="color:var(--orange);">GitHub Copilot do Banco</div>
+          <div class="feat-desc">
+            É obrigatório estar conectado ao <strong style="color:#fff;">GitHub Copilot licenciado pelo Banco</strong>.
+            <br><br>
+            O plugin não funciona com contas pessoais ou trials — apenas com a conta corporativa
+            provisionada pela instituição.
+            <br><br>
+            Extensão <code>GitHub Copilot</code> deve estar instalada e autenticada no VS Code.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══ VISÃO GERAL ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Visão Geral</h2>
+    <p style="color:var(--text-muted); font-size:0.9rem; max-width:760px;">
+      O <strong style="color:#fff;">Foursys SDD Engine Hybrid</strong> é uma extensão VS Code que orquestra o ciclo
+      completo de desenvolvimento orientado a software design (SDD): da especificação à implementação e testes,
+      com governança de IA via GitHub Copilot. Suporta múltiplas stacks, mantém o hub de skills
+      <strong style="color:#fff;">fora do projeto</strong> e permite customização de skills pelo desenvolvedor.
+    </p>
+
+    <div class="row g-3 mt-2">
+      <div class="col-md-4">
+        <div class="feat-card text-center">
+          <div class="feat-icon">🏗️</div>
+          <div class="feat-title">Multi-stack</div>
+          <div class="feat-desc">Angular, Java/Spring Boot, Node.js, COBOL e Genérica — auto-detectados ou selecionados manualmente.</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feat-card text-center">
+          <div class="feat-icon">🤖</div>
+          <div class="feat-title">Governança de IA</div>
+          <div class="feat-desc">Skills e constituição injetadas no Copilot por stack e design system. Contexto isolado por projeto.</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feat-card text-center">
+          <div class="feat-icon">🌐</div>
+          <div class="feat-title">Hub Global</div>
+          <div class="feat-desc">Um único clone do hub compartilhado entre todos os projetos. Sem poluição de repositório.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ STACKS ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Stacks Suportadas</h2>
+    <div class="feat-card" style="padding:16px 20px;">
+      <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:10px;">
+        Detectadas automaticamente pelos arquivos do projeto ou selecionadas via botão <strong style="color:#fff;">Trocar Stack</strong>.
+      </p>
+      <span class="stack-pill sp-angular">🅰️ Angular 18+</span>
+      <span class="stack-pill sp-java">☕ Java / Spring Boot</span>
+      <span class="stack-pill sp-node">🟢 Node.js</span>
+      <span class="stack-pill sp-cobol">🖥️ COBOL</span>
+      <span class="stack-pill sp-generic">📦 Genérica</span>
+    </div>
+  </section>
+
+  <!-- ══ WORKFLOW DEV ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Workflow Dev — Ciclo SDD</h2>
+    <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:16px;">
+      Sequência guiada de passos ativados pelos botões da sidebar. Cada botão aciona o participante
+      <code style="color:var(--orange);">@foursys_sdd</code> com o contexto correto automaticamente.
+    </p>
+
+    <div class="workflow-step">
+      <div class="step-num">0</div>
+      <div class="step-body">
+        <div class="step-name">🏛️ Constitution</div>
+        <div class="step-desc">Gera os princípios de governança, padrões de código e arquitetura para a stack ativa. Base de todas as gerações seguintes.</div>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-name">🔍 Specify</div>
+        <div class="step-desc">Cria ou analisa a User Story em <code>doc_projeto/user_story.md</code>. Quando mockup presente, usa-o como referência visual.</div>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-name">📐 Plan</div>
+        <div class="step-desc">Gera a especificação técnica detalhada com base na User Story aprovada.</div>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-name">📋 Tasks</div>
+        <div class="step-desc">Quebra o plano em tarefas granulares e rastreáveis.</div>
+      </div>
+    </div>
+    <div class="workflow-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-name">🚀 Implement</div>
+        <div class="step-desc">Executa a codificação assistida pelo Copilot com todas as skills e padrões da stack injetados.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ WORKFLOW QA ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Workflow QA Auto</h2>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <div class="workflow-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-name">📝 Plano de Testes</div>
+            <div class="step-desc">Estratégia e escopo completo de testes.</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="workflow-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-name">📄 Casos de Teste</div>
+            <div class="step-desc">Cenários em BDD / Gherkin.</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="workflow-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-name">🤖 Scripts de Automação</div>
+            <div class="step-desc">Geração de código de teste automatizado.</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="workflow-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-name">🚀 Implementar Testes</div>
+            <div class="step-desc">Extrai e cria arquivos de teste no projeto.</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="workflow-step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-name">🔍 Review de Cobertura</div>
+            <div class="step-desc">Análise de cobertura de testes existentes.</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="workflow-step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <div class="step-name">📊 Relatório de Qualidade</div>
+            <div class="step-desc">Report final consolidado de qualidade.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FUNCIONALIDADES ANGULAR ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Funcionalidades Exclusivas — Angular</h2>
+    <div class="row g-3">
+
+      <div class="col-md-6">
+        <div class="feat-card">
+          <div class="feat-icon">🎨</div>
+          <div class="feat-title">Seletor de Design System</div>
+          <div class="feat-desc">Badge na sidebar para selecionar qual Design System o projeto usa. O Copilot recebe apenas as regras do DS selecionado, isolando o contexto.</div>
+          <span class="feat-tag tag-angular">Angular only</span>
+          <span class="feat-tag tag-new">Novo</span>
+          <div class="row g-2 mt-2">
+            <div class="col-6"><div class="ds-card"><div class="ds-icon">🔵</div><div class="ds-name">Bradesco Liquid</div><div class="ds-sub">Foursys / Bradesco</div></div></div>
+            <div class="col-6"><div class="ds-card"><div class="ds-icon">🅰️</div><div class="ds-name">Angular Material</div><div class="ds-sub">Google</div></div></div>
+            <div class="col-6"><div class="ds-card"><div class="ds-icon">🌈</div><div class="ds-name">PrimeNG</div><div class="ds-sub">PrimeTek</div></div></div>
+            <div class="col-6"><div class="ds-card"><div class="ds-icon">🅱️</div><div class="ds-name">Bootstrap</div><div class="ds-sub">ng-bootstrap</div></div></div>
+            <div class="col-6"><div class="ds-card"><div class="ds-icon">💨</div><div class="ds-name">Tailwind CSS</div><div class="ds-sub">Utility-first</div></div></div>
+            <div class="col-6"><div class="ds-card"><div class="ds-icon">⚙️</div><div class="ds-name">Nenhum / Próprio</div><div class="ds-sub">Sem DS externo</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="feat-card">
+          <div class="feat-icon">📸</div>
+          <div class="feat-title">Mockup de Tela</div>
+          <div class="feat-desc">Botão abaixo do Specify para anexar um print/mockup de tela ao projeto. Quando presente, o Copilot usa a imagem como referência visual ao gerar especificações.</div>
+          <span class="feat-tag tag-angular">Angular only</span>
+          <span class="feat-tag tag-new">Novo</span>
+          <ul style="font-size:0.8rem; color:var(--text-muted); margin-top:12px; padding-left:18px; line-height:1.8;">
+            <li>Abre file picker: PNG, JPG, SVG, WEBP</li>
+            <li>Salvo em <code style="color:#9cdcfe;">doc_projeto/screens/</code></li>
+            <li>Botão muda para <strong style="color:#6fcf74;">✅ ver/trocar</strong> ao detectar arquivo</li>
+            <li>Detectado automaticamente via FileSystemWatcher</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══ HUB GLOBAL ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Hub Global — Fora do Projeto</h2>
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
+          O hub e as skills são armazenados no <strong style="color:#fff;">globalStorage do VS Code</strong> —
+          um único local compartilhado entre todos os projetos. Ao clicar Sync em qualquer projeto,
+          o mesmo hub é reutilizado (ou atualizado com git pull).
+        </p>
+        <div class="hub-diagram">
+<span class="dim"># ANTES — hub dentro de cada projeto</span>
+meu-projeto/
+  ├── agentes_foursys/   <span class="dim">← clone Git (~MB)</span>
+  ├── .github/skills/    <span class="dim">← dezenas de .md</span>
+  └── doc_projeto/
+
+<span class="dim"># DEPOIS — hub único fora de qualquer projeto</span>
+<span class="hl">%APPDATA%\Code\User\globalStorage\foursys\</span>
+  ├── hub/               <span class="ok">← único clone global</span>
+  ├── skills/            <span class="ok">← skills ativas</span>
+  ├── custom-skills/     <span class="ok">← skills do dev</span>
+  └── copilot-instructions.md
+
+meu-projeto/
+  ├── .github/           <span class="dim">← stub mínimo (2 linhas)</span>
+  └── doc_projeto/       <span class="ok">← produto do fluxo SDD</span>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="feat-card">
+              <div class="feat-icon">🔄</div>
+              <div class="feat-title">Cleanup Automático de Legado</div>
+              <div class="feat-desc">No primeiro Sync após a atualização, o plugin remove automaticamente <code>agentes_foursys/</code> e <code>.github/skills/</code> do projeto, migrando para o modelo global.</div>
+              <span class="feat-tag tag-new">Novo</span>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="feat-card">
+              <div class="feat-icon">📋</div>
+              <div class="feat-title">.gitignore Automático</div>
+              <div class="feat-desc">O plugin atualiza o <code>.gitignore</code> do projeto adicionando as entradas necessárias para evitar commits acidentais de artefatos do plugin.</div>
+              <span class="feat-tag tag-new">Novo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CUSTOM SKILLS ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Gerenciamento de Skills</h2>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="feat-card">
+          <div class="feat-icon">🗂️</div>
+          <div class="feat-title">Ver Skills</div>
+          <div class="feat-desc">
+            Botão na sidebar que abre um QuickPick com todas as skills disponíveis.
+            <br><br>
+            <span style="color:#9cdcfe;">📄</span> Hub Skills — vindas do repositório central<br>
+            <span style="color:#9cdcfe;">✏️</span> Custom Skills — criadas pelo desenvolvedor<br><br>
+            Clicando em qualquer skill, o arquivo abre no editor VS Code para visualização.
+          </div>
+          <span class="feat-tag tag-new">Novo</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="feat-card">
+          <div class="feat-icon">✏️</div>
+          <div class="feat-title">Custom Skills</div>
+          <div class="feat-desc">
+            Pasta exclusiva do desenvolvedor para skills personalizadas. Regras:
+          </div>
+          <ul style="font-size:0.8rem; color:var(--text-muted); margin-top:10px; padding-left:18px; line-height:1.8;">
+            <li>Criada automaticamente no primeiro uso</li>
+            <li><strong style="color:#6fcf74;">Nunca sobrescrita pelo Sync</strong></li>
+            <li>Mesclada com as skills do hub a cada Sync</li>
+            <li>Botão abre a pasta no Explorer do SO</li>
+            <li>Basta criar um arquivo <code>.md</code> com as regras</li>
+          </ul>
+          <span class="feat-tag tag-new">Novo</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SEGURANÇA ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">Segurança — Mend Advise</h2>
+    <div class="feat-card" style="max-width:680px;">
+      <div class="feat-icon">🔒</div>
+      <div class="feat-title">Integração Mend Advise</div>
+      <div class="feat-desc">
+        Análise de segurança de dependências integrada à sidebar. O plugin instala e ativa o Mend Advise
+        automaticamente com um clique, exibe o status (ativo / instalando / não instalado)
+        e permite rodar análises diretamente da sidebar.
+      </div>
+      <div class="mt-2">
+        <span class="feat-tag tag-all">Todas as stacks</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ARQUITETURA DE ARQUIVOS ══ -->
+  <section class="mb-5">
+    <h2 class="section-title">O que Fica no Projeto</h2>
+    <div class="table-responsive">
+      <table class="table table-sm" style="color:var(--text); border-color:var(--border); font-size:0.83rem;">
+        <thead style="color:var(--orange); border-color:var(--border);">
+          <tr>
+            <th>Artefato</th>
+            <th>Localização</th>
+            <th>Conteúdo</th>
+            <th>Commitado?</th>
+          </tr>
+        </thead>
+        <tbody style="border-color:var(--border);">
+          <tr>
+            <td><code>doc_projeto/</code></td>
+            <td>Dentro do projeto</td>
+            <td>User Stories, planos, specs, QA — produto do fluxo</td>
+            <td><span style="color:#6fcf74;">✅ Sim</span></td>
+          </tr>
+          <tr>
+            <td><code>.github/copilot-instructions.md</code></td>
+            <td>Dentro do projeto</td>
+            <td>Stub mínimo (2 linhas: stack + instrução)</td>
+            <td><span style="color:#ff6b89;">🚫 .gitignore</span></td>
+          </tr>
+          <tr>
+            <td><code>agentes_foursys/</code></td>
+            <td style="color:#6fcf74;">Removido</td>
+            <td>Migrado para globalStorage</td>
+            <td><span style="color:#ff6b89;">🚫 .gitignore</span></td>
+          </tr>
+          <tr>
+            <td><code>.github/skills/</code></td>
+            <td style="color:#6fcf74;">Removido</td>
+            <td>Migrado para globalStorage</td>
+            <td><span style="color:#ff6b89;">🚫 .gitignore</span></td>
+          </tr>
+          <tr>
+            <td><code>globalStorage/hub/</code></td>
+            <td>Fora do projeto</td>
+            <td>Clone do hub — compartilhado entre projetos</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td><code>globalStorage/skills/</code></td>
+            <td>Fora do projeto</td>
+            <td>Skills ativas da stack (geradas pelo Sync)</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td><code>globalStorage/custom-skills/</code></td>
+            <td>Fora do projeto</td>
+            <td>Skills do desenvolvedor — persistem entre Syncs</td>
+            <td>N/A</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+</div>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>🚀 <strong style="color:#fff;">Foursys SDD Engine Hybrid v1.0.0</strong> — AI Governance Hub</span>
+    <span>Foursys &nbsp;·&nbsp; Junho 2026 &nbsp;·&nbsp; VS Code Extension</span>
+  </div>
+</footer>
+
+</body>
+</html>

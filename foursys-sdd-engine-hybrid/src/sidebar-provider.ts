@@ -111,6 +111,40 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'RunMend':
                     vscode.commands.executeCommand('foursys.runMend');
                     break;
+                case 'ViewPlaybooks': {
+                    const workspaceRoot2 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                    const detectedStack = this._detectStack(workspaceRoot2).stackId;
+                    const effectiveStack = (!detectedStack || detectedStack === 'unknown') ? 'generic' : detectedStack;
+                    const stackPlaybookDir = path.join(this._context.extensionUri.fsPath, 'catalog', 'sdd', effectiveStack);
+                    const genericDir = path.join(this._context.extensionUri.fsPath, 'catalog', 'sdd', 'generic');
+                    const pbFiles: { label: string; description: string; filepath: string }[] = [];
+                    const addPb = (dir: string, tag: string) => {
+                        if (!fs.existsSync(dir)) { return; }
+                        for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.md'))) {
+                            const label = f.replace('foursys-', '').replace('.md', '');
+                            pbFiles.push({ label: `📋 ${label}`, description: tag, filepath: path.join(dir, f) });
+                        }
+                    };
+                    addPb(stackPlaybookDir, effectiveStack);
+                    if (effectiveStack !== 'generic') {
+                        for (const f of fs.readdirSync(genericDir).filter(f => f.endsWith('.md'))) {
+                            if (!pbFiles.some(x => path.basename(x.filepath) === f)) {
+                                const label = f.replace('foursys-', '').replace('.md', '');
+                                pbFiles.push({ label: `📋 ${label}`, description: 'generic', filepath: path.join(genericDir, f) });
+                            }
+                        }
+                    }
+                    if (pbFiles.length === 0) {
+                        vscode.window.showInformationMessage('Nenhum playbook encontrado para a stack ativa.');
+                        break;
+                    }
+                    const pickedPb = await vscode.window.showQuickPick(pbFiles, {
+                        title: `Foursys SDD — Playbooks (${effectiveStack})`,
+                        placeHolder: 'Selecione um playbook para visualizar'
+                    });
+                    if (pickedPb) { vscode.window.showTextDocument(vscode.Uri.file(pickedPb.filepath)); }
+                    break;
+                }
                 case 'ViewSkills': {
                     const globalStoragePath = this._context.globalStorageUri.fsPath;
                     const skillsDir = path.join(globalStoragePath, 'skills');
@@ -748,6 +782,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     </div>
 
     <div class="skills-actions">
+        <button class="btn-skill" onclick="sendAction('ViewPlaybooks')">📋 Playbooks</button>
         <button class="btn-skill" onclick="sendAction('ViewSkills')">🗂️ Ver Skills</button>
         <button class="btn-skill" onclick="sendAction('OpenCustomSkills')">✏️ Custom Skills</button>
     </div>

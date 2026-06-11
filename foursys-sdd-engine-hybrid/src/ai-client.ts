@@ -27,10 +27,17 @@ export class AIClient {
             const messages = [
                 vscode.LanguageModelChatMessage.User(systemPrompt),
                 vscode.LanguageModelChatMessage.Assistant(
-                    'Entendido. Sou o Agente Foursys SDD. Seguirei estritamente o playbook e gerarei apenas o conteúdo técnico solicitado, sem introduções ou perguntas.'
+                    'Entendido. Seguirei estritamente o playbook.'
                 ),
                 vscode.LanguageModelChatMessage.User(`EXECUTAR AGORA SOBRE ESTE CONTEXTO:\n${userPrompt}`)
             ];
+
+            // Conta tokens de entrada — falha silenciosa se modelo não suportar countTokens
+            let inputTokens = 0;
+            try {
+                const counts = await Promise.all(messages.map(m => model.countTokens(m, token)));
+                inputTokens = counts.reduce((a, b) => a + b, 0);
+            } catch { /* countTokens não disponível — ignora */ }
 
             // Temperatura 0.1: modelo determinístico, segue instruções — reduz invenção de código/arquivos.
             const response = await model.sendRequest(
@@ -59,6 +66,26 @@ export class AIClient {
             }
 
             outputChannel.appendLine('[IA] Resposta recebida e validada com sucesso. ✅');
+
+            // Conta tokens de saída — falha silenciosa
+            let outputTokens = 0;
+            try {
+                outputTokens = await model.countTokens(
+                    vscode.LanguageModelChatMessage.Assistant(fullResponse), token
+                );
+            } catch { /* ignora */ }
+
+            const totalTokens = inputTokens + outputTokens;
+            const maxTokens = model.maxInputTokens ?? 0;
+            const pct = maxTokens > 0 ? Math.round((totalTokens / maxTokens) * 100) : 0;
+            const modelLabel = `${model.family} (${model.vendor})`;
+            outputChannel.appendLine(
+                `[IA] ${modelLabel} | Capacidade: ${maxTokens} tokens | Consumiu: ${totalTokens} (${pct}%)`
+            );
+            vscode.window.showInformationMessage(
+                `Foursys SDD | ${modelLabel} | ${maxTokens} tokens disponíveis — consumiu ${pct}%`
+            );
+
             return fullResponse;
         } catch (error: any) {
             outputChannel.appendLine(`[IA ERRO] ${error.message || error}`);

@@ -112,37 +112,48 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     vscode.commands.executeCommand('foursys.runMend');
                     break;
                 case 'ViewPlaybooks': {
-                    const workspaceRoot2 = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-                    const detectedStack = this._detectStack(workspaceRoot2).stackId;
-                    const effectiveStack = (!detectedStack || detectedStack === 'unknown') ? 'generic' : detectedStack;
-                    const stackPlaybookDir = path.join(this._context.extensionUri.fsPath, 'catalog', 'sdd', effectiveStack);
-                    const genericDir = path.join(this._context.extensionUri.fsPath, 'catalog', 'sdd', 'generic');
+                    const globalStoragePath = this._context.globalStorageUri.fsPath;
+                    const playbookRoot = path.join(globalStoragePath, 'hub', 'catalog', 'playbook');
+                    if (!fs.existsSync(playbookRoot)) {
+                        vscode.window.showWarningMessage(
+                            'Playbooks não encontrados. Execute "📥 CONECTAR AO HUB" primeiro.'
+                        );
+                        break;
+                    }
                     const pbFiles: { label: string; description: string; filepath: string }[] = [];
-                    const addPb = (dir: string, tag: string) => {
-                        if (!fs.existsSync(dir)) { return; }
-                        for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.md'))) {
-                            const label = f.replace('foursys-', '').replace('.md', '');
-                            pbFiles.push({ label: `📋 ${label}`, description: tag, filepath: path.join(dir, f) });
+                    const collectMd = (dir: string, fase: string) => {
+                        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                            const fullPath = path.join(dir, entry.name);
+                            if (entry.isDirectory()) {
+                                collectMd(fullPath, fase);
+                            } else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
+                                pbFiles.push({
+                                    label: `📋 ${entry.name.replace('.md', '')}`,
+                                    description: fase,
+                                    filepath: fullPath
+                                });
+                            }
                         }
                     };
-                    addPb(stackPlaybookDir, effectiveStack);
-                    if (effectiveStack !== 'generic') {
-                        for (const f of fs.readdirSync(genericDir).filter(f => f.endsWith('.md'))) {
-                            if (!pbFiles.some(x => path.basename(x.filepath) === f)) {
-                                const label = f.replace('foursys-', '').replace('.md', '');
-                                pbFiles.push({ label: `📋 ${label}`, description: 'generic', filepath: path.join(genericDir, f) });
-                            }
+                    for (const entry of fs.readdirSync(playbookRoot, { withFileTypes: true })) {
+                        if (entry.isDirectory() && entry.name.startsWith('fase')) {
+                            collectMd(path.join(playbookRoot, entry.name), entry.name);
                         }
                     }
                     if (pbFiles.length === 0) {
-                        vscode.window.showInformationMessage('Nenhum playbook encontrado para a stack ativa.');
+                        vscode.window.showInformationMessage('Nenhum playbook encontrado.');
                         break;
                     }
                     const pickedPb = await vscode.window.showQuickPick(pbFiles, {
-                        title: `Foursys SDD — Playbooks (${effectiveStack})`,
+                        title: 'Foursys SDD — Playbooks',
                         placeHolder: 'Selecione um playbook para visualizar'
                     });
-                    if (pickedPb) { vscode.window.showTextDocument(vscode.Uri.file(pickedPb.filepath)); }
+                    if (pickedPb) {
+                        await vscode.commands.executeCommand('workbench.action.chat.open', {
+                            query: `#file:${pickedPb.filepath} `,
+                            isPartialQuery: true
+                        });
+                    }
                     break;
                 }
                 case 'ViewSkills': {
@@ -169,7 +180,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                         placeHolder: 'Selecione uma skill para visualizar'
                     });
                     if (picked) {
-                        vscode.window.showTextDocument(vscode.Uri.file(picked.filepath));
+                        await vscode.commands.executeCommand('workbench.action.chat.open', {
+                            query: `#file:${picked.filepath} `,
+                            isPartialQuery: true
+                        });
                     }
                     break;
                 }

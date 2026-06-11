@@ -46,29 +46,9 @@ Execute as seguintes etapas:
 
 ### 6. OBRIGATÓRIO — Marcação de Arquivo antes de Cada Bloco
 
-ANTES de cada bloco de código, adicione um comentário HTML com o caminho relativo do arquivo de destino:
+Antes de cada bloco de código, adicione: `<!-- file: caminho/relativo/do/arquivo -->`
 
-```
-<!-- file: test/features/nome-da-feature.feature -->
-```gherkin
-Feature: Nome da Feature
-  ...
-```
+Nomeação: `.feature` → `test/features/`, TypeScript steps → `test/steps/`, Java steps → `src/test/java/steps/`, fixtures → `test/support/`.
 
-<!-- file: test/steps/nome-da-feature.steps.ts -->
-```typescript
-import { Given, When, Then } from '@cucumber/cucumber';
-...
-```
-```
-
-Regras de nomeação:
-- Gherkin `.feature` → `test/features/{slug-do-feature}.feature`
-- TypeScript steps → `test/steps/{slug-do-feature}.steps.ts`
-- Java steps → `src/test/java/steps/{NomeDaClasse}.java`
-- Fixtures/helpers → `test/support/{nome}.ts`
-
-Este marcador é OBRIGATÓRIO — sem ele o plugin não consegue extrair e criar os arquivos automaticamente.
-
-Gere os scripts completos e funcionais com marcadores de arquivo antes de cada bloco de código.
+Este marcador é OBRIGATÓRIO — sem ele o plugin não consegue criar os arquivos automaticamente.
 ```

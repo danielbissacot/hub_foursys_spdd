@@ -9,6 +9,10 @@ import { getStackConfig, getAllStacks, resolveStack } from './stack-registry';
 const DOC_FOLDER = 'doc_projeto';
 const WORKSPACE_CONTEXT_MAX_FILES = 5;
 const WORKSPACE_CONTEXT_MAX_LINES = 300;
+const CONTEXT_FILE_MAX_LINES = 500;
+const PHASES_NEEDING_WORKSPACE = new Set([
+    'plan', 'qa-test-plan', 'qa-test-cases', 'qa-automation', 'qa-coverage', 'qa-report'
+]);
 
 // Mend Advise — ID correto na marketplace VS Code (case-sensitive no getExtension)
 const MEND_EXTENSION_ID   = 'mend.mend-advise';
@@ -86,11 +90,9 @@ function readWorkspaceContext(rootPath: string, stackId: string): string {
         } catch { /* ignorar */ }
     }
 
-    // Lista completa de arquivos encontrados como zona protegida para a IA
-    let protectedList = '\n--- ARQUIVOS EXISTENTES NO WORKSPACE (ZONA PROTEGIDA) ---\n';
-    protectedList += 'INSTRUÇÃO OBRIGATÓRIA: Os arquivos abaixo já existem no projeto.\n';
-    protectedList += 'NÃO modifique nenhum deles a menos que esteja EXPLICITAMENTE listado na Task List ativa.\n';
-    for (const { filePath } of collected) {
+    // Lista apenas os arquivos enviados à IA como zona protegida
+    let protectedList = '\n⚠️ Existentes — não modificar sem Task List:\n';
+    for (const { filePath } of selected) {
         protectedList += `  - ${path.relative(rootPath, filePath)}\n`;
     }
     context += protectedList;
@@ -381,25 +383,19 @@ async function executeSDDPhase(
 
     try {
         const systemPromptRaw = loadPlaybookForStack(command, stackId, builtinCatalogPath, catalogPath);
-        const systemPrompt = `VOCÊ É O AGENTE DE ENGENHARIA FOURSYS SDD.
-STACK ATIVA: ${stackConfig.displayName}
-FOCO: GERAÇÃO DE DOCUMENTAÇÃO DE SOFTWARE.
-REGRAS ESTRITAS:
-1. IGNORE SAUDAÇÕES. NÃO faça perguntas desnecessárias.
-2. GERE O DOCUMENTO MARKDOWN DIRETAMENTE, sem introduções.
-3. Siga estritamente a CONSTITUIÇÃO e o PLAYBOOK fornecidos abaixo.
-4. GERE APENAS O CONTEÚDO TÉCNICO SOLICITADO NO FORMATO ESPECIFICADO.
-
-PLAYBOOK BASE:
-${systemPromptRaw}`;
+        const systemPrompt = `STACK: ${stackConfig.displayName}\n\n${systemPromptRaw}`;
 
         let userContext = referencesContext;
         contextFiles.forEach(file => {
             if (fs.existsSync(file)) {
-                userContext += `\n--- ARQUIVO DO PROJETO: ${path.basename(file)} ---\n${fs.readFileSync(file, 'utf8')}\n`;
+                const raw = fs.readFileSync(file, 'utf8');
+                const capped = raw.split('\n').slice(0, CONTEXT_FILE_MAX_LINES).join('\n');
+                userContext += `\n## ${path.basename(file)}\n${capped}\n`;
             }
         });
-        userContext += readWorkspaceContext(rootPath, stackId);
+        if (PHASES_NEEDING_WORKSPACE.has(command)) {
+            userContext += readWorkspaceContext(rootPath, stackId);
+        }
 
         // Nota de mockup de tela (apenas para specify)
         if (command === 'specify') {

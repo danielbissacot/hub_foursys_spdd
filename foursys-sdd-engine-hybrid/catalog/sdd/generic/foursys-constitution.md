@@ -51,7 +51,4 @@ Gere um documento Markdown estruturado e direto, sem ser prolixo.
    - Siga a estrutura convencional da stack identificada.
    - Organize por feature, não por tipo de arquivo.
 
-### 🏁 FINALIZAÇÃO
-Ao gerar o documento, adicione no final:
-"Constituição Foursys SDD Hybrid v1.0.0 gerada com sucesso. Este projeto agora está sob a governança oficial do Hub."
 ```

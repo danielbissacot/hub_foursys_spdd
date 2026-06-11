@@ -55,6 +55,4 @@ Gere a especificação técnica em Markdown, contendo:
 5. **Diagrama de Sequência (Mermaid):**
    Entrada → Use Case → Porta → Adapter → Destino
 
-Ao finalizar, proponha:
-"Deseja que eu gere a Lista de Tarefas (Task List) organizada por camada?"
 ```

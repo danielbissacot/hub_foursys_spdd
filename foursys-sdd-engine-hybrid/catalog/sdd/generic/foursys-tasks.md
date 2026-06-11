@@ -61,13 +61,6 @@ Cada tarefa deve ser:
   - Critério de conclusão: [Como verificar que está done]
   - Depende de: —
 
-- [ ] **Tarefa 02: [Título Curto]**
-  - Descrição técnica: [O que deve ser feito em 1 frase]
-  - Arquivo impactado: `caminho/do/arquivo`
-  - Estimativa: XS | S | M | L
-  - Critério de conclusão: [Como verificar que está done]
-  - Depende de: Tarefa 01
-
 ... (continue até cobrir todo o plano)
 
 ### 🧪 Tarefas de Teste
@@ -78,8 +71,4 @@ Cada tarefa deve ser:
   - Estimativa: XS | S
   - Critério de conclusão: [Cobertura ou cenário validado]
   - Depende de: Tarefa XX
-
-### 🏁 FINALIZAÇÃO
-Ao finalizar, pergunte:
-"A lista de tarefas acima está correta e completa para iniciarmos o desenvolvimento físico (/foursys.implement)?"
 ```

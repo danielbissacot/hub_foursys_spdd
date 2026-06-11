@@ -70,6 +70,8 @@
       { "command": "foursys.qaCoverage",   "title": "Foursys QA: Review de Cobertura" },
       { "command": "foursys.qaReport",     "title": "Foursys QA: Relatório de Qualidade" },
       { "command": "foursys.qaImplement",       "title": "Foursys QA: Implementar Testes (extrair arquivos)" },
+      { "command": "foursys.implementSession1",   "title": "Foursys: Implementar Sessão 1 — Domínio" },
+      { "command": "foursys.implementSession2",   "title": "Foursys: Implementar Sessão 2 — Infraestrutura" },
       { "command": "foursys.selectDesignSystem", "title": "Foursys: Selecionar Design System Angular" },
       { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" }
     ]

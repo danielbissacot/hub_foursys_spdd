@@ -187,6 +187,18 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }));
 
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession1', async () => {
+        vscode.commands.executeCommand('workbench.action.chat.open', {
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
+        });
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession2', async () => {
+        vscode.commands.executeCommand('workbench.action.chat.open', {
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
+        });
+    }));
+
     // Mend Advise é passivo — escaneia automaticamente e exibe CVEs no painel Problems.
     // Abre o Problems panel como ação principal; tenta comandos de scan explícitos antes (versões futuras).
     context.subscriptions.push(vscode.commands.registerCommand('foursys.runMend', async () => {

@@ -25,6 +25,10 @@ Sua tarefa é analisar o Plano de Implementação (Implementation Plan) e a Cons
 - Gere APENAS o checklist em Markdown.
 - Se uma tarefa é estimada em M ou L, QUEBRE em subtarefas antes de listar. Tarefas L não são aceitas.
 - Tarefas de TESTE devem ser listadas em seção separada das tarefas de implementação.
+- DIVIDA as tarefas de implementação em exatamente 2 sessões:
+  - **Sessão 1 — Domínio**: entidades, modelos, interfaces, ports, serviços de domínio. Máx. 50% das tarefas.
+  - **Sessão 2 — Infraestrutura**: controllers, adapters, configurações, rotas, integrações externas. Restante das tarefas.
+  - Cada sessão deve ser executada com `/foursys.implementSession1` e `/foursys.implementSession2` respectivamente.
 
 ### 📏 TABELA DE ESTIMATIVAS
 | Código | Duração    | Ação obrigatória                     |
@@ -56,23 +60,31 @@ Cada tarefa deve ser:
 | `app.routes.ts` | [Ex: Registrar rota da feature] | [Descrição da mudança] |
 | `index.html`   | [Ex: Adicionar fonte/biblioteca] | [Descrição da mudança] |
 
-### 📝 Tarefas de Implementação
+### 🔄 Sessão 1 de Implementação — Domínio
+> Execute com `/foursys.implementSession1` após aprovar esta lista.
+> Foco: entidades, modelos, interfaces, ports, serviços de domínio.
 
 - [ ] **Tarefa 01: [Título Curto]**
   - Descrição técnica: [O que deve ser feito em 1 frase]
   - Arquivo impactado: `caminho/do/arquivo`
-  - Estimativa: XS | S | M | L
+  - Estimativa: XS | S
   - Critério de conclusão: [Como verificar que está done]
   - Depende de: —
 
-- [ ] **Tarefa 02: [Título Curto]**
+... (continue com tarefas de domínio — máx. 50% do total)
+
+### 🔄 Sessão 2 de Implementação — Infraestrutura
+> Execute com `/foursys.implementSession2` após concluir a Sessão 1.
+> Foco: controllers, adapters, configurações, rotas, integrações externas.
+
+- [ ] **Tarefa XX: [Título Curto]**
   - Descrição técnica: [O que deve ser feito em 1 frase]
   - Arquivo impactado: `caminho/do/arquivo`
-  - Estimativa: XS | S | M | L
+  - Estimativa: XS | S
   - Critério de conclusão: [Como verificar que está done]
   - Depende de: Tarefa 01
 
-... (continue até cobrir todo o plano)
+... (continue com tarefas de infraestrutura)
 
 ### 🧪 Tarefas de Teste
 
@@ -85,5 +97,5 @@ Cada tarefa deve ser:
 
 ### 🏁 FINALIZAÇÃO
 Ao finalizar, pergunte:
-"A lista de tarefas acima está correta e completa para iniciarmos o desenvolvimento físico (/foursys.implement)?"
+"A lista de tarefas acima está correta e completa? Execute `/foursys.implementSession1` para iniciar o desenvolvimento físico pela Sessão 1."
 ```

@@ -41,7 +41,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         workspaceMarkers: ['app/src/main/AndroidManifest.xml'],
         detectionKeywords: ['android', 'kotlin', 'gradle', 'androidmanifest', 'activity', 'fragment', 'jetpack', 'compose', 'viewmodel', 'room'],
         playbookFolder: 'android',
-        skillsFolder: 'agents_skills/skills',
+        skillsFolder: 'agents_skills/android',
         agentFileName: 'AGENTE_ANDROID_FOURSYS.md',
         implementSkillTag: '#agente-android-foursys',
         globalFilesExample: '| `app/build.gradle.kts` | Adicionar dependência (Retrofit, Room, Hilt, etc.) | Descrição da mudança |\n| `app/src/main/AndroidManifest.xml` | Declarar permissão ou Activity/Service | Descrição da mudança |\n| `app/src/main/res/values/strings.xml` | Adicionar string de recurso | Descrição da mudança |'
@@ -89,7 +89,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         workspaceMarkers: ['Podfile', 'Package.swift'],
         detectionKeywords: ['ios', 'swift', 'xcode', 'cocoapods', 'swiftui', 'uikit', 'appdelegate', 'viewcontroller', 'xcodeproj'],
         playbookFolder: 'ios',
-        skillsFolder: 'agents_skills/skills',
+        skillsFolder: 'agents_skills/ios',
         agentFileName: 'AGENTE_IOS_FOURSYS.md',
         implementSkillTag: '#agente-ios-foursys',
         globalFilesExample: '| `[Projeto].xcodeproj` | Adicionar target / dependência Swift Package | Descrição da mudança |\n| `Info.plist` | Declarar permissão (câmera, notificações, localização) | Descrição da mudança |\n| `Podfile` | Adicionar pod de terceiro (pod install após) | Descrição da mudança |'

@@ -32,5 +32,5 @@ Gere o relatório final estruturado com:
 2. 📝 **História Refinada (Negócio):** Nova narrativa corrigida para o padrão de Excelência Ágil.
 3. 🎯 **Regras e Critérios de Aceite (BDD):** Sub-blocos com regras `[Condição] → [Ação]` e formato BDD (`Dado que`, `Quando`, `Então`).
 4. 📈 **Critérios de Sucesso Mensuráveis:** Pelo menos 2 métricas independentes.
-5. ⚙️ **Especificação Técnica:** [ETAPA_3_INJETADA_PELO_CATALOG_LOADER]
+5. ⚙️ **Especificação Técnica:** Componentes técnicos impactados, critérios técnicos de aceite e checklist do desenvolvedor para a stack ativa.
 ```

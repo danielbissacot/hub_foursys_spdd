@@ -20,7 +20,7 @@ Sua tarefa é gerar a CONSTITUIÇÃO do projeto Node.js/NestJS. Este é o docume
 
 1. 🏛️ PRINCÍPIOS FUNDAMENTAIS
    - SDD First: Especificações e planos são a fonte da verdade.
-   - Test-Driven Development (TDD): Testes com Jest, cobertura >= 90%.
+   - Test-Driven Development (TDD): Testes com Jest, cobertura >= 95%.
    - Security by Design: class-validator, guards de autenticação, sanitização de inputs.
    - Escopo Blindado: Não crie arquivos fora da Task List. Logs e evidências vão para /doc_projeto/evidencias/.
 
@@ -45,7 +45,7 @@ Sua tarefa é gerar a CONSTITUIÇÃO do projeto Node.js/NestJS. Este é o docume
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o arquivo não estiver na Task List ativa, NÃO TOQUE nele.
 
 4. 🧪 QUALIDADE E TESTES
-   - Cobertura mínima de 90% (Jest --coverage).
+   - Cobertura mínima de 95% (Jest --coverage).
    - Testes unitários para Services com mocks de Repository.
    - Testes e2e com Supertest para Controllers.
    - Padrão AAA (Arrange, Act, Assert).

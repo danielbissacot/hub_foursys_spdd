@@ -26,7 +26,7 @@ A saída deve ser um arquivo Markdown contendo:
 
 1. 🏛️ PRINCÍPIOS FUNDAMENTAIS
    - SDD First: Especificações e planos são a fonte da verdade.
-   - Test-Driven Development (TDD): Testes unitários com cobertura > 90%.
+   - Test-Driven Development (TDD): Testes unitários com cobertura >= 95%.
    - Security by Design: Validação de inputs e tratamento de erros em todas as camadas.
    - Escopo Blindado: Não crie arquivos fora da Task List. Documentos de auditoria vão para /doc_projeto/evidencias/.
 
@@ -44,7 +44,7 @@ A saída deve ser um arquivo Markdown contendo:
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o arquivo não estiver na Task List ativa, NÃO TOQUE nele.
 
 4. 🧪 QUALIDADE E TESTES
-   - Cobertura mínima de 90%.
+   - Cobertura mínima de 95%.
    - Uso de Mocks para dependências externas.
    - Padrão AAA (Arrange, Act, Assert).
 

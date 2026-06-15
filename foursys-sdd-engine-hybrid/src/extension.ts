@@ -9,9 +9,9 @@ import { getStackConfig, getAllStacks, resolveStack } from './stack-registry';
 const DOC_FOLDER = 'doc_projeto';
 const WORKSPACE_CONTEXT_MAX_FILES = 5;
 const WORKSPACE_CONTEXT_MAX_LINES = 300;
-const CONTEXT_FILE_MAX_LINES = 500;
+const CONTEXT_FILE_MAX_LINES = 800;
 const PHASES_NEEDING_WORKSPACE = new Set([
-    'plan', 'qa-test-plan', 'qa-test-cases', 'qa-automation', 'qa-coverage', 'qa-report'
+    'plan', 'qa-test-plan', 'qa-test-cases', 'qa-automation'
 ]);
 
 // Mend Advise — ID correto na marketplace VS Code (case-sensitive no getExtension)
@@ -356,7 +356,10 @@ async function executeSDDPhase(
             break;
         case 'specify':
             outputPath = path.join(docPath, 'user_story.md');
-            contextFiles = [path.join(docPath, 'constitution.md')];
+            contextFiles = [
+                path.join(docPath, 'constitution.md'),
+                path.join(docPath, 'user_story.md'),
+            ];
             break;
         case 'plan':
             outputPath = path.join(docPath, 'implementation_plan.md');
@@ -368,7 +371,11 @@ async function executeSDDPhase(
             break;
         case 'tasks':
             outputPath = path.join(docPath, 'task_list.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'implementation_plan.md')];
+            contextFiles = [
+                path.join(docPath, 'constitution.md'),
+                path.join(docPath, 'implementation_plan.md'),
+                path.join(docPath, 'technical_spec.md'),
+            ];
             break;
         case 'qa-test-plan':
             outputPath = path.join(docPath, 'qa', 'plano_testes.md');
@@ -456,11 +463,12 @@ async function executeSDDPhase(
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 
         const PHASE_TYPE: Record<string, 'light' | 'implement' | 'standard' | 'mini'> = {
-            constitution: 'light',
-            specify:      'mini',
-            plan:         'light',
-            tasks:        'light',
-            implement:    'implement',
+            constitution:    'light',
+            specify:         'mini',
+            plan:            'light',
+            tasks:           'light',
+            implement:       'implement',
+            'qa-automation': 'implement',
         };
         const phaseType = PHASE_TYPE[command] ?? 'standard';
 

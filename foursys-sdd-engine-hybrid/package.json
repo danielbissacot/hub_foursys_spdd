@@ -74,7 +74,17 @@
       { "command": "foursys.implementSession2",   "title": "Foursys: Implementar Sessão 2 — Infraestrutura" },
       { "command": "foursys.selectDesignSystem", "title": "Foursys: Selecionar Design System Angular" },
       { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" }
-    ]
+    ],
+    "configuration": {
+      "title": "Foursys SDD",
+      "properties": {
+        "foursys.modelOverride": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Deixe **vazio** para usar o modelo otimizado por fase (recomendado). Preencha com uma família de modelo para forçar em todas as fases (ex: `claude-sonnet-4-6`, `gpt-4o`, `claude-fable-5`)."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

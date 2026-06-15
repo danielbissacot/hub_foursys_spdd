@@ -22,7 +22,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         };
 
         const updateWebview = () => {
-            const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+            const activeFolder = vscode.window.activeTextEditor
+                ? vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)?.uri.fsPath
+                : undefined;
+            const workspaceRoot = activeFolder ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
             const isConnected = this._checkConnection(workspaceRoot);
             const detection = this._detectStack(workspaceRoot);
             const mendInstalled = !!vscode.extensions.getExtension(MEND_EXT_ID);
@@ -37,6 +40,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         };
 
         updateWebview();
+
+        // Atualiza sidebar quando o editor ativo muda de projeto
+        vscode.window.onDidChangeActiveTextEditor(() => updateWebview(), undefined, this._context.subscriptions);
 
         // Atualiza sidebar quando arquivos em doc_projeto/ são criados ou modificados
         const docWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/**/*.md');

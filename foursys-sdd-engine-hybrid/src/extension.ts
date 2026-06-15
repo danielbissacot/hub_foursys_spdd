@@ -286,8 +286,16 @@ export function activate(context: vscode.ExtensionContext) {
         if (doc.uri.fsPath !== storyPath) { return; }
         const content = doc.getText();
         if (!content || content.includes('DESCREVA AQUI') || content.trim().length < 50) { return; }
+
+        // Abre technical_spec.md ao lado para o dev preencher o detalhamento técnico
+        const techSpecPath = path.join(rootPath, DOC_FOLDER, 'technical_spec.md');
+        if (fs.existsSync(techSpecPath)) {
+            const techDoc = await vscode.workspace.openTextDocument(techSpecPath);
+            await vscode.window.showTextDocument(techDoc, { viewColumn: vscode.ViewColumn.Two, preview: false });
+        }
+
         const choice = await vscode.window.showInformationMessage(
-            '📝 História salva! Deseja analisar com o Foursys Specify agora?',
+            '📝 História salva! Detalhamento técnico → technical_spec.md (aberto ao lado). Deseja analisar com o Foursys Specify agora?',
             'Sim, Analisar',
             'Depois'
         );
@@ -352,7 +360,11 @@ async function executeSDDPhase(
             break;
         case 'plan':
             outputPath = path.join(docPath, 'implementation_plan.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md')];
+            contextFiles = [
+                path.join(docPath, 'constitution.md'),
+                path.join(docPath, 'user_story.md'),
+                path.join(docPath, 'technical_spec.md'),
+            ];
             break;
         case 'tasks':
             outputPath = path.join(docPath, 'task_list.md');
@@ -360,7 +372,12 @@ async function executeSDDPhase(
             break;
         case 'qa-test-plan':
             outputPath = path.join(docPath, 'qa', 'plano_testes.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'user_story.md'), path.join(docPath, 'implementation_plan.md')];
+            contextFiles = [
+                path.join(docPath, 'constitution.md'),
+                path.join(docPath, 'user_story.md'),
+                path.join(docPath, 'implementation_plan.md'),
+                path.join(docPath, 'technical_spec.md'),
+            ];
             break;
         case 'qa-test-cases':
             outputPath = path.join(docPath, 'qa', 'casos_teste.md');
@@ -383,10 +400,20 @@ async function executeSDDPhase(
     if (command === 'specify' && userInstruction.trim() === '') {
         const content = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
         if (!content || content.trim() === '' || content.includes('DESCREVA AQUI')) {
-            const template = `# User Story\n\n**TECNOLOGIA:** ${stackConfig.displayName}\n\n**NECESSIDADE:**\nDESCREVA AQUI o que você precisa construir...`;
+            const template = `# User Story\n\n**TECNOLOGIA:** ${stackConfig.displayName}\n\n## Necessidade de Negócio\nDESCREVA AQUI o que você precisa (quem/quer/para).\n\n## Regras de Negócio\n- Regra 1...\n\n## Critérios de Aceite\n- Dado... quando... então...`;
             fs.writeFileSync(outputPath, template);
+
+            // Auto-cria technical_spec.md se ainda não existir
+            const techSpecPath = path.join(docPath, 'technical_spec.md');
+            if (!fs.existsSync(techSpecPath)) {
+                const techTemplate = `# Technical Specification (opcional)\n\nCole aqui o detalhamento técnico: classes, endpoints, contratos de API,\nexemplos de código, yml, estrutura de pacotes, análise de impacto.\n\nEste arquivo é lido pela fase Plan. Mantenha apenas a história de negócio em user_story.md.\n`;
+                fs.writeFileSync(techSpecPath, techTemplate);
+            }
+
+            outputChannel.appendLine('[SDD] 📝 user_story.md criado. Preencha com a história de NEGÓCIO.');
+            outputChannel.appendLine('[SDD] 📋 Para detalhamento técnico, use doc_projeto/technical_spec.md (já criado).');
             await openFile(outputPath);
-            if (chatResponse) { chatResponse.markdown('📝 Por favor, descreva sua necessidade no arquivo `user_story.md` e rode o comando novamente.'); }
+            if (chatResponse) { chatResponse.markdown('📝 Por favor, descreva sua necessidade no arquivo `user_story.md` e rode o comando novamente.\n\n> 💡 Detalhamento técnico (classes, endpoints, yml)? Use `doc_projeto/technical_spec.md`.'); }
             return;
         }
     }
@@ -428,9 +455,18 @@ async function executeSDDPhase(
 
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 
+        const PHASE_TYPE: Record<string, 'light' | 'implement' | 'standard' | 'mini'> = {
+            constitution: 'light',
+            specify:      'mini',
+            plan:         'light',
+            tasks:        'light',
+            implement:    'implement',
+        };
+        const phaseType = PHASE_TYPE[command] ?? 'standard';
+
         const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, token, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }
-        });
+        }, phaseType);
 
         if (outputPath) {
             const outputDir = path.dirname(outputPath);

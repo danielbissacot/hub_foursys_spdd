@@ -1,17 +1,40 @@
 import * as vscode from 'vscode';
 
+// Modelos por tipo de fase — evita Claude Opus 4.8 e GPT-5.5 (mais caros/Auto).
+// 'light'     → constitution, plan, tasks (Haiku: leve, contexto grande)
+// 'mini'      → specify (Haiku ou GPT-5 mini: mais leve ainda)
+// 'implement' → codificação (Sonnet 4.6: melhor custo-benefício para código)
+// 'standard'  → QA e demais fases
+const PHASE_MODELS: Record<string, string[]> = {
+    light:     ['claude-haiku-4-5', 'gpt-5.3-codex'],
+    mini:      ['claude-haiku-4-5', 'gpt-5-mini'],
+    implement: ['claude-sonnet-4-6', 'claude-haiku-4-5'],
+    standard:  ['claude-haiku-4-5', 'gpt-5.3-codex'],
+};
+
 export class AIClient {
     static async sendPrompt(
         systemPrompt: string,
         userPrompt: string,
         outputChannel: vscode.OutputChannel,
         token: vscode.CancellationToken,
-        onChunk?: (chunk: string) => void
+        onChunk?: (chunk: string) => void,
+        phaseType: 'light' | 'mini' | 'implement' | 'standard' = 'standard'
     ): Promise<string> {
         outputChannel.appendLine(`[IA] Enviando prompt para o modelo de IA...`);
 
         try {
-            let models = await vscode.lm.selectChatModels({ vendor: 'copilot', family: 'gpt-4o' });
+            // Respeita override manual do dev (Ctrl+, → "Foursys: Modelo Preferido")
+            const override = vscode.workspace.getConfiguration('foursys').get<string>('modelOverride', '').trim();
+            const families = override ? [override] : (PHASE_MODELS[phaseType] ?? PHASE_MODELS.standard);
+
+            let models: vscode.LanguageModelChat[] = [];
+            for (const family of families) {
+                models = await vscode.lm.selectChatModels({ vendor: 'copilot', family });
+                if (models.length > 0) { break; }
+            }
+            // Fallback de segurança: se nenhum modelo preferido estiver disponível
+            // (política da empresa, versão diferente do Copilot), usa qualquer modelo ativo.
             if (models.length === 0) {
                 models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
             }

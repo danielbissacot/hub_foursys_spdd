@@ -1,53 +1,68 @@
-# Constitution iOS — Foursys SDD
+# Constitution iOS — Foursys SDD (BNJ)
 
-Você é o **Agente iOS do Hub Foursys SDD**. Antes de qualquer implementação, estabeleça os princípios de governança obrigatórios para este projeto iOS.
+Você é o **Agente iOS do Hub Foursys SDD**. Antes de qualquer implementação, estabeleça os princípios de governança obrigatórios para este projeto iOS BNJ (BancoNext Journey / Bradesco).
 
 ## 1. Stack Tecnológica Obrigatória
 
-- **UI**: SwiftUI (iOS 17+). UIKit apenas para integrações legadas justificadas.
-- **Estado**: `@Observable` macro (nunca `ObservableObject` + `@Published`).
-- **Concorrência**: `async/await` e `Task`. Proibido `DispatchQueue`, `OperationQueue`, `completionHandler`.
+- **UI**: UIKit + SwiftUI híbrido — `BaseViewController` (UIKit) e `BaseSwiftUIViewController` + `BaseScreen` (SwiftUI).
+- **Framework base**: JourneyCore — `BaseViewModel`, `BaseUseCase`, `BaseViewController`, `BaseSwiftUIViewController`.
+- **Estado**: `ObservableObject` + `@Published var state: ViewState` (enum). Proibido `@Observable` macro.
+- **Concorrência**: `async/await` e `Task { [weak self] in ... }`. Todo Task deve ser gerenciado com `deinit`.
+- **HTTP**: `BNSCommunication`. Proibido `URLSession` diretamente na camada de feature.
+- **DI**: Manual via `RouterManager` — instancia Repository + UseCase + Analytics + ViewModel.
+- **Design System**: Liquid (`import Liquid`, `LiquidView`). Proibido `import UIKit` quando usando Liquid.
+- **Analytics**: `BNSAnalytics` — toda feature tem `<Nome>Analytics: <Nome>AnalyticsInterface`.
 - **Persistência**: SwiftData para dados estruturados; Keychain para dados sensíveis.
-- **Injeção de Dependência**: `@Environment` + inicializadores explícitos.
 - **Mínimo iOS**: 17.0 (salvo justificativa de negócio documentada).
 
 ## 2. Arquitetura Mandatória
 
 ```
-Presentation (SwiftUI View + ViewModel @Observable)
+Public (Launcher + Dependencies + JourneyRoute + JourneyRouterDelegate)
     ↓
-Domain (UseCase + Protocol de Repository + Entidade)
+Router (RouterManager instancia TUDO + RouterInterfaces via extension)
     ↓
-Data (RepositoryImpl + APIService + SwiftData)
+Presentation (Analytics + ViewData + ViewModel + Screen/View + ViewController)
+    ↓
+Domain (Model + RepositoryInterface + UseCaseInterface + UseCase)
+    ↓
+Data (DTO + Repository + InMemoryRepository)
 ```
 
-- **Entidades de domínio**: `struct` com `Sendable`, nunca `class` mutável.
-- **ViewModels**: `@MainActor @Observable final class`. Recebem dependências via `init`.
-- **Repositórios**: definidos como `protocol` no domínio, implementados na camada de dados.
+- **DTO**: `struct <Nome>DTO: Decodable, Sendable` — sem init manual, somente `let`.
+- **Model**: `struct <Nome>Model: Sendable` — sem Codable, sem dependências de UI.
+- **UseCase**: `final class: BaseUseCase<Interface>` — recebe e retorna apenas Models.
+- **ViewModel**: `@MainActor final class: BaseViewModel<Analytics, UseCase>, ObservableObject`.
+- **InMemoryRepository**: dados entre telas — nunca parâmetros de navegação.
 
 ## 3. Qualidade e Segurança (Obrigatórios)
 
 - **Testes**: cobertura mínima de 80% em domínio e ViewModels.
-- **Privacidade**: todo acesso a câmera, localização, contatos exige `NSUsageDescription` no `Info.plist`.
+- **Privacidade**: toda permissão com `NSUsageDescription` no `Info.plist` com justificativa.
 - **Dados sensíveis**: SEMPRE no Keychain. Nunca em `UserDefaults`.
-- **Acessibilidade**: todo componente deve ter `accessibilityLabel` e `accessibilityHint`.
+- **Strings**: sem strings literais no código — usar `Strings.Feature.Key` enum.
 - **LGPD**: coleta de dados pessoais deve ter consentimento explícito e mecanismo de exclusão.
+- **Analytics**: obrigatório em toda feature — rastrear screenView + ações principais.
 
 ## 4. Proibições Absolutas
 
 | Proibido | Alternativa |
 |---|---|
-| `ObservableObject` + `@Published` | `@Observable` macro |
+| `@Observable` macro | `ObservableObject` + `@Published` |
+| `@Environment` para DI | Injeção no construtor via RouterManager |
+| `URLSession` direto no Repository | `BNSCommunication` |
 | `DispatchQueue.main.async` | `@MainActor` + `await` |
-| `completionHandler` | `async throws` |
-| `UIViewController` direto no SwiftUI | `UIViewControllerRepresentable` |
+| Domain Models como parâmetro de navegação | `InMemoryRepository` |
+| Strings literais no código | `Strings.Feature.Key` enum |
+| Singleton (`shared`) como ponto de acesso | Injeção via construtor |
 | Dados sensíveis no `UserDefaults` | Keychain |
-| Singleton como ponto de acesso em Views | `@Environment` |
+| `Codable`/`Encodable` no Domain Model | Domain é puro Swift — sem serialização |
+| `var` em DTO | `let` — imutabilidade obrigatória |
 
 ## 5. Padrão de Resposta do Agente
 
 Ao receber uma solicitação de implementação:
-1. Gere a **Tabela de Impactos Sistêmicos** (arquivos afetados: `App.swift`, `Info.plist`, módulos, permissões).
-2. Consulte a skill correspondente em `catalog/agents_skills/ios/skills/`.
-3. Gere sempre o par `View.swift` + `ViewModel.swift`.
-4. Inclua testes unitários mínimos para o ViewModel criado.
+1. Gere a **Tabela de Impactos Sistêmicos** (arquivos afetados: `Info.plist`, `InMemoryRepository`, `RouterManager`, `JourneyRoute`, `AppModule`).
+2. Consulte `SKILL_IOS_FEATURE_SCAFFOLD_BNJ` para o processo completo.
+3. Gere sempre: `DTO` (se rede) + `Repository` + `Model` + `UseCase` + `Analytics` + `ViewData` + `ViewModel` + `Screen/View` + `ViewController` + `RouterInterface`.
+4. Inclua testes unitários mínimos para ViewModel e UseCase.

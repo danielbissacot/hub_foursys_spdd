@@ -191,3 +191,108 @@ extension Produto {
     }
 }
 ```
+
+---
+
+## BNJ Screen Pattern (Projeto Bradesco/BNJ)
+
+Para o projeto BNJ, as telas SwiftUI seguem o padrão `BaseScreen` com JourneyCore.
+
+### Estrutura de uma Screen BNJ
+
+```swift
+import SwiftUI
+import JourneyCore
+
+@MainActor
+struct {Feature}Screen: BaseScreen {
+    @ObservedObject var viewModel: {Feature}ViewModel
+    let router: {Feature}RouterInterface
+
+    var body: some View {
+        view
+            .onAppear { viewModel.onAppear() }   // síncrono
+            .task { await viewModel.loadAsync() } // assíncrono
+            .onChange(of: viewModel.routeEvent) { event in
+                handleRouteEvent(event)
+            }
+    }
+
+    @ViewBuilder
+    var view: some View {
+        switch viewModel.state {
+        case .idle:      EmptyView()
+        case .loading:   {Feature}LoadingView()
+        case .success(let data): {Feature}SuccessView(data: data)
+        case .failure:   ErrorView { viewModel.retryLastAction() }
+        }
+    }
+
+    private func handleRouteEvent(_ event: {Feature}ViewModel.RouteEvent?) {
+        guard let event else { return }
+        switch event {
+        case .onNavigateTo{Next}: router.onNavigateTo{Next}()
+        }
+        viewModel.resetRouteEventAndRestoreState()
+    }
+}
+```
+
+### Views auxiliares por estado (arquivos separados na pasta Custom)
+
+```swift
+// Custom/{Feature}LoadingView.swift
+struct {Feature}LoadingView: View {
+    var body: some View {
+        ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// Custom/{Feature}SuccessView.swift
+struct {Feature}SuccessView: View {
+    let data: {Feature}ViewData
+    var onSelect: (Int) -> Void = { _ in }
+
+    var body: some View {
+        // conteúdo da tela de sucesso
+    }
+}
+```
+
+### Preview BNJ (mock em arquivo separado com #if DEBUG)
+
+```swift
+// {Feature}PreviewMock.swift
+#if DEBUG
+struct {Feature}PreviewMock {
+    func viewModel(for state: {Feature}ViewModel.ViewState) -> {Feature}ViewModel {
+        let vm = {Feature}ViewModel(analytics: nil, useCase: nil)
+        vm.state = state
+        return vm
+    }
+}
+#endif
+
+// No arquivo da Screen:
+#Preview {
+    let mock = {Feature}PreviewMock()
+    {Feature}Screen(
+        viewModel: mock.viewModel(for: .success({Feature}ViewData(items: []))),
+        router: {Feature}RouterManagerMock()
+    )
+}
+```
+
+### Regras BNJ para SwiftUI
+
+| Regra | Detalhe |
+|---|---|
+| `BaseScreen` | Toda Screen BNJ deve se conformar |
+| `@ObservedObject var viewModel` | Não `@StateObject` nem `@Observable` |
+| `let router: RouterInterface` | Router injetado no construtor |
+| `.onAppear` | Só métodos síncronos |
+| `.task` | Só métodos async |
+| `.onChange(of: viewModel.routeEvent)` | Navegação via routeEvent |
+| Views auxiliares em Custom/ | Loading, Success, Empty, Failure em arquivos separados |
+| Preview mock em arquivo separado | `{Feature}PreviewMock` dentro de `#if DEBUG` |

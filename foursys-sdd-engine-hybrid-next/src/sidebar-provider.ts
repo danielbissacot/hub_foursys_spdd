@@ -395,9 +395,16 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const dsPath = path.join(catalogPath, 'design-systems');
             if (fs.existsSync(dsPath)) {
                 const dsFiles = fs.readdirSync(dsPath).filter(f => f.endsWith('.md'));
-                const toInject = (activeDesignSystem && activeDesignSystem !== 'none')
-                    ? dsFiles.filter(f => path.basename(f, '.md') === activeDesignSystem)
-                    : dsFiles;
+                let toInject: string[];
+                if (stackId === 'ios') {
+                    toInject = dsFiles.filter(f => f === 'ios-liquid.md');
+                } else if (stackId === 'android') {
+                    toInject = dsFiles.filter(f => f === 'android-liquid.md');
+                } else {
+                    toInject = (activeDesignSystem && activeDesignSystem !== 'none')
+                        ? dsFiles.filter(f => path.basename(f, '.md') === activeDesignSystem)
+                        : dsFiles;
+                }
                 for (const file of toInject) {
                     const skillName = path.basename(file, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
                     fs.copyFileSync(path.join(dsPath, file), path.join(skillsDir, `${skillName}.md`));
@@ -466,11 +473,15 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             'bootstrap': 'Bootstrap',
             'tailwind': 'Tailwind CSS',
         };
-        const dsLabel = (activeDesignSystem && activeDesignSystem !== 'none')
-            ? (DS_NAMES[activeDesignSystem] || activeDesignSystem)
-            : 'Nenhum / Próprio';
+        const isMobile = stackId === 'ios' || stackId === 'android';
+        const dsLabel = isMobile
+            ? 'Liquid Design System'
+            : (activeDesignSystem && activeDesignSystem !== 'none')
+                ? (DS_NAMES[activeDesignSystem] || activeDesignSystem)
+                : 'Nenhum / Próprio';
         const dsBtnLabel = (activeDesignSystem && activeDesignSystem !== 'none') ? 'Trocar' : 'Selecionar';
-        const showDsBadge = stackId === 'angular';
+        const showDsBadge = stackId === 'angular' || isMobile;
+        const showDsBtn = stackId === 'angular';
 
         return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -703,7 +714,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             <span class="stack-name">🎨 ${dsLabel}</span>
             <span class="stack-source">design system</span>
         </div>
-        <button class="btn-trocar" onclick="sendAction('SelectDesignSystem')">${dsBtnLabel}</button>
+        ${showDsBtn ? `<button class="btn-trocar" onclick="sendAction('SelectDesignSystem')">${dsBtnLabel}</button>` : ''}
     </div>` : ''}
 
     <div class="tabs">
@@ -726,7 +737,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
                 </span>
             </button>
-            ${stackId === 'angular' ? `
+            ${(stackId === 'angular' || isMobile) ? `
             <button class="btn-mockup ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')">
                 ${mockupExists ? '📸 Mockup: ✅ ver/trocar' : '📸 Adicionar Mockup de Tela'}
             </button>` : ''}

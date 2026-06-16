@@ -49,7 +49,7 @@
           { "name": "implement", "description": "Executa a codificação baseada em tarefas e skills da stack ativa" },
           { "name": "qa-test-plan", "description": "Gera o Plano de Testes (estratégia e escopo)" },
           { "name": "qa-test-cases", "description": "Gera Casos de Teste em BDD/Gherkin" },
-          { "name": "qa-automation", "description": "Gera scripts de automação de testes" },
+          { "name": "qa-automation", "description": "Gera roteiros de execução manual de testes" },
           { "name": "qa-coverage", "description": "Realiza review de cobertura de testes" },
           { "name": "qa-report", "description": "Gera o Relatório de Qualidade final" }
         ]
@@ -66,10 +66,11 @@
       },
       { "command": "foursys.qaTestPlan",   "title": "Foursys QA: Plano de Testes" },
       { "command": "foursys.qaTestCases",  "title": "Foursys QA: Casos de Teste (BDD)" },
-      { "command": "foursys.qaAutomation", "title": "Foursys QA: Scripts de Automação" },
+      { "command": "foursys.qaAutomation", "title": "Foursys QA: Roteiros de Teste" },
       { "command": "foursys.qaCoverage",   "title": "Foursys QA: Review de Cobertura" },
       { "command": "foursys.qaReport",     "title": "Foursys QA: Relatório de Qualidade" },
-      { "command": "foursys.qaImplement",       "title": "Foursys QA: Implementar Testes (extrair arquivos)" },
+      { "command": "foursys.qaExportXray", "title": "Foursys QA: Exportar para Xray" },
+      { "command": "foursys.setXrayToken", "title": "Foursys: Configurar Token Xray" },
       { "command": "foursys.implementSession1",   "title": "Foursys: Implementar Sessão 1 — Domínio" },
       { "command": "foursys.implementSession2",   "title": "Foursys: Implementar Sessão 2 — Infraestrutura" },
       { "command": "foursys.selectDesignSystem", "title": "Foursys: Selecionar Design System Angular" },
@@ -81,7 +82,17 @@
         "foursys.modelOverride": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Deixe **vazio** para usar o modelo otimizado por fase (recomendado). Preencha com uma família de modelo para forçar em todas as fases (ex: `claude-sonnet-4-6`, `gpt-4o`, `claude-fable-5`)."
+          "markdownDescription": "Deixe **vazio** para usar o modelo otimizado por fase (recomendado). Preencha com uma família de modelo para forçar em todas as fases (ex: `claude-sonnet-4-6`)."
+        },
+        "foursys.xrayJiraUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL base do Jira com Xray instalado (ex: https://jira.empresa.com.br). Usado para exportar casos de teste via API."
+        },
+        "foursys.xrayProjectKey": {
+          "type": "string",
+          "default": "",
+          "description": "Chave do projeto Jira onde os testes serão criados (ex: SPJCPCG). Use o comando 'Foursys: Configurar Token Xray' para salvar o Bearer token."
         }
       }
     }

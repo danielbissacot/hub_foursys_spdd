@@ -1,8 +1,8 @@
 ---
 name: Relatório de Qualidade — Genérico
-description: Gera o Relatório Final de Qualidade consolidando resultados de testes, cobertura e riscos — agnóstico de stack.
+description: Gera o Relatório Final de Qualidade consolidando resultados dos testes manuais, cobertura e riscos — agnóstico de stack.
 metadata:
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
 # Playbook: Foursys QA — Relatório de Qualidade
@@ -14,7 +14,7 @@ metadata:
 ```text
 Atue como QA Manager responsável pela entrega de qualidade do sprint.
 
-Sua tarefa é gerar o Relatório Final de Qualidade consolidando todas as informações do ciclo de QA (Plano, Casos de Teste, Automação, Review de Cobertura) fornecidas no contexto.
+Sua tarefa é gerar o Relatório Final de Qualidade consolidando todas as informações do ciclo de QA (Plano, Casos de Teste, Roteiros de Teste, Review de Cobertura) fornecidas no contexto.
 
 Estruture o relatório com as seguintes seções:
 
@@ -24,18 +24,20 @@ Estruture o relatório com as seguintes seções:
 
 ### 2. Métricas do Ciclo
 
-| Métrica | Valor | Meta | Status |
-|---------|-------|------|--------|
-| Critérios de aceite cobertos | X% | ≥80% | ✅/❌ |
-| Cenários automatizados | N | — | — |
-| Defeitos críticos abertos | N | 0 | ✅/❌ |
-| Defeitos totais encontrados | N | — | — |
-| Taxa de regressão | X% | 0% | ✅/❌ |
+| Métrica                              | Valor | Meta  | Status |
+|--------------------------------------|-------|-------|--------|
+| Critérios de aceite cobertos         | X%    | ≥80%  | ✅/❌  |
+| Casos de teste manuais executados    | N     | —     | —      |
+| Casos aprovados                      | N     | —     | —      |
+| Casos reprovados                     | N     | 0     | ✅/❌  |
+| Defeitos críticos abertos            | N     | 0     | ✅/❌  |
+| Defeitos totais encontrados          | N     | —     | —      |
+| Taxa de regressão                    | X%    | 0%    | ✅/❌  |
 
 ### 3. Resultados por Fluxo
 Para cada fluxo funcional testado:
 - Status: ✅ Aprovado / ⚠️ Aprovado com ressalvas / ❌ Reprovado.
-- Resumo dos testes executados e resultados.
+- Resumo dos roteiros executados e resultados obtidos.
 - Defeitos encontrados (se houver).
 
 ### 4. Defeitos e Riscos Abertos
@@ -45,19 +47,19 @@ Liste defeitos não resolvidos com:
 - Recomendação (corrigir antes do deploy / monitorar / aceitar risco).
 
 ### 5. Cobertura — Lacunas Pendentes
-- Critérios de aceite ainda não cobertos.
+- Critérios de aceite ainda não cobertos por roteiro de teste.
 - Justificativa e plano para cobertura futura.
 
 ### 6. Recomendações para o Próximo Ciclo
-- Melhorias na estratégia de testes.
-- Automações prioritárias ainda ausentes.
+- Melhorias na estratégia de testes manuais.
+- Fluxos prioritários para criação de novos roteiros.
 - Ajustes no ambiente ou dados de teste.
 
 ### 7. Veredicto Final
 **APROVADO para deploy** se:
 - Cobertura ≥ 80% dos critérios de aceite.
 - Zero defeitos CRITICAL abertos.
-- Todos os cenários @smoke passando.
+- Todos os casos @smoke executados e aprovados pelo QA.
 
 Caso contrário, detalhe as condições para aprovação.
 ```

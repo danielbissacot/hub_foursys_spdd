@@ -147,36 +147,115 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaCoverage',   () => executeSDDPhase('qa-coverage',   '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaReport',     () => executeSDDPhase('qa-report',     '', '', null, commandToken(), context, outputChannel)));
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaExportXray', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
-        const scriptsPath = path.join(rootPath, DOC_FOLDER, 'qa', 'scripts_automacao.md');
-        if (!fs.existsSync(scriptsPath)) {
-            vscode.window.showWarningMessage('⚠️ Execute "Scripts de Automação" primeiro para gerar o arquivo de scripts.');
+        const casesPath = path.join(rootPath, DOC_FOLDER, 'qa', 'casos_teste.md');
+        if (!fs.existsSync(casesPath)) {
+            vscode.window.showWarningMessage('⚠️ Execute "Casos de Teste" primeiro para gerar o arquivo BDD.');
             return;
         }
-        const stackId = getActiveStackId(context);
-        const content = fs.readFileSync(scriptsPath, 'utf8');
-        const blocks = extractCodeBlocks(content, rootPath, stackId);
-        if (blocks.length === 0) {
-            vscode.window.showWarningMessage('⚠️ Nenhum bloco de código extraível encontrado. Verifique se o arquivo scripts_automacao.md contém blocos ```gherkin, ```typescript ou ```java com <!-- file: ... --> ou Feature: / describe(...).');
+
+        const content = fs.readFileSync(casesPath, 'utf8');
+
+        // Extrai todos os blocos gherkin
+        const gherkinBlocks: string[] = [];
+        const lines = content.split('\n');
+        let inBlock = false;
+        let blockLines: string[] = [];
+        for (const line of lines) {
+            if (!inBlock) {
+                if (/^```gherkin/i.test(line)) { inBlock = true; blockLines = []; }
+            } else {
+                if (line.startsWith('```')) {
+                    if (blockLines.length > 0) { gherkinBlocks.push(blockLines.join('\n')); }
+                    inBlock = false;
+                } else {
+                    blockLines.push(line);
+                }
+            }
+        }
+
+        if (gherkinBlocks.length === 0) {
+            vscode.window.showWarningMessage('⚠️ Nenhum bloco gherkin encontrado em casos_teste.md. Verifique se o arquivo contém blocos ```gherkin.');
             return;
         }
-        const existing = blocks.filter(b => fs.existsSync(b.targetFile));
-        if (existing.length > 0) {
-            const choice = await vscode.window.showWarningMessage(
-                `⚠️ ${existing.length} arquivo(s) já existem. Sobrescrever?`,
-                { modal: true }, 'Sobrescrever', 'Cancelar'
-            );
-            if (choice !== 'Sobrescrever') { return; }
+
+        // Avisa se encontrar keywords em português
+        const ptKeywords = /^\s*(Dado|Quando|Então|E\s|Mas\s)/m;
+        if (gherkinBlocks.some(b => ptKeywords.test(b))) {
+            vscode.window.showWarningMessage('⚠️ Detectadas keywords em português (Dado/Quando/Então). O Xray requer Given/When/Then em inglês. Regere os Casos de Teste.');
+            return;
         }
-        for (const block of blocks) {
-            const dir = path.dirname(block.targetFile);
-            if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
-            fs.writeFileSync(block.targetFile, block.content);
-            await openFile(block.targetFile);
+
+        const featureContent = gherkinBlocks.join('\n\n');
+
+        // Verifica configurações Xray
+        const cfg = vscode.workspace.getConfiguration('foursys');
+        const jiraUrl = cfg.get<string>('xrayJiraUrl', '').trim();
+        const projectKey = cfg.get<string>('xrayProjectKey', '').trim();
+        const apiToken = await context.secrets.get('foursys.xrayApiToken');
+
+        if (jiraUrl && projectKey && apiToken) {
+            outputChannel.appendLine(`[Xray] Enviando ${gherkinBlocks.length} bloco(s) para ${jiraUrl} — projeto ${projectKey}...`);
+            try {
+                const https = require('https');
+                const postData = Buffer.from(featureContent, 'utf8');
+                const endpoint = new URL(`${jiraUrl}/rest/raven/1.0/import/feature?projectKey=${projectKey}`);
+                const options = {
+                    hostname: endpoint.hostname,
+                    port: endpoint.port || 443,
+                    path: endpoint.pathname + endpoint.search,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'Authorization': `Bearer ${apiToken}`,
+                        'Content-Length': postData.length
+                    }
+                };
+                const result = await new Promise<string>((resolve, reject) => {
+                    const req = https.request(options, (res: any) => {
+                        let data = '';
+                        res.on('data', (chunk: any) => { data += chunk; });
+                        res.on('end', () => resolve(data));
+                    });
+                    req.on('error', reject);
+                    req.write(postData);
+                    req.end();
+                });
+                outputChannel.appendLine(`[Xray] Resposta: ${result}`);
+                vscode.window.showInformationMessage(`✅ Casos enviados para o Xray! Projeto: ${projectKey}`);
+            } catch (error: any) {
+                vscode.window.showErrorMessage(`❌ Erro ao enviar para o Xray: ${error.message}`);
+                outputChannel.appendLine(`[Xray ERRO] ${error.message}`);
+            }
+        } else {
+            // Exporta arquivo .feature localmente
+            const exportPath = path.join(rootPath, DOC_FOLDER, 'qa', 'xray_export.feature');
+            const exportDir = path.dirname(exportPath);
+            if (!fs.existsSync(exportDir)) { fs.mkdirSync(exportDir, { recursive: true }); }
+            fs.writeFileSync(exportPath, featureContent);
+            await openFile(exportPath);
+            const hint = !jiraUrl
+                ? 'Configure foursys.xrayJiraUrl e foursys.xrayProjectKey nas Settings para enviar direto ao Xray.'
+                : !apiToken
+                ? 'Configure o token com o comando "Foursys: Configurar Token Xray".'
+                : '';
+            vscode.window.showInformationMessage(`📤 Exportado: xray_export.feature. ${hint}`);
         }
-        vscode.window.showInformationMessage(`✅ ${blocks.length} arquivo(s) de teste criados com sucesso.`);
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.setXrayToken', async () => {
+        const token = await vscode.window.showInputBox({
+            title: 'Foursys — Token de API do Xray',
+            prompt: 'Cole o Bearer token de API do Jira/Xray (será armazenado com segurança)',
+            password: true,
+            ignoreFocusOut: true
+        });
+        if (token && token.trim()) {
+            await context.secrets.store('foursys.xrayApiToken', token.trim());
+            vscode.window.showInformationMessage('✅ Token Xray salvo com segurança.');
+        }
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', async () => {
@@ -391,12 +470,12 @@ async function executeSDDPhase(
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'plano_testes.md')];
             break;
         case 'qa-automation':
-            outputPath = path.join(docPath, 'qa', 'scripts_automacao.md');
+            outputPath = path.join(docPath, 'qa', 'roteiros_teste.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'casos_teste.md')];
             break;
         case 'qa-coverage':
             outputPath = path.join(docPath, 'qa', 'review_cobertura.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'scripts_automacao.md')];
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'roteiros_teste.md')];
             break;
         case 'qa-report':
             outputPath = path.join(docPath, 'qa', 'relatorio_qualidade.md');
@@ -514,81 +593,5 @@ function getWorkspaceRoot(): string | null {
     return folders ? folders[0].uri.fsPath : null;
 }
 
-interface ExtractedBlock {
-    language: string;
-    content: string;
-    targetFile: string;
-}
-
-function slugify(text: string): string {
-    return text.trim().toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-}
-
-function resolveTargetFile(lang: string, content: string, hint: string | null, rootPath: string, stackId: string): string | null {
-    if (hint) { return path.join(rootPath, hint); }
-
-    if (lang === 'gherkin') {
-        const m = content.match(/^Feature:\s*(.+)/m);
-        if (!m) { return null; }
-        const dir = stackId === 'spring_boot' ? 'src/test/resources/features' : 'test/features';
-        return path.join(rootPath, dir, `${slugify(m[1])}.feature`);
-    }
-    if (lang === 'typescript') {
-        const m = content.match(/describe\s*\(\s*['"`](.+?)['"`]/);
-        if (!m) { return null; }
-        return path.join(rootPath, 'test', 'steps', `${slugify(m[1])}.steps.ts`);
-    }
-    if (lang === 'java') {
-        const m = content.match(/class\s+(\w+)/);
-        if (!m) { return null; }
-        return path.join(rootPath, 'src', 'test', 'java', 'steps', `${m[1]}.java`);
-    }
-    return null;
-}
-
-function extractCodeBlocks(markdownContent: string, rootPath: string, stackId: string): ExtractedBlock[] {
-    const EXTRACTABLE = new Set(['gherkin', 'typescript', 'java']);
-    const FILE_HINT_RE = /<!--\s*file:\s*(.+?)\s*-->/i;
-    const lines = markdownContent.split('\n');
-    const blocks: ExtractedBlock[] = [];
-    let inBlock = false;
-    let lang = '';
-    let bodyLines: string[] = [];
-    let pendingHint: string | null = null;
-
-    for (const line of lines) {
-        if (!inBlock) {
-            const hintMatch = line.match(FILE_HINT_RE);
-            if (hintMatch) { pendingHint = hintMatch[1].trim(); continue; }
-
-            const openMatch = line.match(/^```(\w+)/);
-            if (openMatch) {
-                inBlock = true;
-                lang = openMatch[1].toLowerCase();
-                bodyLines = [];
-                continue;
-            }
-            if (line.trim() && !hintMatch) { pendingHint = null; }
-        } else {
-            if (line.startsWith('```')) {
-                const content = bodyLines.join('\n');
-                if (EXTRACTABLE.has(lang)) {
-                    const target = resolveTargetFile(lang, content, pendingHint, rootPath, stackId);
-                    if (target) { blocks.push({ language: lang, content, targetFile: target }); }
-                }
-                inBlock = false;
-                lang = '';
-                bodyLines = [];
-                pendingHint = null;
-            } else {
-                bodyLines.push(line);
-            }
-        }
-    }
-    return blocks;
-}
 
 export function deactivate() {}

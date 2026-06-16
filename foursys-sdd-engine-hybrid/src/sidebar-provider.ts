@@ -96,8 +96,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'QaReport':
                     vscode.commands.executeCommand('foursys.qaReport');
                     break;
-                case 'QaImplement':
-                    vscode.commands.executeCommand('foursys.qaImplement');
+                case 'QaExportXray':
+                    vscode.commands.executeCommand('foursys.qaExportXray');
                     break;
                 case 'SelectDesignSystem':
                     await vscode.commands.executeCommand('foursys.selectDesignSystem');
@@ -262,7 +262,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
     private _checkQaScriptsReady(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'scripts_automacao.md'));
+        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'roteiros_teste.md'));
     }
 
     private _checkStoryHasContent(workspaceRoot: string): boolean {
@@ -708,7 +708,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
     <div class="tabs">
         <button class="tab-btn active" data-tab="dev" onclick="switchTab('dev')">Dev</button>
-        <button class="tab-btn" data-tab="qa" onclick="switchTab('qa')">QA Auto</button>
+        <button class="tab-btn" data-tab="qa" onclick="switchTab('qa')">QA</button>
     </div>
 
     <!-- TAB DEV -->
@@ -745,7 +745,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
-    <!-- TAB QA AUTO -->
+    <!-- TAB QA -->
     <div id="tab-qa" class="tab-content">
         <div class="section-label">Workflow SDD</div>
         <div class="${isConnected ? '' : 'disabled'}">
@@ -755,17 +755,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaTestCases')">
                 <span class="step-number">2</span>
-                <span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cenários BDD / Gherkin</span></span>
+                <span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cucumber (Given/When/Then → Xray)</span></span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaAutomation')">
                 <span class="step-number">3</span>
-                <span class="step-label"><span class="step-title">🤖 Scripts de Automação</span><span class="step-sub">Gerar código de teste</span></span>
+                <span class="step-label"><span class="step-title">📋 Roteiros de Teste</span><span class="step-sub">Procedimentos de execução manual</span></span>
             </button>
-            <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')">
+            <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaExportXray')">
                 <span class="step-number">4</span>
                 <span class="step-label">
-                    <span class="step-title">🚀 Implementar Testes</span>
-                    <span class="step-sub">${qaScriptsReady ? 'Extrair e criar arquivos de teste' : 'Aguardando Scripts de Automação'}</span>
+                    <span class="step-title">📤 Exportar para Xray</span>
+                    <span class="step-sub">${qaScriptsReady ? 'Enviar casos Cucumber para o Xray' : 'Aguardando Roteiros de Teste'}</span>
                 </span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaCoverage')">

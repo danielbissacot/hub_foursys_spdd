@@ -252,7 +252,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         const items = stacks.map(s => ({ label: s.displayName, description: s.id, stackId: s.id }));
         const picked = await vscode.window.showQuickPick(items, {
             placeHolder: 'Selecione a Stack do Projeto',
-            title: 'Foursys SDD Hybrid NEXT — Stack Ativa'
+            title: 'Foursys SDD Hybrid PF — Stack Ativa'
         });
         if (picked) {
             await this._context.workspaceState.update('activeStack', picked.stackId);
@@ -696,8 +696,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
     <div class="header">
-        <h3 class="title">🚀 Foursys SDD Hybrid NEXT</h3>
-        <span class="version">v0.1.0 NEXT (multi-stack) — iOS & Android ready</span>
+        <h3 class="title">🚀 Foursys SDD Hybrid PF</h3>
+        <span class="version">v0.1.0 PF (multi-stack) — iOS & Android ready</span>
     </div>
 
     <div class="stack-badge">

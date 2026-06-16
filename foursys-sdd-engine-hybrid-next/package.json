@@ -1,6 +1,6 @@
 {
   "name": "foursys-sdd-engine-hybrid-next",
-  "displayName": "Foursys SDD Engine Hybrid NEXT",
+  "displayName": "Foursys SDD Engine Hybrid PF",
   "description": "Motor SDD next-gen — iOS, Android, Angular, Spring Boot, Node.js, COBOL.",
   "version": "0.1.0",
   "publisher": "foursys",
@@ -20,7 +20,7 @@
       "activitybar": [
         {
           "id": "foursys-sdd-sidebar",
-          "title": "Foursys SDD Hybrid NEXT",
+          "title": "Foursys SDD Hybrid PF",
           "icon": "resources/logo.svg"
         }
       ]
@@ -38,7 +38,7 @@
       {
         "id": "foursys_sdd",
         "name": "foursys_sdd",
-        "fullName": "Foursys SDD Hybrid NEXT",
+        "fullName": "Foursys SDD Hybrid PF",
         "description": "Orquestrador SDD next-gen: Angular, Spring Boot, Node.js, COBOL, iOS e Android.",
         "isDefault": false,
         "commands": [

@@ -686,7 +686,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 <body>
     <div class="header">
         <h3 class="title">🚀 Foursys SDD Hybrid</h3>
-        <span class="version">v1.0.0 HYBRID (multi-stack) — protótipo</span>
+        <span class="version">v1.0.0 HYBRID (multi-stack)</span>
     </div>
 
     <div class="stack-badge">

@@ -396,7 +396,7 @@ async function executeSDDPhase(
     // skill e playbook não precisam de workspace nem de stack
     if (command === 'skill' || command === 'playbook') {
         const globalStoragePath = context.globalStorageUri.fsPath;
-        const slug = userInstruction.trim().toLowerCase().replace(/\.md$/, '');
+        const slug = userInstruction.trim().toLowerCase().split(/\s+/)[0].replace(/\.md$/, '');
         if (command === 'skill') {
             const skillsDir = path.join(globalStoragePath, 'skills');
             const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
@@ -405,6 +405,25 @@ async function executeSDDPhase(
                 for (const dir of [skillsDir, customSkillsDir]) {
                     const candidate = path.join(dir, `${slug}.md`);
                     if (fs.existsSync(candidate)) { filePath = candidate; break; }
+                }
+                // Fallback: busca diretamente no hub catalog pelo nome da subpasta (slug = nome do diretório)
+                if (!filePath) {
+                    const hubAgentsPath = path.join(globalStoragePath, 'hub', 'catalog', 'agents_skills');
+                    const searchSkillDir = (dir: string): string => {
+                        if (!fs.existsSync(dir)) { return ''; }
+                        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                            if (!e.isDirectory()) { continue; }
+                            const full = path.join(dir, e.name);
+                            if (e.name === slug) {
+                                const md = fs.readdirSync(full).find(f => f.endsWith('.md') && f !== 'README.md' && !fs.statSync(path.join(full, f)).isDirectory());
+                                if (md) { return path.join(full, md); }
+                            }
+                            const found = searchSkillDir(full);
+                            if (found) { return found; }
+                        }
+                        return '';
+                    };
+                    filePath = searchSkillDir(hubAgentsPath);
                 }
             }
             if (!filePath) {
@@ -432,7 +451,15 @@ async function executeSDDPhase(
             }
             const skillName = path.basename(filePath, '.md');
             const skillContent = fs.readFileSync(filePath, 'utf8');
-            chatResponse?.markdown(`## 📄 Skill: \`${skillName}\`\n\n${skillContent}`);
+            chatResponse?.markdown(`📄 **Skill:** \`${skillName}\` — aplicando instruções...\n\n`);
+            const skillExtra = userInstruction.replace(slug, '').trim();
+            await AIClient.sendPrompt(
+                skillContent,
+                skillExtra || 'Com base nesta skill, apresente brevemente o que você pode fazer e aguarde a próxima instrução do desenvolvedor.',
+                outputChannel, token,
+                (chunk) => { if (chatResponse) { chatResponse.markdown(chunk); } },
+                'standard'
+            );
         } else {
             const playbookRoot = path.join(globalStoragePath, 'hub', 'catalog', 'playbook');
             if (!fs.existsSync(playbookRoot)) {
@@ -446,7 +473,8 @@ async function executeSDDPhase(
                         const full = path.join(dir, entry.name);
                         if (entry.isDirectory()) { const found = findBySlug(full); if (found) { return found; } }
                         else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
-                            if (path.basename(entry.name, '.md').toLowerCase() === slug) { return full; }
+                            const relPath = path.relative(playbookRoot, full).replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase();
+                            if (relPath === slug || path.basename(entry.name, '.md').toLowerCase() === slug) { return full; }
                         }
                     }
                     return '';
@@ -482,7 +510,14 @@ async function executeSDDPhase(
             }
             const pbName = path.basename(filePath, '.md');
             const pbContent = fs.readFileSync(filePath, 'utf8');
-            chatResponse?.markdown(`## 📋 Playbook: \`${pbName}\`\n\n${pbContent}`);
+            chatResponse?.markdown(`📋 **PlayBook:** \`${pbName}\` — iniciando...\n\n`);
+            await AIClient.sendPrompt(
+                pbContent,
+                'Execute o fluxo de trabalho descrito neste playbook. Apresente os próximos passos de forma clara e objetiva.',
+                outputChannel, token,
+                (chunk) => { if (chatResponse) { chatResponse.markdown(chunk); } },
+                'standard'
+            );
         }
         return;
     }

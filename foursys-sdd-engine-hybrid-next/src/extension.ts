@@ -314,6 +314,100 @@ async function executeSDDPhase(
     context: vscode.ExtensionContext,
     outputChannel: vscode.OutputChannel
 ) {
+    // skill e playbook não precisam de workspace nem de stack
+    if (command === 'skill' || command === 'playbook') {
+        const globalStoragePath = context.globalStorageUri.fsPath;
+        const slug = userInstruction.trim().toLowerCase().replace(/\.md$/, '');
+        if (command === 'skill') {
+            const skillsDir = path.join(globalStoragePath, 'skills');
+            const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+            let filePath = '';
+            if (slug) {
+                for (const dir of [skillsDir, customSkillsDir]) {
+                    const candidate = path.join(dir, `${slug}.md`);
+                    if (fs.existsSync(candidate)) { filePath = candidate; break; }
+                }
+            }
+            if (!filePath) {
+                const allFiles: { label: string; description: string; filepath: string }[] = [];
+                if (fs.existsSync(skillsDir)) {
+                    for (const f of fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'))) {
+                        allFiles.push({ label: `📄 ${f}`, description: 'Hub Skill', filepath: path.join(skillsDir, f) });
+                    }
+                }
+                if (fs.existsSync(customSkillsDir)) {
+                    for (const f of fs.readdirSync(customSkillsDir).filter(f => f.endsWith('.md'))) {
+                        allFiles.push({ label: `✏️ ${f}`, description: 'Custom Skill', filepath: path.join(customSkillsDir, f) });
+                    }
+                }
+                if (allFiles.length === 0) {
+                    chatResponse?.markdown('⚠️ Nenhuma skill encontrada. Execute **Sincronizar** na sidebar primeiro.');
+                    return;
+                }
+                const picked = await vscode.window.showQuickPick(allFiles, {
+                    title: 'Foursys SDD — Skills Disponíveis',
+                    placeHolder: 'Selecione uma skill para carregar'
+                });
+                if (!picked) { return; }
+                filePath = picked.filepath;
+            }
+            const skillName = path.basename(filePath, '.md');
+            const skillContent = fs.readFileSync(filePath, 'utf8');
+            chatResponse?.markdown(`## 📄 Skill: \`${skillName}\`\n\n${skillContent}`);
+        } else {
+            const playbookRoot = path.join(globalStoragePath, 'hub', 'catalog', 'playbook');
+            if (!fs.existsSync(playbookRoot)) {
+                chatResponse?.markdown('⚠️ Playbooks não encontrados. Execute **CONECTAR AO HUB** na sidebar primeiro.');
+                return;
+            }
+            let filePath = '';
+            if (slug) {
+                const findBySlug = (dir: string): string => {
+                    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                        const full = path.join(dir, entry.name);
+                        if (entry.isDirectory()) { const found = findBySlug(full); if (found) { return found; } }
+                        else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
+                            if (path.basename(entry.name, '.md').toLowerCase() === slug) { return full; }
+                        }
+                    }
+                    return '';
+                };
+                filePath = findBySlug(playbookRoot);
+            }
+            if (!filePath) {
+                const pbFiles: { label: string; description: string; filepath: string }[] = [];
+                const collectMd = (dir: string, fase: string) => {
+                    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                        const full = path.join(dir, entry.name);
+                        if (entry.isDirectory()) { collectMd(full, fase); }
+                        else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
+                            pbFiles.push({ label: `📋 ${path.basename(entry.name, '.md')}`, description: fase, filepath: full });
+                        }
+                    }
+                };
+                for (const entry of fs.readdirSync(playbookRoot, { withFileTypes: true })) {
+                    if (entry.isDirectory() && entry.name.startsWith('fase')) {
+                        collectMd(path.join(playbookRoot, entry.name), entry.name);
+                    }
+                }
+                if (pbFiles.length === 0) {
+                    chatResponse?.markdown('⚠️ Nenhum playbook encontrado.');
+                    return;
+                }
+                const picked = await vscode.window.showQuickPick(pbFiles, {
+                    title: 'Foursys SDD — Playbooks',
+                    placeHolder: 'Selecione um playbook para carregar'
+                });
+                if (!picked) { return; }
+                filePath = picked.filepath;
+            }
+            const pbName = path.basename(filePath, '.md');
+            const pbContent = fs.readFileSync(filePath, 'utf8');
+            chatResponse?.markdown(`## 📋 Playbook: \`${pbName}\`\n\n${pbContent}`);
+        }
+        return;
+    }
+
     const rootPath = getWorkspaceRoot();
     if (!rootPath) { return; }
 

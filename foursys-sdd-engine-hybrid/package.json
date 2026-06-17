@@ -51,7 +51,9 @@
           { "name": "qa-test-cases", "description": "Gera Casos de Teste em BDD/Gherkin" },
           { "name": "qa-automation", "description": "Gera roteiros de execução manual de testes" },
           { "name": "qa-coverage", "description": "Realiza review de cobertura de testes" },
-          { "name": "qa-report", "description": "Gera o Relatório de Qualidade final" }
+          { "name": "qa-report", "description": "Gera o Relatório de Qualidade final" },
+          { "name": "skill", "description": "Carrega uma Skill disponível no HUB (Quick Pick ou nome direto)" },
+          { "name": "playbook", "description": "Carrega um Playbook do HUB (Quick Pick ou nome direto)" }
         ]
       }
     ],

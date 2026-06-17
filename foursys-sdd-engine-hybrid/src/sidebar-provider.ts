@@ -155,8 +155,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                         placeHolder: 'Selecione um playbook para visualizar'
                     });
                     if (pickedPb) {
+                        const filename = path.basename(pickedPb.filepath);
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `#file:${pickedPb.filepath} `,
+                            query: `@foursys_sdd /playbook ${filename} `,
                             isPartialQuery: true
                         });
                     }
@@ -186,8 +187,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                         placeHolder: 'Selecione uma skill para visualizar'
                     });
                     if (picked) {
+                        const filename = path.basename(picked.filepath);
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `#file:${picked.filepath} `,
+                            query: `@foursys_sdd /skill ${filename} `,
                             isPartialQuery: true
                         });
                     }

@@ -7,11 +7,11 @@ import { FoursysSDDSidebarProvider } from './sidebar-provider';
 import { getStackConfig, getAllStacks, resolveStack } from './stack-registry';
 
 const DOC_FOLDER = 'doc_projeto';
-const WORKSPACE_CONTEXT_MAX_FILES = 5;
-const WORKSPACE_CONTEXT_MAX_LINES = 300;
-const CONTEXT_FILE_MAX_LINES = 800;
+const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de workspace em 60%
+const WORKSPACE_CONTEXT_MAX_LINES = 80;  // era 300 — snippet curto de imports + assinaturas
+const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc é suficiente
 const PHASES_NEEDING_WORKSPACE = new Set([
-    'plan', 'qa-test-plan', 'qa-test-cases', 'qa-automation'
+    'plan', 'qa-test-plan', 'qa-automation'  // removido qa-test-cases (não precisa de código)
 ]);
 
 // Mend Advise — ID correto na marketplace VS Code (case-sensitive no getExtension)
@@ -262,19 +262,19 @@ export function activate(context: vscode.ExtensionContext) {
         const stackId = getActiveStackId(context);
         const config = getStackConfig(stackId);
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${config.implementSkillTag}.`
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${config.implementSkillTag}.`
         });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession1', async () => {
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
         });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession2', async () => {
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
         });
     }));
 
@@ -666,7 +666,7 @@ async function executeSDDPhase(
         const contextSection = userContext.trim() !== ''
             ? `CONTEXTO DO PROJETO:\n${userContext}`
             : 'Não há contexto adicional. Gere o documento AGORA com base estritamente no PLAYBOOK acima. NÃO solicite contexto. NÃO faça perguntas.';
-        const finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO.\n\n${contextSection}`;
+        const finalPrompt = `${instruction}GERE O ARQUIVO MD. Seja direto e conciso. Foque nos pontos essenciais sem exemplos redundantes.\n\n${contextSection}`;
 
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 

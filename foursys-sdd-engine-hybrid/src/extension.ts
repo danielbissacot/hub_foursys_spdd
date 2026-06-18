@@ -17,7 +17,7 @@ const PHASES_NEEDING_WORKSPACE = new Set([
 // Mend Advise — ID correto na marketplace VS Code (case-sensitive no getExtension)
 const MEND_EXTENSION_ID   = 'mend.mend-advise';
 const MEND_LICENSE_SECRET  = 'foursys.mendLicenseKey';
-const MEND_API_TOKEN       = 'ef149a32-1038-40b2-9917-436a1266ed17';
+const MEND_API_TOKEN       = 'eyJ1cmwiOiJodHRwczovL2Rzcy1hcHBzZWMubWVuZC5pby9hcGkiLCJ0b2tlbiI6ImVmMTQ5YTMyLTEwMzgtNDBiMi05OTE3LTQzNmExMjY2ZWQxNyJ9';
 
 async function ensureMendAdvise(
     context: vscode.ExtensionContext,

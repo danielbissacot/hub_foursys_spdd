@@ -41,6 +41,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
         updateWebview();
 
+        // Garante doc_projeto/ no .gitignore do projeto ao abrir a sidebar
+        const initRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (initRoot) { this._updateGitignore(initRoot); }
+
         // Atualiza sidebar quando o editor ativo muda de projeto
         vscode.window.onDidChangeActiveTextEditor(() => updateWebview(), undefined, this._context.subscriptions);
 
@@ -602,7 +606,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     private _updateGitignore(workspaceRoot: string) {
         try {
             const gitignorePath = path.join(workspaceRoot, '.gitignore');
-            const toIgnore = ['.github/copilot-instructions.md', '.github/skills/', 'agentes_foursys/'];
+            const toIgnore = ['.github/copilot-instructions.md', '.github/skills/', 'agentes_foursys/', 'doc_projeto/'];
             let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
             let changed = false;
             for (const entry of toIgnore) {

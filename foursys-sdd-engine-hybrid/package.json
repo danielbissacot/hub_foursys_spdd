@@ -86,6 +86,11 @@
           "default": "",
           "markdownDescription": "Deixe **vazio** para usar o modelo otimizado por fase (recomendado). Preencha com uma família de modelo para forçar em todas as fases (ex: `claude-sonnet-4-6`)."
         },
+        "foursys.tokenBudget": {
+          "type": "number",
+          "default": 4500,
+          "markdownDescription": "Limite de tokens de **entrada** por chamada. Um aviso é exibido se o prompt exceder esse valor. Use `0` para desativar o aviso. Ajuste conforme a cota da sua empresa."
+        },
         "foursys.xrayJiraUrl": {
           "type": "string",
           "default": "",

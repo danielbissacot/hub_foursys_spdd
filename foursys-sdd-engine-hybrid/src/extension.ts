@@ -633,6 +633,33 @@ async function executeSDDPhase(
         }
     }
 
+    if (command === 'specify' && userInstruction.trim() !== '') {
+        const pastedContent = userInstruction.trim();
+        let shouldWrite = true;
+        if (fs.existsSync(outputPath)) {
+            const existing = fs.readFileSync(outputPath, 'utf8').trim();
+            if (existing.length > 100 && !existing.includes('DESCREVA AQUI')) {
+                const choice = await vscode.window.showWarningMessage(
+                    `⚠️ "user_story.md" já tem conteúdo.\nSobrescrever com o texto colado no chat?`,
+                    { modal: true },
+                    'Sobrescrever',
+                    'Cancelar'
+                );
+                if (choice !== 'Sobrescrever') {
+                    if (chatResponse) { chatResponse.markdown('⛔ Cancelado. `user_story.md` preservado.'); }
+                    return;
+                }
+            }
+        }
+        if (shouldWrite) {
+            const outputDir = path.dirname(outputPath);
+            if (!fs.existsSync(outputDir)) { fs.mkdirSync(outputDir, { recursive: true }); }
+            fs.writeFileSync(outputPath, pastedContent);
+            outputChannel.appendLine('[SDD] 📋 Texto colado salvo em user_story.md para análise.');
+        }
+        userInstruction = '';
+    }
+
     if (chatResponse) { chatResponse.progress('Buscando Playbook e Regras do Hub...'); }
 
     try {

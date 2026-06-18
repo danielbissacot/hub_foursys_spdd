@@ -2,7 +2,7 @@
   "name": "foursys-sdd-engine-hybrid",
   "displayName": "Foursys SDD Engine Hybrid - AI Governance Hub",
   "description": "Motor SDD híbrido — trabalha com qualquer stack: Angular, Spring Boot, Node.js, COBOL ou genérica.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "foursys",
   "repository": {
     "type": "git",

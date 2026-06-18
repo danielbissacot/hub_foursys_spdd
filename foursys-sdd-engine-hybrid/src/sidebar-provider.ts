@@ -436,7 +436,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         if (data.shared.length > 0) {
             html += `<div class="catalog-section" id="sec-shared">`;
             html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-shared')">`;
-            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#bdbdbd"></span>Shared</span>`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#bdbdbd"></span>Processo</span>`;
             html += `<span class="catalog-chevron">▶</span></div>`;
             html += `<div class="catalog-section-body">`;
             html += skillSearch('sec-shared', 'Buscar skill...');

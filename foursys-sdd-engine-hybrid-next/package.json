@@ -75,7 +75,11 @@
       { "command": "foursys.implementSession1",   "title": "Foursys: Implementar Sessão 1 — Domínio" },
       { "command": "foursys.implementSession2",   "title": "Foursys: Implementar Sessão 2 — Infraestrutura" },
       { "command": "foursys.selectDesignSystem", "title": "Foursys: Selecionar Design System Angular" },
-      { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" }
+      { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" },
+      { "command": "foursys.qaExportXray",       "title": "Foursys QA: Exportar para Xray" },
+      { "command": "foursys.setXrayToken",       "title": "Foursys: Configurar Token Xray" },
+      { "command": "foursys.setupFigmaMcp",      "title": "Foursys: Configurar MCP do Figma" },
+      { "command": "foursys.importFromFigma",    "title": "Foursys: Importar Mockup do Figma (MCP)" }
     ],
     "configuration": {
       "title": "Foursys SDD",
@@ -84,6 +88,21 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Deixe **vazio** para usar o modelo otimizado por fase (recomendado). Preencha com uma família de modelo para forçar em todas as fases (ex: `claude-sonnet-4-6`, `gpt-4o`, `claude-fable-5`)."
+        },
+        "foursys.tokenBudget": {
+          "type": "number",
+          "default": 4500,
+          "markdownDescription": "Limite de tokens de **entrada** por chamada. Um aviso é exibido se o prompt exceder esse valor. Use `0` para desativar o aviso. Ajuste conforme a cota da sua empresa."
+        },
+        "foursys.xrayJiraUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL base do Jira com Xray instalado (ex: https://jira.empresa.com.br). Usado para exportar casos de teste via API."
+        },
+        "foursys.xrayProjectKey": {
+          "type": "string",
+          "default": "",
+          "description": "Chave do projeto Jira onde os testes serão criados (ex: SPJCPCG). Use o comando 'Foursys: Configurar Token Xray' para salvar o Bearer token."
         }
       }
     }

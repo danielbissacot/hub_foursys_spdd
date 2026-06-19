@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Protótipo — Foursys SDD Hybrid · Aba Catalog</title>
+  <title>Foursys SDD Hybrid — Sidebar v1.1.2 (estado atual)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -31,7 +31,6 @@
       text-align: center;
     }
 
-    /* ── row with both sidebars ── */
     .row {
       display: flex;
       gap: 32px;
@@ -147,13 +146,30 @@
     .step-title { font-size: 12px; font-weight: bold; }
     .step-sub { font-size: 9px; opacity: 0.6; margin-top: 1px; }
 
-    .btn-mockup {
+    /* ── figma row (nova posição — antes do Constitution) ── */
+    .figma-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .btn-figma-sm {
+      flex: 1;
+      background: rgba(162,89,255,0.06);
+      border: 1px dashed rgba(162,89,255,0.35);
+      color: #cccccc; padding: 5px 10px; border-radius: 4px;
+      font-size: 11px; cursor: pointer; opacity: 0.8;
+      display: block; text-align: center; transition: all 0.2s;
+    }
+    .btn-figma-sm:hover { opacity: 1; border-style: solid; background: rgba(162,89,255,0.12); }
+    .btn-figma-sm.figma-active { border-style: solid; border-color: rgba(162,89,255,0.55); opacity: 0.90; }
+
+    /* ── mockup row (após Specify) ── */
+    .mockup-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .btn-mockup-sm {
+      flex: 1;
       background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.18);
       color: #cccccc; padding: 5px 10px; border-radius: 4px;
-      margin-left: 28px; margin-bottom: 8px; font-size: 11px; cursor: pointer;
-      opacity: 0.7; display: block; width: calc(100% - 28px); text-align: left; transition: all 0.2s;
+      font-size: 11px; cursor: pointer; opacity: 0.7;
+      display: block; text-align: center; transition: all 0.2s;
     }
-    .btn-mockup:hover { opacity: 1; border-style: solid; background: rgba(255,255,255,0.06); }
+    .btn-mockup-sm:hover { opacity: 1; border-style: solid; background: rgba(255,255,255,0.06); }
+    .btn-mockup-sm.has-mockup { border-style: solid; border-color: rgba(76,175,80,0.45); opacity: 0.9; }
 
     /* ── mend ── */
     .mend-section {
@@ -186,7 +202,7 @@
       background: #4caf50; box-shadow: 0 0 5px #4caf50; flex-shrink: 0;
     }
 
-    /* ── skills footer (ANTES) ── */
+    /* ── skills footer (ANTES — legado) ── */
     .skills-actions { display: flex; gap: 6px; margin-top: 8px; }
     .btn-skill {
       flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
@@ -196,7 +212,7 @@
     .btn-skill:hover { opacity: 1; background: rgba(255,255,255,0.1); }
 
     /* ════════════════════════════
-       NOVO — Catalog Tab
+       CATALOG TAB
     ════════════════════════════ */
     .catalog-section {
       margin-bottom: 5px; border-radius: 5px; overflow: hidden;
@@ -211,25 +227,19 @@
     .catalog-stack-header.current-stack {
       background: rgba(255,107,0,0.1); border-bottom: 1px solid rgba(255,107,0,0.2);
     }
-    .stack-header-left { display: flex; align-items: center; gap: 7px; }
-    .stack-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .catalog-header-left { display: flex; align-items: center; gap: 7px; }
+    .catalog-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .current-tag {
       font-size: 9px; opacity: 0.5; font-weight: normal;
       background: rgba(255,107,0,0.2); padding: 1px 5px; border-radius: 3px;
     }
-    .chevron { font-size: 9px; opacity: 0.45; transition: transform 0.2s; }
-    .catalog-section.open .chevron { transform: rotate(90deg); }
+    .catalog-chevron { font-size: 9px; opacity: 0.45; transition: transform 0.2s; }
+    .catalog-section.open .catalog-chevron { transform: rotate(90deg); }
 
-    .catalog-stack-body {
+    .catalog-section-body {
       display: none; padding: 8px 10px 10px; background: rgba(0,0,0,0.12);
     }
-    .catalog-section.open .catalog-stack-body { display: block; }
-
-    .catalog-group-label {
-      font-size: 9px; opacity: 0.45; text-transform: uppercase;
-      letter-spacing: 0.6px; margin-top: 8px; margin-bottom: 5px;
-    }
-    .catalog-group-label:first-child { margin-top: 0; }
+    .catalog-section.open .catalog-section-body { display: block; }
 
     .catalog-item {
       display: flex; align-items: center; gap: 7px; padding: 5px 8px;
@@ -248,7 +258,18 @@
     .catalog-item.custom { border-color: rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); }
     .catalog-item.custom:hover { background: rgba(156,39,176,0.12); border-color: rgba(156,39,176,0.3); }
 
-    /* ── search (dentro da seção, acima das skills) ── */
+    /* ── catalog empty state ── */
+    .catalog-empty {
+      text-align: center; padding: 12px 8px; font-size: 11px; color: rgba(204,204,204,0.35);
+    }
+    .btn-empty-action {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px; color: rgba(204,204,204,0.7); font-size: 10px;
+      padding: 4px 8px; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-empty-action:hover { background: rgba(206,147,216,0.15); border-color: rgba(206,147,216,0.4); color: #ce93d8; }
+
+    /* ── search (dentro da seção) ── */
     .skill-search {
       display: flex; align-items: center; gap: 5px;
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
@@ -290,14 +311,14 @@
 </head>
 <body>
 
-  <div class="page-title">Foursys SDD Hybrid — Protótipo da Aba Catalog</div>
-  <div class="page-sub">Clique nos itens do Catalog para simular o envio ao chat da LLM · iOS e Android não fazem parte desta versão</div>
+  <div class="page-title">Foursys SDD Hybrid — Sidebar (Estado Atual)</div>
+  <div class="page-sub">Clique nos itens do Catalog para simular o envio ao chat · v1.1.2 com Figma MCP, Custom Skills e aba Catalog</div>
 
   <div class="row">
 
     <!-- ══════════ ANTES ══════════ -->
     <div class="col">
-      <div class="col-label">⬅ Hoje</div>
+      <div class="col-label">⬅ Antes (sem Catalog tab)</div>
       <div class="sidebar">
         <div class="sidebar-inner">
 
@@ -331,20 +352,22 @@
             <div class="section-label">Workflow SDD</div>
             <button class="btn"><span class="step-number">0</span><span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança &amp; padrões</span></span></button>
             <button class="btn"><span class="step-number">1</span><span class="step-label"><span class="step-title">📝 Specify (criar)</span><span class="step-sub">Criar User Story</span></span></button>
-            <button class="btn-mockup">📸 Adicionar Mockup de Tela</button>
+            <div class="mockup-row">
+              <button class="btn-mockup-sm">📸 Mockup</button>
+            </div>
             <button class="btn"><span class="step-number">2</span><span class="step-label"><span class="step-title">📐 Plan (Técnico)</span><span class="step-sub">Especificação técnica</span></span></button>
             <button class="btn"><span class="step-number">3</span><span class="step-label"><span class="step-title">📋 Tasks (Checklist)</span><span class="step-sub">Decomposição em tarefas</span></span></button>
             <button class="btn"><span class="step-number">4</span><span class="step-label"><span class="step-title">🚀 Implement (Copilot)</span><span class="step-sub">Codificação assistida</span></span></button>
           </div>
 
           <div id="b-qa" class="tab-content">
-            <div class="section-label">Workflow SDD</div>
+            <div class="section-label">Workflow QA</div>
             <button class="btn"><span class="step-number">1</span><span class="step-label"><span class="step-title">📝 Plano de Testes</span><span class="step-sub">Estratégia de testes</span></span></button>
-            <button class="btn"><span class="step-number">2</span><span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cucumber (Given/When/Then → Xray)</span></span></button>
-            <button class="btn"><span class="step-number">3</span><span class="step-label"><span class="step-title">📋 Roteiros de Teste</span><span class="step-sub">Procedimentos de execução manual</span></span></button>
-            <button class="btn btn-implement-tests disabled"><span class="step-number">4</span><span class="step-label"><span class="step-title">📤 Exportar para Xray</span><span class="step-sub">Aguardando Roteiros de Teste</span></span></button>
+            <button class="btn"><span class="step-number">2</span><span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cucumber (Given/When/Then)</span></span></button>
+            <button class="btn"><span class="step-number">3</span><span class="step-label"><span class="step-title">📋 Roteiros de Teste</span><span class="step-sub">Procedimentos manuais</span></span></button>
+            <button class="btn btn-implement-tests disabled"><span class="step-number">4</span><span class="step-label"><span class="step-title">📤 Exportar para Xray</span><span class="step-sub">Aguardando Roteiros</span></span></button>
             <button class="btn"><span class="step-number">5</span><span class="step-label"><span class="step-title">🔍 Review de Cobertura</span><span class="step-sub">Análise de cobertura</span></span></button>
-            <button class="btn"><span class="step-number">6</span><span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span></button>
+            <button class="btn"><span class="step-number">6</span><span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final</span></span></button>
           </div>
 
           <div class="mend-section">
@@ -373,15 +396,15 @@
     <!-- ══════════ SETA ══════════ -->
     <div class="arrow-col">→</div>
 
-    <!-- ══════════ DEPOIS ══════════ -->
+    <!-- ══════════ ATUAL ══════════ -->
     <div class="col">
-      <div class="col-label">Proposta — nova aba 📚 Catalog ➡</div>
+      <div class="col-label">✅ Atual — v1.1.2</div>
       <div class="sidebar">
         <div class="sidebar-inner">
 
           <div class="header">
             <div class="title">🚀 Foursys SDD Hybrid</div>
-            <div class="version">v1.0.0 HYBRID (multi-stack)</div>
+            <div class="version">v1.1.2 HYBRID (multi-stack)</div>
           </div>
 
           <div class="stack-badge">
@@ -409,9 +432,17 @@
           <!-- TAB DEV -->
           <div id="a-dev" class="tab-content">
             <div class="section-label">Workflow SDD</div>
+
+            <!-- Figma MCP — antes do Constitution (Angular / iOS / Android) -->
+            <div class="figma-row">
+              <button class="btn-figma-sm figma-active" onclick="alert('🎨 Figma MCP — importar design via MCP')">🎨 Figma MCP</button>
+            </div>
+
             <button class="btn"><span class="step-number">0</span><span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança &amp; padrões</span></span></button>
             <button class="btn"><span class="step-number">1</span><span class="step-label"><span class="step-title">📝 Specify (criar)</span><span class="step-sub">Criar User Story</span></span></button>
-            <button class="btn-mockup">📸 Adicionar Mockup de Tela</button>
+            <div class="mockup-row">
+              <button class="btn-mockup-sm">📸 Mockup</button>
+            </div>
             <button class="btn"><span class="step-number">2</span><span class="step-label"><span class="step-title">📐 Plan (Técnico)</span><span class="step-sub">Especificação técnica</span></span></button>
             <button class="btn"><span class="step-number">3</span><span class="step-label"><span class="step-title">📋 Tasks (Checklist)</span><span class="step-sub">Decomposição em tarefas</span></span></button>
             <button class="btn"><span class="step-number">4</span><span class="step-label"><span class="step-title">🚀 Implement (Copilot)</span><span class="step-sub">Codificação assistida</span></span></button>
@@ -420,153 +451,157 @@
           <!-- TAB CATALOG -->
           <div id="a-catalog" class="tab-content active">
 
-            <!-- ── PLAYBOOKS — seção própria no topo ── -->
+            <!-- PLAYBOOKS -->
             <div class="catalog-section" id="sec-playbooks">
               <div class="catalog-stack-header" onclick="toggleSec('sec-playbooks')">
-                <span class="stack-header-left">
-                  <span class="stack-dot" style="background:#ff6b00"></span>
-                  PlayBooks
+                <span class="catalog-header-left">
+                  <span class="catalog-dot" style="background:#ff6b00"></span>
+                  📋 PlayBooks
                 </span>
-                <span class="chevron">▶</span>
+                <span class="catalog-chevron">▶</span>
               </div>
-              <div class="catalog-stack-body">
+              <div class="catalog-section-body">
                 <div class="skill-search">
                   <span class="skill-search-icon">🔍</span>
                   <input type="text" placeholder="Buscar playbook..." oninput="filterSkills(this,'sec-playbooks')" />
-                  <button class="skill-clear" onclick="clearSkillSearch(this,'sec-playbooks')">✕</button>
+                  <button class="skill-clear" onclick="clearSearch(this,'sec-playbooks')">✕</button>
                 </div>
-                <div class="skill-no-results" id="nr-playbooks">Nenhum playbook encontrado</div>
+                <div class="skill-no-results" id="nr-sec-playbooks">Nenhum playbook encontrado</div>
                 <div class="catalog-item" onclick="fire('playbook','fase-1/kickoff')"><span class="catalog-item-icon">📋</span><span class="catalog-item-name">fase-1 · kickoff</span><span class="catalog-item-arrow">→</span></div>
                 <div class="catalog-item" onclick="fire('playbook','fase-2/backlog-refinement')"><span class="catalog-item-icon">📋</span><span class="catalog-item-name">fase-2 · backlog-refinement</span><span class="catalog-item-arrow">→</span></div>
                 <div class="catalog-item" onclick="fire('playbook','fase-3/dev-cycle')"><span class="catalog-item-icon">📋</span><span class="catalog-item-name">fase-3 · dev-cycle</span><span class="catalog-item-arrow">→</span></div>
               </div>
             </div>
 
-            <!-- ── ANGULAR — expandida (stack atual) ── -->
+            <!-- ANGULAR — expandida (stack atual) -->
             <div class="catalog-section open" id="sec-angular">
               <div class="catalog-stack-header current-stack" onclick="toggleSec('sec-angular')">
-                <span class="stack-header-left">
-                  <span class="stack-dot" style="background:#42a5f5"></span>
+                <span class="catalog-header-left">
+                  <span class="catalog-dot" style="background:#42a5f5"></span>
                   Angular 18+
                   <span class="current-tag">stack atual</span>
                 </span>
-                <span class="chevron">▶</span>
+                <span class="catalog-chevron">▶</span>
               </div>
-              <div class="catalog-stack-body">
-                <div class="catalog-group-label">🗂️ Skills</div>
+              <div class="catalog-section-body">
                 <div class="skill-search">
                   <span class="skill-search-icon">🔍</span>
                   <input type="text" placeholder="Buscar skill..." oninput="filterSkills(this,'sec-angular')" />
-                  <button class="skill-clear" onclick="clearSkillSearch(this,'sec-angular')">✕</button>
+                  <button class="skill-clear" onclick="clearSearch(this,'sec-angular')">✕</button>
                 </div>
-                <div class="skill-no-results" id="nr-angular">Nenhuma skill encontrada</div>
-                <div class="catalog-item" onclick="fire('skill','scaffold')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">scaffold</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','component')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">component</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','service')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">service</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','unit-test')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">unit-test</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','e2e-test')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">e2e-test</span><span class="catalog-item-arrow">→</span></div>
+                <div class="skill-no-results" id="nr-sec-angular">Nenhuma skill encontrada</div>
+                <div class="catalog-item" onclick="fire('skill','angular-testes')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">angular-testes</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','angular-review')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">angular-review</span><span class="catalog-item-arrow">→</span></div>
               </div>
             </div>
 
-            <!-- Spring Boot — fechada -->
+            <!-- SPRING BOOT -->
             <div class="catalog-section" id="sec-spring">
               <div class="catalog-stack-header" onclick="toggleSec('sec-spring')">
-                <span class="stack-header-left"><span class="stack-dot" style="background:#66bb6a"></span>Java 21 + Spring Boot</span>
-                <span class="chevron">▶</span>
+                <span class="catalog-header-left"><span class="catalog-dot" style="background:#66bb6a"></span>Java 21 + Spring Boot</span>
+                <span class="catalog-chevron">▶</span>
               </div>
-              <div class="catalog-stack-body">
-                <div class="catalog-group-label">🗂️ Skills</div>
+              <div class="catalog-section-body">
                 <div class="skill-search">
                   <span class="skill-search-icon">🔍</span>
                   <input type="text" placeholder="Buscar skill..." oninput="filterSkills(this,'sec-spring')" />
-                  <button class="skill-clear" onclick="clearSkillSearch(this,'sec-spring')">✕</button>
+                  <button class="skill-clear" onclick="clearSearch(this,'sec-spring')">✕</button>
                 </div>
-                <div class="skill-no-results" id="nr-spring">Nenhuma skill encontrada</div>
-                <div class="catalog-item" onclick="fire('skill','entity')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">entity</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','repository')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">repository</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','controller')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">controller</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','service-sb')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">service</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','unit-test-sb')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">unit-test</span><span class="catalog-item-arrow">→</span></div>
+                <div class="skill-no-results" id="nr-sec-spring">Nenhuma skill encontrada</div>
+                <div class="catalog-item" onclick="fire('skill','springboot-autorizador')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">springboot-autorizador</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','springboot-certificado')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">springboot-certificado</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','springboot-validacao-mvc')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">springboot-validacao-mvc</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','springboot-validacao-hexagonal')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">springboot-validacao-hexagonal</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','springboot-testes-junit5')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">springboot-testes-junit5</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','springboot-review')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">springboot-review</span><span class="catalog-item-arrow">→</span></div>
               </div>
             </div>
 
-            <!-- Node.js / NestJS — fechada -->
+            <!-- NODE.JS / NESTJS -->
             <div class="catalog-section" id="sec-node">
               <div class="catalog-stack-header" onclick="toggleSec('sec-node')">
-                <span class="stack-header-left"><span class="stack-dot" style="background:#ffb74d"></span>Node.js / NestJS</span>
-                <span class="chevron">▶</span>
+                <span class="catalog-header-left"><span class="catalog-dot" style="background:#ffb74d"></span>Node.js / NestJS</span>
+                <span class="catalog-chevron">▶</span>
               </div>
-              <div class="catalog-stack-body">
-                <div class="catalog-group-label">🗂️ Skills</div>
+              <div class="catalog-section-body">
                 <div class="skill-search">
                   <span class="skill-search-icon">🔍</span>
                   <input type="text" placeholder="Buscar skill..." oninput="filterSkills(this,'sec-node')" />
-                  <button class="skill-clear" onclick="clearSkillSearch(this,'sec-node')">✕</button>
+                  <button class="skill-clear" onclick="clearSearch(this,'sec-node')">✕</button>
                 </div>
-                <div class="skill-no-results" id="nr-node">Nenhuma skill encontrada</div>
-                <div class="catalog-item" onclick="fire('skill','module')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">module</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','controller-nest')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">controller</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','service-nest')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">service</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','dto')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">dto</span><span class="catalog-item-arrow">→</span></div>
+                <div class="skill-no-results" id="nr-sec-node">Nenhuma skill encontrada</div>
+                <div class="catalog-item" onclick="fire('skill','node-module')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">node-module</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','node-controller')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">node-controller</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','node-service')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">node-service</span><span class="catalog-item-arrow">→</span></div>
               </div>
             </div>
 
-            <!-- COBOL — fechada -->
+            <!-- COBOL -->
             <div class="catalog-section" id="sec-cobol">
               <div class="catalog-stack-header" onclick="toggleSec('sec-cobol')">
-                <span class="stack-header-left"><span class="stack-dot" style="background:#80cbc4"></span>COBOL</span>
-                <span class="chevron">▶</span>
+                <span class="catalog-header-left"><span class="catalog-dot" style="background:#80cbc4"></span>COBOL</span>
+                <span class="catalog-chevron">▶</span>
               </div>
-              <div class="catalog-stack-body">
-                <div class="catalog-group-label">🗂️ Skills</div>
+              <div class="catalog-section-body">
                 <div class="skill-search">
                   <span class="skill-search-icon">🔍</span>
                   <input type="text" placeholder="Buscar skill..." oninput="filterSkills(this,'sec-cobol')" />
-                  <button class="skill-clear" onclick="clearSkillSearch(this,'sec-cobol')">✕</button>
+                  <button class="skill-clear" onclick="clearSearch(this,'sec-cobol')">✕</button>
                 </div>
-                <div class="skill-no-results" id="nr-cobol">Nenhuma skill encontrada</div>
-                <div class="catalog-item" onclick="fire('skill','programa-cobol')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">programa-cobol</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','copybook')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">copybook</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','jcl')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">jcl</span><span class="catalog-item-arrow">→</span></div>
+                <div class="skill-no-results" id="nr-sec-cobol">Nenhuma skill encontrada</div>
+                <div class="catalog-item" onclick="fire('skill','cobol-geracao-jcl')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-geracao-jcl</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-geracao-sql-exec')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-geracao-sql-exec</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-transpilacao-java')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-transpilacao-java</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-refatoracao')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-refatoracao</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-teste-borda')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-teste-borda</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-otimizacao-performance')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-otimizacao-performance</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-analise-abend')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-analise-abend</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-explica-variaveis')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-explica-variaveis</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-documenta')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-documenta</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','cobol-reversa-completa')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">cobol-reversa-completa</span><span class="catalog-item-arrow">→</span></div>
               </div>
             </div>
 
-            <!-- Shared — fechada -->
-            <div class="catalog-section" id="sec-shared">
-              <div class="catalog-stack-header" onclick="toggleSec('sec-shared')">
-                <span class="stack-header-left"><span class="stack-dot" style="background:#bdbdbd"></span>Shared</span>
-                <span class="chevron">▶</span>
+            <!-- PROCESSO (ex-Shared) -->
+            <div class="catalog-section" id="sec-processo">
+              <div class="catalog-stack-header" onclick="toggleSec('sec-processo')">
+                <span class="catalog-header-left"><span class="catalog-dot" style="background:#bdbdbd"></span>Processo</span>
+                <span class="catalog-chevron">▶</span>
               </div>
-              <div class="catalog-stack-body">
-                <div class="catalog-group-label">🗂️ Skills (todas as stacks)</div>
+              <div class="catalog-section-body">
                 <div class="skill-search">
                   <span class="skill-search-icon">🔍</span>
-                  <input type="text" placeholder="Buscar skill..." oninput="filterSkills(this,'sec-shared')" />
-                  <button class="skill-clear" onclick="clearSkillSearch(this,'sec-shared')">✕</button>
+                  <input type="text" placeholder="Buscar skill..." oninput="filterSkills(this,'sec-processo')" />
+                  <button class="skill-clear" onclick="clearSearch(this,'sec-processo')">✕</button>
                 </div>
-                <div class="skill-no-results" id="nr-shared">Nenhuma skill encontrada</div>
-                <div class="catalog-item" onclick="fire('skill','code-review')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">code-review</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','git-commit')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">git-commit</span><span class="catalog-item-arrow">→</span></div>
-                <div class="catalog-item" onclick="fire('skill','playwright')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">playwright</span><span class="catalog-item-arrow">→</span></div>
+                <div class="skill-no-results" id="nr-sec-processo">Nenhuma skill encontrada</div>
+                <div class="catalog-item" onclick="fire('skill','checklist-homologacao')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">checklist-homologacao</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','especificacao-tecnica')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">especificacao-tecnica</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','refinamento-negocio')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">refinamento-negocio</span><span class="catalog-item-arrow">→</span></div>
+                <div class="catalog-item" onclick="fire('skill','diagrama-sequencia')"><span class="catalog-item-icon">📄</span><span class="catalog-item-name">diagrama-sequencia</span><span class="catalog-item-arrow">→</span></div>
               </div>
             </div>
 
-            <!-- Custom Skills — fechada -->
-            <div class="catalog-section" id="sec-custom">
+            <!-- CUSTOM SKILLS — com itens + botões sempre visíveis -->
+            <div class="catalog-section open" id="sec-custom">
               <div class="catalog-stack-header" onclick="toggleSec('sec-custom')">
-                <span class="stack-header-left"><span class="stack-dot" style="background:#ce93d8"></span>✏️ Custom Skills</span>
-                <span class="chevron">▶</span>
+                <span class="catalog-header-left"><span class="catalog-dot" style="background:#ce93d8"></span>✏️ Custom Skills</span>
+                <span class="catalog-chevron">▶</span>
               </div>
-              <div class="catalog-stack-body">
-                <div class="catalog-group-label">Suas skills personalizadas</div>
+              <div class="catalog-section-body">
                 <div class="skill-search">
                   <span class="skill-search-icon">🔍</span>
                   <input type="text" placeholder="Buscar skill..." oninput="filterSkills(this,'sec-custom')" />
-                  <button class="skill-clear" onclick="clearSkillSearch(this,'sec-custom')">✕</button>
+                  <button class="skill-clear" onclick="clearSearch(this,'sec-custom')">✕</button>
                 </div>
-                <div class="skill-no-results" id="nr-custom">Nenhuma skill encontrada</div>
+                <div class="skill-no-results" id="nr-sec-custom">Nenhuma skill encontrada</div>
                 <div class="catalog-item custom" onclick="fire('skill','minha-skill')"><span class="catalog-item-icon">✏️</span><span class="catalog-item-name">minha-skill</span><span class="catalog-item-arrow">→</span></div>
                 <div class="catalog-item custom" onclick="fire('skill','padrao-interno')"><span class="catalog-item-icon">✏️</span><span class="catalog-item-name">padrao-interno</span><span class="catalog-item-arrow">→</span></div>
+                <!-- botões sempre visíveis abaixo da lista -->
+                <div style="display:flex;gap:6px;margin-top:6px">
+                  <button class="btn-empty-action" onclick="alert('📂 Abre a pasta custom-skills no Explorer')">📂 Abrir Pasta</button>
+                  <button class="btn-empty-action" onclick="alert('📄 Pede nome e cria .md template')">📄 Nova Skill</button>
+                </div>
               </div>
             </div>
 
@@ -574,13 +609,13 @@
 
           <!-- TAB QA -->
           <div id="a-qa" class="tab-content">
-            <div class="section-label">Workflow SDD</div>
+            <div class="section-label">Workflow QA</div>
             <button class="btn"><span class="step-number">1</span><span class="step-label"><span class="step-title">📝 Plano de Testes</span><span class="step-sub">Estratégia de testes</span></span></button>
-            <button class="btn"><span class="step-number">2</span><span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cucumber (Given/When/Then → Xray)</span></span></button>
-            <button class="btn"><span class="step-number">3</span><span class="step-label"><span class="step-title">📋 Roteiros de Teste</span><span class="step-sub">Procedimentos de execução manual</span></span></button>
-            <button class="btn btn-implement-tests disabled"><span class="step-number">4</span><span class="step-label"><span class="step-title">📤 Exportar para Xray</span><span class="step-sub">Aguardando Roteiros de Teste</span></span></button>
+            <button class="btn"><span class="step-number">2</span><span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cucumber (Given/When/Then)</span></span></button>
+            <button class="btn"><span class="step-number">3</span><span class="step-label"><span class="step-title">📋 Roteiros de Teste</span><span class="step-sub">Procedimentos manuais</span></span></button>
+            <button class="btn btn-implement-tests disabled"><span class="step-number">4</span><span class="step-label"><span class="step-title">📤 Exportar para Xray</span><span class="step-sub">Aguardando Roteiros</span></span></button>
             <button class="btn"><span class="step-number">5</span><span class="step-label"><span class="step-title">🔍 Review de Cobertura</span><span class="step-sub">Análise de cobertura</span></span></button>
-            <button class="btn"><span class="step-number">6</span><span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span></button>
+            <button class="btn"><span class="step-number">6</span><span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final</span></span></button>
           </div>
 
           <div class="mend-section">
@@ -626,12 +661,11 @@
       document.getElementById(id).classList.toggle('open');
     }
 
-    /* ── skill search por seção ── */
     function filterSkills(input, secId) {
       const q = input.value.trim().toLowerCase();
       const sec = document.getElementById(secId);
       const clearBtn = input.nextElementSibling;
-      const noResults = document.getElementById('nr-' + secId.replace('sec-', ''));
+      const noResults = document.getElementById('nr-' + secId);
       clearBtn.style.display = q ? 'inline' : 'none';
 
       let anyVisible = 0;
@@ -657,7 +691,7 @@
       if (noResults) noResults.style.display = anyVisible === 0 && q ? 'block' : 'none';
     }
 
-    function clearSkillSearch(btn, secId) {
+    function clearSearch(btn, secId) {
       const input = btn.previousElementSibling;
       input.value = '';
       filterSkills(input, secId);

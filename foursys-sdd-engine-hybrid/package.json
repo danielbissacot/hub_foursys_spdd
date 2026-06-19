@@ -2,7 +2,7 @@
   "name": "foursys-sdd-engine-hybrid",
   "displayName": "Foursys SDD Engine Hybrid - AI Governance Hub",
   "description": "Motor SDD híbrido — trabalha com qualquer stack: Angular, Spring Boot, Node.js, COBOL ou genérica.",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "publisher": "foursys",
   "repository": {
     "type": "git",
@@ -76,7 +76,9 @@
       { "command": "foursys.implementSession1",   "title": "Foursys: Implementar Sessão 1 — Domínio" },
       { "command": "foursys.implementSession2",   "title": "Foursys: Implementar Sessão 2 — Infraestrutura" },
       { "command": "foursys.selectDesignSystem", "title": "Foursys: Selecionar Design System Angular" },
-      { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" }
+      { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" },
+      { "command": "foursys.setupFigmaMcp",     "title": "Foursys: Configurar MCP do Figma" },
+      { "command": "foursys.importFromFigma",   "title": "Foursys: Importar Mockup do Figma (MCP)" }
     ],
     "configuration": {
       "title": "Foursys SDD",

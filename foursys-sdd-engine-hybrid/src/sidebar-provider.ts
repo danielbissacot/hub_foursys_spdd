@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { exec } from 'child_process';
 import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
 
 const MEND_EXT_ID = 'mend.mend-advise';
+const FIGMA_EXT_ID = 'figma.figma-vscode-extension';
 
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'foursys-sdd-sidebar-view';
@@ -35,8 +37,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const storyHasContent = this._checkStoryHasContent(workspaceRoot);
             const qaScriptsReady = this._checkQaScriptsReady(workspaceRoot);
             const mockupExists = this._checkMockupExists(workspaceRoot);
+            const figmaExtInstalled = !!vscode.extensions.getExtension(FIGMA_EXT_ID);
+            const figmaMcpConfigured = figmaExtInstalled && this._checkFigmaMcpConfigured();
             const activeDesignSystem = this._context.workspaceState.get<string>('activeDesignSystem') || null;
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, mockupExists, activeDesignSystem);
+            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured);
         };
 
         updateWebview();
@@ -110,6 +114,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'AddMockup':
                     await vscode.commands.executeCommand('foursys.addMockup');
                     updateWebview();
+                    break;
+                case 'InstallFigmaExt':
+                    await this._installFigmaExt();
+                    updateWebview();
+                    break;
+                case 'SetupFigmaMcp':
+                    await vscode.commands.executeCommand('foursys.setupFigmaMcp');
+                    updateWebview();
+                    break;
+                case 'ImportFromFigma':
+                    vscode.commands.executeCommand('foursys.importFromFigma');
                     break;
                 case 'InstallMend':
                     await this._installMend();
@@ -212,6 +227,28 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     vscode.env.openExternal(vscode.Uri.file(customSkillsDir));
                     break;
                 }
+                case 'CreateCustomSkill': {
+                    const globalStoragePath = this._context.globalStorageUri.fsPath;
+                    const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+                    if (!fs.existsSync(customSkillsDir)) {
+                        fs.mkdirSync(customSkillsDir, { recursive: true });
+                    }
+                    const name = await vscode.window.showInputBox({
+                        prompt: 'Nome da nova skill (sem espaços, sem .md)',
+                        placeHolder: 'ex: minha-skill',
+                        validateInput: v => /^[a-z0-9_-]+$/i.test(v) ? null : 'Use apenas letras, números, - ou _'
+                    });
+                    if (!name) { break; }
+                    const filePath = path.join(customSkillsDir, `${name}.md`);
+                    if (!fs.existsSync(filePath)) {
+                        fs.writeFileSync(filePath,
+                            `---\ndescription: ${name}\n---\n\n# ${name}\n\nDescreva aqui o que esta skill faz e como usá-la.\n`
+                        );
+                    }
+                    const doc = await vscode.workspace.openTextDocument(filePath);
+                    await vscode.window.showTextDocument(doc);
+                    break;
+                }
                 default: {
                     if (typeof data.value === 'string' && data.value.startsWith('RunSkill:')) {
                         const slug = data.value.replace('RunSkill:', '');
@@ -258,6 +295,30 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             );
             if (choice === 'Abrir no Marketplace') {
                 vscode.commands.executeCommand('workbench.extensions.search', 'mend.mend-advise');
+            }
+        }
+    }
+
+    private async _installFigmaExt(): Promise<void> {
+        try {
+            await vscode.commands.executeCommand(
+                'workbench.extensions.installExtension',
+                FIGMA_EXT_ID
+            );
+            const choice = await vscode.window.showInformationMessage(
+                '✅ Figma for VS Code instalado! Recarregue a janela e faça login no Figma.',
+                'Recarregar Agora'
+            );
+            if (choice === 'Recarregar Agora') {
+                vscode.commands.executeCommand('workbench.action.reloadWindow');
+            }
+        } catch {
+            const choice = await vscode.window.showWarningMessage(
+                '⚠️ Não foi possível instalar o Figma for VS Code automaticamente.',
+                'Abrir no Marketplace'
+            );
+            if (choice === 'Abrir no Marketplace') {
+                vscode.commands.executeCommand('workbench.extensions.search', FIGMA_EXT_ID);
             }
         }
     }
@@ -452,9 +513,19 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         html += `<div class="catalog-section-body">`;
         html += skillSearch('sec-custom', 'Buscar skill...');
         if (data.custom.length === 0) {
-            html += `<div class="catalog-empty">Nenhuma custom skill — abra a pasta e adicione arquivos .md</div>`;
+            html += `<div class="catalog-empty">
+                <div style="margin-bottom:8px">Nenhuma custom skill encontrada.</div>
+                <div style="display:flex;gap:6px;justify-content:center">
+                  <button class="btn-empty-action" onclick="sendAction('OpenCustomSkills')">📂 Abrir Pasta</button>
+                  <button class="btn-empty-action" onclick="sendAction('CreateCustomSkill')">📄 Nova Skill</button>
+                </div>
+            </div>`;
         } else {
             for (const s of data.custom) { html += skillItem(s, 'skill', true); }
+            html += `<div style="display:flex;gap:6px;margin-top:6px">
+                <button class="btn-empty-action" onclick="sendAction('OpenCustomSkills')">📂 Abrir Pasta</button>
+                <button class="btn-empty-action" onclick="sendAction('CreateCustomSkill')">📄 Nova Skill</button>
+            </div>`;
         }
         html += `</div></div>`;
 
@@ -621,7 +692,23 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false, mockupExists: boolean = false, activeDesignSystem: string | null = null) {
+    private _checkFigmaMcpConfigured(): boolean {
+        try {
+            let mcpPath: string;
+            if (process.platform === 'win32') {
+                mcpPath = path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
+            } else if (process.platform === 'darwin') {
+                mcpPath = path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
+            } else {
+                mcpPath = path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
+            }
+            if (!fs.existsSync(mcpPath)) { return false; }
+            const cfg = JSON.parse(fs.readFileSync(mcpPath, 'utf-8'));
+            return !!cfg?.servers?.figmaRemoteMcp;
+        } catch { return false; }
+    }
+
+    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false, mockupExists: boolean = false, activeDesignSystem: string | null = null, figmaExtInstalled: boolean = false, figmaMcpConfigured: boolean = false) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const catalogData = this._loadCatalogData(stackId);
         const catalogHtml = this._buildCatalogHtml(catalogData);
@@ -704,24 +791,44 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             background: rgba(33,150,243,0.12);
             border: 1px solid rgba(33,150,243,0.3);
         }
-        .btn-mockup {
+        .figma-row { display: flex; gap: 6px; margin-bottom: 4px; }
+        .mockup-row {
+            display: flex;
+            gap: 6px;
+            margin-left: 28px;
+            margin-bottom: 8px;
+            width: calc(100% - 28px);
+        }
+        .btn-mockup-sm {
+            flex: 1;
             background: rgba(255,255,255,0.03);
             border: 1px dashed rgba(255,255,255,0.18);
             color: var(--vscode-foreground);
-            padding: 5px 10px;
+            padding: 5px 8px;
             border-radius: 4px;
-            margin-left: 28px;
-            margin-bottom: 8px;
             font-size: 11px;
             cursor: pointer;
             opacity: 0.7;
-            display: block;
-            width: calc(100% - 28px);
             text-align: left;
             transition: all 0.2s;
         }
-        .btn-mockup:hover { opacity: 1; border-style: solid; background: rgba(255,255,255,0.06); }
-        .btn-mockup.has-mockup { border-style: solid; border-color: rgba(76,175,80,0.45); opacity: 0.9; }
+        .btn-mockup-sm:hover { opacity: 1; border-style: solid; background: rgba(255,255,255,0.06); }
+        .btn-mockup-sm.has-mockup { border-style: solid; border-color: rgba(76,175,80,0.45); opacity: 0.9; }
+        .btn-figma-sm {
+            flex: 1;
+            background: rgba(162,89,255,0.06);
+            border: 1px dashed rgba(162,89,255,0.30);
+            color: var(--vscode-foreground);
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0.70;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .btn-figma-sm:hover { opacity: 1; border-style: solid; background: rgba(162,89,255,0.12); }
+        .btn-figma-sm.figma-active { border-style: solid; border-color: rgba(162,89,255,0.55); opacity: 0.90; }
 
         .tabs {
             display: flex;
@@ -877,6 +984,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         .catalog-item:hover .catalog-item-arrow { opacity: 0.6; }
         .catalog-item.custom:hover { background: rgba(156,39,176,0.12); border-color: rgba(156,39,176,0.3); }
         .catalog-empty { text-align: center; padding: 12px 8px; font-size: 11px; color: rgba(204,204,204,0.35); }
+        .btn-empty-action { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: rgba(204,204,204,0.7); font-size: 10px; padding: 4px 8px; cursor: pointer; transition: all 0.2s; }
+        .btn-empty-action:hover { background: rgba(206,147,216,0.15); border-color: rgba(206,147,216,0.4); color: #ce93d8; }
         .skill-search { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; padding: 5px 8px; margin-bottom: 6px; }
         .skill-search:focus-within { border-color: rgba(255,107,0,0.5); }
         .skill-search-icon { font-size: 11px; opacity: 0.5; flex-shrink: 0; }
@@ -919,6 +1028,24 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     <div id="tab-dev" class="tab-content active">
         <div class="section-label">Workflow SDD</div>
         <div class="${isConnected ? '' : 'disabled'}">
+            ${stackId === 'angular' ? `
+            <div class="figma-row">
+                ${!figmaExtInstalled
+                    ? `<button class="btn-figma-sm" onclick="sendAction('InstallFigmaExt')"
+                           title="Instalar Figma for VS Code">
+                           📦 Figma
+                       </button>`
+                    : !figmaMcpConfigured
+                    ? `<button class="btn-figma-sm" onclick="sendAction('SetupFigmaMcp')"
+                           title="Configurar MCP do Figma automaticamente">
+                           ⚙️ Figma MCP
+                       </button>`
+                    : `<button class="btn-figma-sm figma-active" onclick="sendAction('ImportFromFigma')"
+                           title="Importar design do Figma via MCP">
+                           🎨 Figma MCP
+                       </button>`
+                }
+            </div>` : ''}
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Constitution')">
                 <span class="step-number">0</span>
                 <span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança & padrões</span></span>
@@ -931,9 +1058,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 </span>
             </button>
             ${stackId === 'angular' ? `
-            <button class="btn-mockup ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')">
-                ${mockupExists ? '📸 Mockup: ✅ ver/trocar' : '📸 Adicionar Mockup de Tela'}
-            </button>` : ''}
+            <div class="mockup-row">
+                <button class="btn-mockup-sm ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')"
+                    title="${mockupExists ? 'Ver/trocar mockup' : 'Adicionar Mockup de Tela'}">
+                    ${mockupExists ? '📸 ✅ Mockup' : '📸 Mockup'}
+                </button>
+            </div>` : ''}
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Plan')">
                 <span class="step-number">2</span>
                 <span class="step-label"><span class="step-title">📐 Plan (Técnico)</span><span class="step-sub">Especificação técnica</span></span>

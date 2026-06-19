@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual — Foursys SDD Engine Hybrid v1.1.2</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --angular: #42a5f5;
+      --spring: #66bb6a;
+      --node: #ffb74d;
+      --cobol: #80cbc4;
+      --foursys: #6c5ce7;
+      --foursys-light: #a29bfe;
+      --bg-dark: #1e1e2e;
+      --bg-card: #2d2d44;
+      --bg-card2: #252540;
+      --text-muted-custom: #a0a0b8;
+    }
+    [data-bs-theme="dark"] body { background: var(--bg-dark); color: #e2e2f0; }
+    [data-bs-theme="light"] body { background: #f4f6fb; color: #1e1e2e; }
+
+    /* Navbar */
+    .navbar-brand span { color: var(--foursys-light); font-weight: 700; }
+    .navbar { backdrop-filter: blur(10px); border-bottom: 1px solid rgba(108,92,231,.3); }
+
+    /* Sidebar nav */
+    #sidebar { position: sticky; top: 72px; height: calc(100vh - 72px); overflow-y: auto; }
+    #sidebar .nav-link { font-size: .83rem; color: var(--text-muted-custom); border-left: 2px solid transparent; padding: .25rem .75rem; }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active { color: var(--foursys-light); border-left-color: var(--foursys); background: rgba(108,92,231,.08); }
+    #sidebar .nav-section { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #6c6c88; padding: .5rem .75rem .15rem; margin-top: .5rem; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-bottom: 1px solid rgba(108,92,231,.4); padding: 4rem 0 3rem; }
+    [data-bs-theme="light"] .hero { background: linear-gradient(135deg, #6c5ce7 0%, #4a3fa8 100%); }
+    .hero-badge { display: inline-flex; align-items: center; gap: .4rem; background: rgba(108,92,231,.2); border: 1px solid var(--foursys); border-radius: 2rem; padding: .3rem .9rem; font-size: .8rem; color: var(--foursys-light); margin-bottom: 1.2rem; }
+    .stack-pill { display: inline-block; border-radius: 2rem; padding: .2rem .8rem; font-size: .75rem; font-weight: 600; margin: .2rem; }
+    .sp-angular { background: rgba(66,165,245,.18); color: var(--angular); border: 1px solid var(--angular); }
+    .sp-spring  { background: rgba(102,187,106,.18); color: var(--spring); border: 1px solid var(--spring); }
+    .sp-node    { background: rgba(255,183,77,.18); color: var(--node); border: 1px solid var(--node); }
+    .sp-cobol   { background: rgba(128,203,196,.18); color: var(--cobol); border: 1px solid var(--cobol); }
+    .sp-generic { background: rgba(180,180,200,.18); color: #b0b0cc; border: 1px solid #555570; }
+
+    /* Section titles */
+    .section-title { font-size: 1.6rem; font-weight: 700; margin-bottom: .3rem; }
+    .section-line { width: 3rem; height: 3px; background: var(--foursys); border-radius: 2px; margin-bottom: 1.5rem; }
+
+    /* Timeline */
+    .sdd-timeline { position: relative; padding-left: 2.2rem; }
+    .sdd-timeline::before { content: ''; position: absolute; left: .85rem; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--foursys), var(--angular)); }
+    .tl-item { position: relative; margin-bottom: 1.5rem; }
+    .tl-dot { position: absolute; left: -1.9rem; top: .4rem; width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: .55rem; font-weight: 700; }
+    .tl-card { border-radius: .75rem; border-left: 3px solid; }
+    [data-bs-theme="dark"] .tl-card { background: var(--bg-card); }
+    [data-bs-theme="light"] .tl-card { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+    /* Stack cards */
+    .stack-card { border-radius: .85rem; border: 1px solid rgba(255,255,255,.08); transition: transform .2s, box-shadow .2s; cursor: default; }
+    [data-bs-theme="dark"] .stack-card { background: var(--bg-card2); }
+    [data-bs-theme="light"] .stack-card { background: #fff; border-color: rgba(0,0,0,.08); box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+    .stack-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(108,92,231,.25); }
+    .stack-icon { width: 3rem; height: 3rem; border-radius: .6rem; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: .8rem; }
+
+    /* Code blocks */
+    .code-block { position: relative; border-radius: .6rem; font-size: .82rem; }
+    [data-bs-theme="dark"] .code-block { background: #12121e; border: 1px solid #333355; }
+    [data-bs-theme="light"] .code-block { background: #f1f3f9; border: 1px solid #d0d5e8; }
+    .code-block pre { margin: 0; padding: 1rem 1rem 1rem 1rem; overflow-x: auto; color: inherit; }
+    .copy-btn { position: absolute; top: .5rem; right: .5rem; font-size: .72rem; padding: .2rem .6rem; opacity: .7; transition: opacity .2s; }
+    .copy-btn:hover { opacity: 1; }
+
+    /* Command table */
+    .cmd-table th { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+    .cmd-badge { font-family: monospace; font-size: .82rem; }
+
+    /* File tree */
+    .file-tree { font-family: 'Courier New', monospace; font-size: .85rem; line-height: 1.7; }
+    .file-tree .folder { color: var(--foursys-light); }
+    .file-tree .file { color: #9eb8ff; }
+    .file-tree .comment { color: #666688; }
+
+    /* Skills search */
+    #skills-search { border-radius: 2rem; }
+
+    /* Skill badge */
+    .skill-item { display: inline-flex; align-items: center; gap: .35rem; border-radius: 2rem; padding: .2rem .7rem; font-size: .78rem; margin: .15rem; cursor: default; transition: filter .2s; }
+    .skill-item:hover { filter: brightness(1.2); }
+
+    /* Model table */
+    .model-row-light { background: rgba(66,165,245,.08); }
+    .model-row-mini  { background: rgba(102,187,106,.08); }
+    .model-row-impl  { background: rgba(108,92,231,.12); }
+    .model-row-std   { background: rgba(128,203,196,.08); }
+
+    /* Accordion custom */
+    .accordion-button:not(.collapsed) { background: rgba(108,92,231,.12); color: var(--foursys-light); box-shadow: none; }
+    [data-bs-theme="dark"] .accordion-button { background: var(--bg-card); color: #e2e2f0; }
+    [data-bs-theme="light"] .accordion-button { background: #f4f6fb; color: #1e1e2e; }
+    [data-bs-theme="dark"] .accordion-item { background: var(--bg-card); border-color: #333355; }
+
+    /* Progress steps */
+    .step-flow { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+    .step-box { border-radius: .5rem; padding: .4rem .9rem; font-size: .82rem; font-weight: 600; white-space: nowrap; }
+    .step-arrow { color: #555570; font-size: .9rem; }
+
+    /* Tooltip target */
+    [data-bs-toggle="tooltip"] { cursor: help; border-bottom: 1px dashed var(--foursys-light); }
+
+    /* Responsive sidebar collapse */
+    @media (max-width: 991px) { #sidebar { display: none; } }
+
+    /* Footer */
+    footer { border-top: 1px solid rgba(108,92,231,.25); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #444460; border-radius: 3px; }
+
+    /* Highlight search */
+    mark { background: rgba(108,92,231,.35); color: inherit; padding: 0; border-radius: 2px; }
+
+    /* QA steps */
+    .qa-step { border-radius: .6rem; border-left: 3px solid var(--foursys); padding: .8rem 1rem; margin-bottom: .6rem; }
+    [data-bs-theme="dark"] .qa-step { background: rgba(108,92,231,.07); }
+    [data-bs-theme="light"] .qa-step { background: rgba(108,92,231,.05); }
+
+    /* Mend status indicators */
+    .mend-status { width: .75rem; height: .75rem; border-radius: 50%; display: inline-block; margin-right: .35rem; }
+    .mend-green  { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+    .mend-yellow { background: #ffb74d; box-shadow: 0 0 6px #ffb74d; }
+    .mend-red    { background: #ef5350; box-shadow: 0 0 6px #ef5350; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ NAVBAR ═══════════════ -->
+<nav class="navbar navbar-expand-lg sticky-top px-3">
+  <a class="navbar-brand d-flex align-items-center gap-2" href="#hero">
+    <i class="fa-solid fa-robot" style="color:var(--foursys)"></i>
+    <span>Foursys SDD</span>
+    <span class="badge ms-1" style="background:var(--foursys);font-size:.7rem">Hybrid v1.1.2</span>
+  </a>
+  <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <div class="collapse navbar-collapse justify-content-end">
+    <ul class="navbar-nav gap-1 me-3">
+      <li class="nav-item"><a class="nav-link" href="#instalacao">Instalação</a></li>
+      <li class="nav-item"><a class="nav-link" href="#fluxo-sdd">Fluxo SDD</a></li>
+      <li class="nav-item"><a class="nav-link" href="#stacks">Multi-Stack</a></li>
+      <li class="nav-item"><a class="nav-link" href="#sidebar-ui">Sidebar</a></li>
+      <li class="nav-item"><a class="nav-link" href="#chat">Chat</a></li>
+      <li class="nav-item"><a class="nav-link" href="#configuracoes">Config</a></li>
+      <li class="nav-item"><a class="nav-link" href="#skills">Skills</a></li>
+    </ul>
+    <div class="form-check form-switch mb-0 me-2" title="Alternar tema">
+      <input class="form-check-input" type="checkbox" id="themeToggle" role="switch" />
+      <label class="form-check-label" for="themeToggle"><i class="fa-solid fa-sun"></i></label>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════ OFFCANVAS MOBILE NAV ═══════════════ -->
+<div class="offcanvas offcanvas-start" id="mobileNav" tabindex="-1">
+  <div class="offcanvas-header">
+    <h6 class="offcanvas-title">Navegação</h6>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <nav class="nav flex-column ps-2 pt-2">
+      <a class="nav-link" href="#instalacao" data-bs-dismiss="offcanvas">Instalação</a>
+      <a class="nav-link" href="#fluxo-sdd" data-bs-dismiss="offcanvas">Fluxo SDD</a>
+      <a class="nav-link" href="#stacks" data-bs-dismiss="offcanvas">Multi-Stack</a>
+      <a class="nav-link" href="#sidebar-ui" data-bs-dismiss="offcanvas">Sidebar UI</a>
+      <a class="nav-link" href="#chat" data-bs-dismiss="offcanvas">Chat Participant</a>
+      <a class="nav-link" href="#mend" data-bs-dismiss="offcanvas">Mend Advise</a>
+      <a class="nav-link" href="#figma" data-bs-dismiss="offcanvas">Figma MCP</a>
+      <a class="nav-link" href="#modelos-ia" data-bs-dismiss="offcanvas">Modelos IA</a>
+      <a class="nav-link" href="#configuracoes" data-bs-dismiss="offcanvas">Configurações</a>
+      <a class="nav-link" href="#skills" data-bs-dismiss="offcanvas">Skills &amp; Playbooks</a>
+      <a class="nav-link" href="#estrutura" data-bs-dismiss="offcanvas">Estrutura de Arquivos</a>
+      <a class="nav-link" href="#xray" data-bs-dismiss="offcanvas">Xray / Jira</a>
+    </nav>
+  </div>
+</div>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section id="hero" class="hero text-center">
+  <div class="container">
+    <div class="hero-badge mx-auto mb-3">
+      <i class="fa-solid fa-code-branch"></i> VS Code Extension &nbsp;·&nbsp;
+      <i class="fa-solid fa-tag"></i> v1.1.2 Stable
+    </div>
+    <h1 class="display-5 fw-bold text-white mb-2">
+      Foursys SDD Engine <span style="color:var(--foursys-light)">Hybrid</span>
+    </h1>
+    <p class="lead text-white-50 mb-4">
+      Orquestrador AI multi-stack para Spec-Driven Development &mdash;<br />
+      do User Story ao código production-ready, com qualidade e segurança embutidas.
+    </p>
+    <div class="mb-4">
+      <span class="stack-pill sp-angular"><i class="fa-brands fa-angular me-1"></i>Angular 18+</span>
+      <span class="stack-pill sp-spring"><i class="fa-brands fa-java me-1"></i>Java 21 + Spring Boot</span>
+      <span class="stack-pill sp-node"><i class="fa-brands fa-node-js me-1"></i>Node.js / NestJS</span>
+      <span class="stack-pill sp-cobol"><i class="fa-solid fa-server me-1"></i>COBOL</span>
+      <span class="stack-pill sp-generic"><i class="fa-solid fa-layer-group me-1"></i>Generic</span>
+    </div>
+    <div class="row justify-content-center g-3">
+      <div class="col-auto"><div class="p-3 rounded-3 text-center" style="background:rgba(255,255,255,.06);min-width:90px"><div class="fs-3 fw-bold" style="color:var(--foursys-light)">6</div><small class="text-white-50">Fases SDD</small></div></div>
+      <div class="col-auto"><div class="p-3 rounded-3 text-center" style="background:rgba(255,255,255,.06);min-width:90px"><div class="fs-3 fw-bold" style="color:var(--angular)">5</div><small class="text-white-50">Stacks</small></div></div>
+      <div class="col-auto"><div class="p-3 rounded-3 text-center" style="background:rgba(255,255,255,.06);min-width:90px"><div class="fs-3 fw-bold" style="color:var(--spring)">12</div><small class="text-white-50">Comandos Chat</small></div></div>
+      <div class="col-auto"><div class="p-3 rounded-3 text-center" style="background:rgba(255,255,255,.06);min-width:90px"><div class="fs-3 fw-bold" style="color:var(--node)">25+</div><small class="text-white-50">Playbooks</small></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ LAYOUT PRINCIPAL ═══════════════ -->
+<div class="container-fluid py-4">
+  <div class="row">
+
+    <!-- SIDEBAR DESKTOP -->
+    <div class="col-lg-2 d-none d-lg-block">
+      <nav id="sidebar" class="nav flex-column">
+        <div class="nav-section">Início</div>
+        <a class="nav-link" href="#instalacao">Instalação</a>
+        <div class="nav-section">Desenvolvimento</div>
+        <a class="nav-link" href="#fluxo-sdd">Fluxo SDD</a>
+        <a class="nav-link ps-4" href="#fase0">Fase 0 — Constitution</a>
+        <a class="nav-link ps-4" href="#fase1">Fase 1 — Specify</a>
+        <a class="nav-link ps-4" href="#fase2">Fase 2 — Plan</a>
+        <a class="nav-link ps-4" href="#fase3">Fase 3 — Tasks</a>
+        <a class="nav-link ps-4" href="#fase4">Fase 4 — Implement</a>
+        <a class="nav-link ps-4" href="#fase5">Fases 5-6 — QA</a>
+        <div class="nav-section">Tecnologias</div>
+        <a class="nav-link" href="#stacks">Multi-Stack</a>
+        <a class="nav-link" href="#deteccao">Detecção Automática</a>
+        <div class="nav-section">Interface</div>
+        <a class="nav-link" href="#sidebar-ui">Sidebar UI</a>
+        <a class="nav-link" href="#chat">Chat @foursys_sdd</a>
+        <div class="nav-section">Segurança &amp; IA</div>
+        <a class="nav-link" href="#mend">Mend Advise</a>
+        <a class="nav-link" href="#figma">Figma MCP</a>
+        <a class="nav-link" href="#modelos-ia">Modelos de IA</a>
+        <div class="nav-section">Referência</div>
+        <a class="nav-link" href="#configuracoes">Configurações</a>
+        <a class="nav-link" href="#skills">Skills &amp; Playbooks</a>
+        <a class="nav-link" href="#estrutura">Estrutura de Arquivos</a>
+        <a class="nav-link" href="#xray">Xray / Jira</a>
+      </nav>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="col-lg-10">
+      <div class="px-lg-3">
+
+        <!-- ══ INSTALAÇÃO ══ -->
+        <section id="instalacao" class="mb-5 pt-2">
+          <div class="section-title"><i class="fa-solid fa-download me-2" style="color:var(--foursys)"></i>Instalação</div>
+          <div class="section-line"></div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card h-100 border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3"><i class="fa-solid fa-file-zipper me-2" style="color:var(--foursys-light)"></i>Via VSIX (Recomendado)</h6>
+                  <ol class="mb-3" style="font-size:.9rem">
+                    <li>Baixe o arquivo <code>foursys-sdd-engine-hybrid-1.1.2.vsix</code></li>
+                    <li>Abra o VS Code</li>
+                    <li>Pressione <kbd>Ctrl+Shift+P</kbd></li>
+                    <li>Execute: <strong>Extensions: Install from VSIX...</strong></li>
+                    <li>Selecione o arquivo <code>.vsix</code></li>
+                    <li>Recarregue o VS Code quando solicitado</li>
+                  </ol>
+                  <div class="code-block">
+                    <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy me-1"></i>Copiar</button>
+                    <pre>code --install-extension foursys-sdd-engine-hybrid-1.1.2.vsix</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card h-100 border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3"><i class="fa-solid fa-circle-check me-2" style="color:var(--spring)"></i>Pré-requisitos</h6>
+                  <ul style="font-size:.9rem">
+                    <li>VS Code <strong>1.96.0+</strong></li>
+                    <li><strong>GitHub Copilot</strong> instalado e ativo (Chat + AI models)</li>
+                    <li>Acesso à internet para sincronização do Hub (opcional)</li>
+                    <li>Git instalado (para sync de catálogo)</li>
+                  </ul>
+                  <div class="alert alert-warning py-2 mt-3 mb-0" style="font-size:.82rem">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    O plugin usa <strong>GitHub Copilot Chat API</strong> para geração de conteúdo. Certifique-se de ter a extensão <code>GitHub.copilot-chat</code> ativa.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3"><i class="fa-solid fa-link me-2" style="color:var(--angular)"></i>Conectar ao Hub (Sincronização de Catálogo)</h6>
+                  <p style="font-size:.88rem" class="mb-2">Após instalar, conecte ao Hub para baixar os playbooks e skills mais recentes:</p>
+                  <ol style="font-size:.88rem" class="mb-0">
+                    <li>Abra a sidebar <strong>Foursys SDD</strong> (ícone <i class="fa-solid fa-robot"></i> na Activity Bar)</li>
+                    <li>Clique em <strong>📥 CONECTAR AO HUB</strong></li>
+                    <li>Aguarde o download do catálogo (shallow clone, apenas <code>/catalog</code>)</li>
+                    <li>Status bar mostrará <span class="mend-status mend-green"></span><strong>Hub Conectado</strong></li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ FLUXO SDD ══ -->
+        <section id="fluxo-sdd" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-diagram-project me-2" style="color:var(--foursys)"></i>Fluxo SDD — Spec-Driven Development</div>
+          <div class="section-line"></div>
+          <p class="mb-4" style="font-size:.92rem">O engine implementa uma metodologia rigorosa de 6 fases sequenciais. Cada fase gera artefatos no diretório <code>doc_projeto/</code> que alimentam a próxima fase.</p>
+
+          <div class="step-flow mb-4">
+            <span class="step-box" style="background:rgba(108,92,231,.15);color:var(--foursys-light);border:1px solid var(--foursys)">0 Constitution</span>
+            <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            <span class="step-box" style="background:rgba(66,165,245,.12);color:var(--angular);border:1px solid var(--angular)">1 Specify</span>
+            <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            <span class="step-box" style="background:rgba(102,187,106,.12);color:var(--spring);border:1px solid var(--spring)">2 Plan</span>
+            <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            <span class="step-box" style="background:rgba(255,183,77,.12);color:var(--node);border:1px solid var(--node)">3 Tasks</span>
+            <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            <span class="step-box" style="background:rgba(108,92,231,.2);color:#fff;border:1px solid var(--foursys)">4 Implement</span>
+            <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            <span class="step-box" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid var(--cobol)">5-6 QA</span>
+          </div>
+
+          <!-- Timeline -->
+          <div class="sdd-timeline">
+
+            <!-- FASE 0 -->
+            <div class="tl-item" id="fase0">
+              <div class="tl-dot" style="border-color:var(--foursys);background:rgba(108,92,231,.2);color:var(--foursys-light)">0</div>
+              <div class="tl-card card border-0 p-3" style="border-left-color:var(--foursys)!important">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                  <h5 class="fw-bold mb-1" style="color:var(--foursys-light)"><i class="fa-solid fa-landmark me-2"></i>Constitution — Governança</h5>
+                  <div>
+                    <span class="badge" style="background:rgba(108,92,231,.3);color:var(--foursys-light)">Modelo: Haiku (Light)</span>
+                  </div>
+                </div>
+                <p class="mb-2 mt-2" style="font-size:.88rem">Estabelece os princípios arquiteturais, padrões de qualidade e regras de governança do projeto. É o "contrato" que todas as fases seguintes respeitam.</p>
+                <div class="row g-2 mt-1">
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(108,92,231,.08);font-size:.8rem">
+                      <strong>Comando Chat:</strong><br/>
+                      <code>@foursys_sdd /constitution</code>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(108,92,231,.08);font-size:.8rem">
+                      <strong>Artefato gerado:</strong><br/>
+                      <code>doc_projeto/constitution.md</code>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(108,92,231,.08);font-size:.8rem">
+                      <strong>Playbook:</strong><br/>
+                      <code>[stack]/foursys-constitution.md</code>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <span class="badge bg-secondary me-1" style="font-size:.72rem">SOLID principles</span>
+                  <span class="badge bg-secondary me-1" style="font-size:.72rem">TDD requirements</span>
+                  <span class="badge bg-secondary me-1" style="font-size:.72rem">Golden rules</span>
+                  <span class="badge bg-secondary" style="font-size:.72rem">AppSec guidelines</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- FASE 1 -->
+            <div class="tl-item" id="fase1">
+              <div class="tl-dot" style="border-color:var(--angular);background:rgba(66,165,245,.2);color:var(--angular)">1</div>
+              <div class="tl-card card border-0 p-3" style="border-left-color:var(--angular)!important">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                  <h5 class="fw-bold mb-1" style="color:var(--angular)"><i class="fa-solid fa-pen-to-square me-2"></i>Specify — Refinamento do User Story</h5>
+                  <span class="badge" style="background:rgba(66,165,245,.2);color:var(--angular)">Modelo: Haiku (Mini)</span>
+                </div>
+                <p class="mb-2 mt-2" style="font-size:.88rem">Analisa e refina a User Story com base na metodologia <strong>INVEST</strong>. Gera critérios de aceite em BDD e detecta automaticamente a stack tecnológica.</p>
+                <div class="row g-2 mt-1">
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(66,165,245,.08);font-size:.8rem">
+                      <strong>Comando Chat:</strong><br/>
+                      <code>@foursys_sdd /specify</code>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(66,165,245,.08);font-size:.8rem">
+                      <strong>Artefatos:</strong><br/>
+                      <code>user_story.md</code><br/>
+                      <code>technical_spec.md</code>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(66,165,245,.08);font-size:.8rem">
+                      <strong>Playbook:</strong><br/>
+                      <code>foursys-specify.md</code><br/>
+                      <code>foursys-specify-tech.md</code>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <span class="badge bg-secondary me-1" style="font-size:.72rem">INVEST validation</span>
+                  <span class="badge bg-secondary me-1" style="font-size:.72rem">BDD criteria</span>
+                  <span class="badge bg-secondary me-1" style="font-size:.72rem">Auto stack detect</span>
+                  <span class="badge bg-secondary" style="font-size:.72rem">Compliance score 0-100%</span>
+                </div>
+                <div class="alert alert-info py-1 mt-2 mb-0" style="font-size:.78rem">
+                  <i class="fa-solid fa-info-circle me-1"></i>
+                  Ao salvar <code>user_story.md</code>, o plugin abre automaticamente <code>technical_spec.md</code> em split view e sugere a análise.
+                </div>
+              </div>
+            </div>
+
+            <!-- FASE 2 -->
+            <div class="tl-item" id="fase2">
+              <div class="tl-dot" style="border-color:var(--spring);background:rgba(102,187,106,.2);color:var(--spring)">2</div>
+              <div class="tl-card card border-0 p-3" style="border-left-color:var(--spring)!important">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                  <h5 class="fw-bold mb-1" style="color:var(--spring)"><i class="fa-solid fa-drafting-compass me-2"></i>Plan — Especificação Técnica</h5>
+                  <span class="badge" style="background:rgba(102,187,106,.2);color:var(--spring)">Modelo: Haiku (Light)</span>
+                </div>
+                <p class="mb-2 mt-2" style="font-size:.88rem">Gera a arquitetura técnica e estratégia de implementação com base nos artefatos das fases anteriores. Inclui diagramas de sequência, tabelas de decisão e patterns específicos da stack.</p>
+                <div class="row g-2 mt-1">
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(102,187,106,.08);font-size:.8rem">
+                      <strong>Entradas:</strong><br/>
+                      <code>constitution.md</code><br/>
+                      <code>user_story.md</code><br/>
+                      <code>technical_spec.md</code>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(102,187,106,.08);font-size:.8rem">
+                      <strong>Artefato:</strong><br/>
+                      <code>implementation_plan.md</code>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(102,187,106,.08);font-size:.8rem">
+                      <strong>Contexto:</strong><br/>
+                      Lê os 2 arquivos fonte mais recentes (max 80 linhas) para adaptar à estrutura do projeto
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FASE 3 -->
+            <div class="tl-item" id="fase3">
+              <div class="tl-dot" style="border-color:var(--node);background:rgba(255,183,77,.2);color:var(--node)">3</div>
+              <div class="tl-card card border-0 p-3" style="border-left-color:var(--node)!important">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                  <h5 class="fw-bold mb-1" style="color:var(--node)"><i class="fa-solid fa-list-check me-2"></i>Tasks — Decomposição em Tarefas</h5>
+                  <span class="badge" style="background:rgba(255,183,77,.2);color:var(--node)">Modelo: Haiku (Light)</span>
+                </div>
+                <p class="mb-2 mt-2" style="font-size:.88rem">Decompõe o plano em tarefas atômicas, divididas em <strong>2 sessões de implementação</strong> para evitar sobrecarga do contexto AI.</p>
+                <div class="row g-2 mt-1">
+                  <div class="col-md-6">
+                    <div class="p-2 rounded" style="background:rgba(255,183,77,.08);font-size:.8rem">
+                      <strong><i class="fa-solid fa-1 me-1"></i>Sessão 1 — Domínio (max 50% das tasks)</strong><br/>
+                      Entidades, interfaces, domain services, value objects
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="p-2 rounded" style="background:rgba(255,183,77,.08);font-size:.8rem">
+                      <strong><i class="fa-solid fa-2 me-1"></i>Sessão 2 — Infraestrutura</strong><br/>
+                      Controllers, adapters, configs, integrações externas
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2" style="font-size:.82rem">
+                  Estimativas por tamanho: <code>XS</code> <code>S</code> <code>M</code> <code>L</code> &nbsp;·&nbsp; Análise de impacto sistêmico (arquivos globais afetados) &nbsp;·&nbsp; Dependências entre tasks
+                </div>
+              </div>
+            </div>
+
+            <!-- FASE 4 -->
+            <div class="tl-item" id="fase4">
+              <div class="tl-dot" style="border-color:var(--foursys);background:rgba(108,92,231,.3);color:#fff">4</div>
+              <div class="tl-card card border-0 p-3" style="border-left-color:var(--foursys)!important">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                  <h5 class="fw-bold mb-1" style="color:var(--foursys-light)"><i class="fa-solid fa-rocket me-2"></i>Implement — Geração de Código</h5>
+                  <span class="badge" style="background:rgba(108,92,231,.3);color:var(--foursys-light)">Modelo: Sonnet 4.6 (Implement)</span>
+                </div>
+                <p class="mb-2 mt-2" style="font-size:.88rem">Abre o Copilot Chat com um prompt pré-configurado referenciando os artefatos do <code>doc_projeto/</code> e injetando a skill específica da stack ativa.</p>
+                <div class="row g-2 mt-1">
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(108,92,231,.1);font-size:.8rem">
+                      <code>foursys.implement</code><br/>Implementação completa
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(108,92,231,.1);font-size:.8rem">
+                      <code>foursys.implementSession1</code><br/>Apenas Domínio
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="p-2 rounded" style="background:rgba(108,92,231,.1);font-size:.8rem">
+                      <code>foursys.implementSession2</code><br/>Apenas Infraestrutura
+                    </div>
+                  </div>
+                </div>
+                <div class="alert alert-secondary py-1 mt-2 mb-0" style="font-size:.78rem">
+                  <i class="fa-solid fa-shield-halved me-1"></i>
+                  Arquivos existentes são marcados como "protegidos" — o AI não os modifica sem task explícita.
+                </div>
+              </div>
+            </div>
+
+            <!-- FASE 5-6 QA -->
+            <div class="tl-item" id="fase5">
+              <div class="tl-dot" style="border-color:var(--cobol);background:rgba(128,203,196,.2);color:var(--cobol)">5</div>
+              <div class="tl-card card border-0 p-3" style="border-left-color:var(--cobol)!important">
+                <h5 class="fw-bold mb-3" style="color:var(--cobol)"><i class="fa-solid fa-flask-vial me-2"></i>QA Pipeline — 6 Sub-fases</h5>
+                <div class="row g-2">
+                  <div class="col-md-6"><div class="qa-step"><span class="badge me-2" style="background:var(--cobol);color:#000">1</span><strong>Plano de Testes</strong><br/><small class="text-muted">Estratégia, escopo, abordagem · <code>plano_testes.md</code></small></div></div>
+                  <div class="col-md-6"><div class="qa-step"><span class="badge me-2" style="background:var(--cobol);color:#000">2</span><strong>Casos de Teste (BDD)</strong><br/><small class="text-muted">Gherkin Given/When/Then · <code>casos_teste.md</code></small></div></div>
+                  <div class="col-md-6"><div class="qa-step"><span class="badge me-2" style="background:var(--cobol);color:#000">3</span><strong>Roteiros de Teste</strong><br/><small class="text-muted">Procedimentos manuais · <code>roteiros_teste.md</code></small></div></div>
+                  <div class="col-md-6"><div class="qa-step"><span class="badge me-2" style="background:var(--foursys);color:#fff">4</span><strong>Export Xray</strong><br/><small class="text-muted">Gherkin → Jira Xray API · <code>xray_export.feature</code></small></div></div>
+                  <div class="col-md-6"><div class="qa-step"><span class="badge me-2" style="background:var(--cobol);color:#000">5</span><strong>Review de Cobertura</strong><br/><small class="text-muted">Análise de cobertura · <code>review_cobertura.md</code></small></div></div>
+                  <div class="col-md-6"><div class="qa-step"><span class="badge me-2" style="background:var(--cobol);color:#000">6</span><strong>Relatório de Qualidade</strong><br/><small class="text-muted">Relatório final · <code>relatorio_qualidade.md</code></small></div></div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /sdd-timeline -->
+        </section>
+
+        <!-- ══ MULTI-STACK ══ -->
+        <section id="stacks" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-layer-group me-2" style="color:var(--foursys)"></i>Suporte Multi-Stack</div>
+          <div class="section-line"></div>
+
+          <div class="row g-3 mb-4">
+
+            <!-- Angular -->
+            <div class="col-md-6 col-xl-4">
+              <div class="stack-card p-3 h-100">
+                <div class="stack-icon" style="background:rgba(66,165,245,.15)"><i class="fa-brands fa-angular" style="color:var(--angular)"></i></div>
+                <h6 class="fw-bold" style="color:var(--angular)">Angular 18+</h6>
+                <div class="mb-2">
+                  <span class="badge" style="background:rgba(66,165,245,.15);color:var(--angular);font-size:.7rem">Marker: angular.json</span>
+                </div>
+                <ul style="font-size:.82rem" class="mb-2">
+                  <li>Standalone Components + Signals</li>
+                  <li>OnPush Change Detection</li>
+                  <li>Dynamic forms + Advanced routing</li>
+                  <li>Design System selection</li>
+                  <li>Mockup integration</li>
+                </ul>
+                <div style="font-size:.75rem;color:var(--text-muted-custom)"><strong>Ext.:</strong> .ts .html .scss .css</div>
+              </div>
+            </div>
+
+            <!-- Spring Boot -->
+            <div class="col-md-6 col-xl-4">
+              <div class="stack-card p-3 h-100">
+                <div class="stack-icon" style="background:rgba(102,187,106,.15)"><i class="fa-brands fa-java" style="color:var(--spring)"></i></div>
+                <h6 class="fw-bold" style="color:var(--spring)">Java 21 + Spring Boot 3.x</h6>
+                <div class="mb-2">
+                  <span class="badge" style="background:rgba(102,187,106,.15);color:var(--spring);font-size:.7rem">Marker: pom.xml / build.gradle</span>
+                </div>
+                <ul style="font-size:.82rem" class="mb-2">
+                  <li>Hexagonal Architecture enforcement</li>
+                  <li>OpenFeign / RestClient</li>
+                  <li>Kafka DLT + Retry patterns</li>
+                  <li>MongoDB integration</li>
+                  <li>JUnit 5 BDD testing</li>
+                </ul>
+                <div style="font-size:.75rem;color:var(--text-muted-custom)"><strong>Ext.:</strong> .java .yml .yaml .xml .properties</div>
+              </div>
+            </div>
+
+            <!-- Node.js -->
+            <div class="col-md-6 col-xl-4">
+              <div class="stack-card p-3 h-100">
+                <div class="stack-icon" style="background:rgba(255,183,77,.15)"><i class="fa-brands fa-node-js" style="color:var(--node)"></i></div>
+                <h6 class="fw-bold" style="color:var(--node)">Node.js / NestJS</h6>
+                <div class="mb-2">
+                  <span class="badge" style="background:rgba(255,183,77,.15);color:var(--node);font-size:.7rem">Marker: package.json (sem Angular)</span>
+                </div>
+                <ul style="font-size:.82rem" class="mb-2">
+                  <li>NestJS module architecture</li>
+                  <li>Prisma ORM support</li>
+                  <li>Class-validator integration</li>
+                  <li>Dependency injection patterns</li>
+                  <li>Express / Fastify suporte</li>
+                </ul>
+                <div style="font-size:.75rem;color:var(--text-muted-custom)"><strong>Ext.:</strong> .ts .js .json</div>
+              </div>
+            </div>
+
+            <!-- COBOL -->
+            <div class="col-md-6 col-xl-4">
+              <div class="stack-card p-3 h-100">
+                <div class="stack-icon" style="background:rgba(128,203,196,.15)"><i class="fa-solid fa-server" style="color:var(--cobol)"></i></div>
+                <h6 class="fw-bold" style="color:var(--cobol)">COBOL (Mainframe)</h6>
+                <div class="mb-2">
+                  <span class="badge" style="background:rgba(128,203,196,.15);color:var(--cobol);font-size:.7rem">Marker: arquivos .cbl no workspace</span>
+                </div>
+                <ul style="font-size:.82rem" class="mb-2">
+                  <li>JCL step execution guidance</li>
+                  <li>COPYBOOK generation</li>
+                  <li>Batch procedure planning</li>
+                  <li>COBOL-to-Java transpilation</li>
+                  <li>ABEND analysis &amp; debugging</li>
+                </ul>
+                <div style="font-size:.75rem;color:var(--text-muted-custom)"><strong>Ext.:</strong> .cbl .cobol .cob .jcl</div>
+              </div>
+            </div>
+
+            <!-- Generic -->
+            <div class="col-md-6 col-xl-4">
+              <div class="stack-card p-3 h-100">
+                <div class="stack-icon" style="background:rgba(180,180,200,.1)"><i class="fa-solid fa-layer-group" style="color:#b0b0cc"></i></div>
+                <h6 class="fw-bold" style="color:#b0b0cc">Generic (Fallback)</h6>
+                <div class="mb-2">
+                  <span class="badge bg-secondary" style="font-size:.7rem">Auto-selecionado quando stack não detectada</span>
+                </div>
+                <ul style="font-size:.82rem" class="mb-2">
+                  <li>Clean Architecture patterns</li>
+                  <li>Templates universais de SDD</li>
+                  <li>Aplicável a qualquer linguagem</li>
+                  <li>Python, Go, C#, Rust, etc.</li>
+                </ul>
+                <div style="font-size:.75rem;color:var(--text-muted-custom)"><strong>Ext.:</strong> .ts .js .py .java .cs .go .rs</div>
+              </div>
+            </div>
+
+            <!-- Detection Algorithm -->
+            <div class="col-md-6 col-xl-4" id="deteccao">
+              <div class="stack-card p-3 h-100" style="border-color:var(--foursys)!important">
+                <div class="stack-icon" style="background:rgba(108,92,231,.15)"><i class="fa-solid fa-magnifying-glass" style="color:var(--foursys-light)"></i></div>
+                <h6 class="fw-bold" style="color:var(--foursys-light)">Detecção Automática</h6>
+                <p style="font-size:.82rem" class="mb-2">4 níveis de confiança (ordem de prioridade):</p>
+                <ol style="font-size:.8rem">
+                  <li><strong>Declared</strong> — Campo <code>TECNOLOGIA:</code> no <code>user_story.md</code></li>
+                  <li><strong>Manual</strong> — Seleção via <code>foursys.selectStack</code></li>
+                  <li><strong>Workspace</strong> — Marker files (angular.json, pom.xml, etc.)</li>
+                  <li><strong>Heuristic</strong> — Keywords no conteúdo do user story</li>
+                </ol>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Design Systems Angular -->
+          <div class="card border-0 rounded-3" style="background:rgba(66,165,245,.06);border:1px solid rgba(66,165,245,.2)!important">
+            <div class="card-body">
+              <h6 class="fw-bold mb-3" style="color:var(--angular)"><i class="fa-solid fa-palette me-2"></i>Design Systems (Angular)</h6>
+              <div class="d-flex flex-wrap gap-2">
+                <span class="stack-pill sp-angular">Bradesco Liquid (Foursys)</span>
+                <span class="stack-pill sp-angular">Angular Material</span>
+                <span class="stack-pill sp-angular">PrimeNG</span>
+                <span class="stack-pill sp-angular">Bootstrap</span>
+                <span class="stack-pill sp-angular">Tailwind CSS</span>
+                <span class="stack-pill sp-generic">None</span>
+              </div>
+              <p class="mt-2 mb-0" style="font-size:.8rem;color:var(--text-muted-custom)">Selecionado via <code>foursys.selectDesignSystem</code> ou botão na sidebar. Injetado automaticamente nas skills durante o sync do Hub.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ SIDEBAR UI ══ -->
+        <section id="sidebar-ui" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-sidebar me-2" style="color:var(--foursys)"></i>Interface Sidebar</div>
+          <div class="section-line"></div>
+
+          <ul class="nav nav-tabs mb-3" id="sidebarTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-dev" type="button">
+                <i class="fa-solid fa-code me-1"></i>Dev
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-qa" type="button">
+                <i class="fa-solid fa-flask me-1"></i>QA
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-catalog" type="button">
+                <i class="fa-solid fa-book me-1"></i>Catalog
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- Dev Tab -->
+            <div class="tab-pane fade show active" id="tab-dev">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="card border-0 rounded-3 h-100" style="background:var(--bg-card)">
+                    <div class="card-body">
+                      <h6 class="fw-bold mb-3"><i class="fa-solid fa-workflow me-2" style="color:var(--foursys-light)"></i>Workflow Buttons</h6>
+                      <div class="d-grid gap-2">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(108,92,231,.1)">
+                          <span>🏛️</span><div><strong style="font-size:.85rem">Constitution</strong> <span class="badge bg-secondary" style="font-size:.68rem">Step 0</span><br/><small class="text-muted">Gera governança do projeto</small></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(66,165,245,.08)">
+                          <span>📝</span><div><strong style="font-size:.85rem">Specify</strong> <span class="badge bg-secondary" style="font-size:.68rem">Step 1</span><br/><small class="text-muted">Refina user story (INVEST)</small></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(66,165,245,.05)">
+                          <span>📸</span><div><strong style="font-size:.85rem">Mockup</strong> <span class="badge" style="background:rgba(66,165,245,.2);color:var(--angular);font-size:.68rem">Angular only</span><br/><small class="text-muted">Upload tela para referência</small></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(66,165,245,.05)">
+                          <span>🎨</span><div><strong style="font-size:.85rem">Figma MCP</strong> <span class="badge" style="background:rgba(66,165,245,.2);color:var(--angular);font-size:.68rem">Angular only</span><br/><small class="text-muted">Importar design via MCP · 3 estados: 📦 instalar / ⚙️ configurar / 🎨 importar</small></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(102,187,106,.08)">
+                          <span>📐</span><div><strong style="font-size:.85rem">Plan</strong> <span class="badge bg-secondary" style="font-size:.68rem">Step 2</span><br/><small class="text-muted">Arquitetura técnica</small></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(255,183,77,.08)">
+                          <span>📋</span><div><strong style="font-size:.85rem">Tasks</strong> <span class="badge bg-secondary" style="font-size:.68rem">Step 3</span><br/><small class="text-muted">Decomposição em tarefas</small></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:rgba(108,92,231,.15)">
+                          <span>🚀</span><div><strong style="font-size:.85rem">Implement</strong> <span class="badge bg-secondary" style="font-size:.68rem">Step 4</span><br/><small class="text-muted">Geração de código</small></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card border-0 rounded-3 mb-3" style="background:var(--bg-card)">
+                    <div class="card-body">
+                      <h6 class="fw-bold mb-2"><i class="fa-solid fa-bars-staggered me-2" style="color:var(--foursys-light)"></i>Stack Badge</h6>
+                      <p style="font-size:.82rem" class="mb-2">Exibe a stack ativa e a origem da detecção. Clique em <strong>"Trocar Stack"</strong> para selecionar manualmente.</p>
+                      <div class="p-2 rounded d-flex align-items-center gap-2" style="background:rgba(66,165,245,.1);border:1px solid rgba(66,165,245,.3)">
+                        <i class="fa-brands fa-angular" style="color:var(--angular)"></i>
+                        <strong style="color:var(--angular);font-size:.85rem">Angular 18+</strong>
+                        <span class="badge ms-auto" style="background:rgba(66,165,245,.2);color:var(--angular);font-size:.68rem">workspace</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                    <div class="card-body">
+                      <h6 class="fw-bold mb-2"><i class="fa-solid fa-shield-halved me-2" style="color:#4caf50"></i>Mend Advise (AppSec)</h6>
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="mend-status mend-green"></span><span style="font-size:.82rem">Ativo — escaneando CVEs</span>
+                      </div>
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="mend-status mend-yellow"></span><span style="font-size:.82rem">Instalando...</span>
+                      </div>
+                      <div class="d-flex align-items-center">
+                        <span class="mend-status mend-red"></span><span style="font-size:.82rem">Não instalado (clique para instalar)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- QA Tab -->
+            <div class="tab-pane fade" id="tab-qa">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3"><i class="fa-solid fa-flask-vial me-2" style="color:var(--cobol)"></i>Pipeline QA — 6 Passos</h6>
+                  <div class="d-grid gap-2">
+                    <div class="d-flex align-items-center gap-3 p-2 rounded" style="background:rgba(128,203,196,.08)"><span class="badge rounded-circle" style="background:var(--cobol);color:#000;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center">1</span><div><strong style="font-size:.85rem">📝 Plano de Testes</strong><br/><small class="text-muted">Estratégia · <code>qa/plano_testes.md</code></small></div></div>
+                    <div class="d-flex align-items-center gap-3 p-2 rounded" style="background:rgba(128,203,196,.08)"><span class="badge rounded-circle" style="background:var(--cobol);color:#000;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center">2</span><div><strong style="font-size:.85rem">📄 Casos de Teste (BDD/Cucumber)</strong><br/><small class="text-muted">Gherkin English · <code>qa/casos_teste.md</code></small></div></div>
+                    <div class="d-flex align-items-center gap-3 p-2 rounded" style="background:rgba(128,203,196,.08)"><span class="badge rounded-circle" style="background:var(--cobol);color:#000;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center">3</span><div><strong style="font-size:.85rem">📋 Roteiros de Teste</strong><br/><small class="text-muted">Procedimentos manuais · <code>qa/roteiros_teste.md</code></small></div></div>
+                    <div class="d-flex align-items-center gap-3 p-2 rounded" style="background:rgba(108,92,231,.1)"><span class="badge rounded-circle" style="background:var(--foursys);color:#fff;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center">4</span><div><strong style="font-size:.85rem">📤 Exportar para Xray</strong><br/><small class="text-muted">Requer <code>roteiros_teste.md</code> · envia para Jira API</small></div></div>
+                    <div class="d-flex align-items-center gap-3 p-2 rounded" style="background:rgba(128,203,196,.08)"><span class="badge rounded-circle" style="background:var(--cobol);color:#000;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center">5</span><div><strong style="font-size:.85rem">🔍 Review de Cobertura</strong><br/><small class="text-muted">Análise de cobertura · <code>qa/review_cobertura.md</code></small></div></div>
+                    <div class="d-flex align-items-center gap-3 p-2 rounded" style="background:rgba(128,203,196,.08)"><span class="badge rounded-circle" style="background:var(--cobol);color:#000;width:1.6rem;height:1.6rem;display:flex;align-items:center;justify-content:center">6</span><div><strong style="font-size:.85rem">📊 Relatório de Qualidade</strong><br/><small class="text-muted">Relatório final · <code>qa/relatorio_qualidade.md</code></small></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Catalog Tab -->
+            <div class="tab-pane fade" id="tab-catalog">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3"><i class="fa-solid fa-book-open me-2" style="color:var(--foursys-light)"></i>Catálogo — Skills &amp; Playbooks</h6>
+                  <p style="font-size:.82rem" class="mb-3">Filtro de busca em tempo real. Clique em qualquer item para carregá-lo no Copilot Chat.</p>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="fa-solid fa-search"></i></span>
+                    <input type="text" id="sidebarSearch" class="form-control" placeholder="Buscar skill ou playbook..." />
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <div class="p-2 rounded mb-2" style="background:rgba(108,92,231,.08)">
+                        <strong style="font-size:.82rem;color:var(--foursys-light)">📋 PlayBooks</strong>
+                        <div class="mt-1">
+                          <span class="badge bg-secondary me-1" style="font-size:.7rem">fase-0/</span>
+                          <span class="badge bg-secondary me-1" style="font-size:.7rem">fase-1/</span>
+                          <span class="badge bg-secondary me-1" style="font-size:.7rem">fase-2/</span>
+                          <span class="badge bg-secondary" style="font-size:.7rem">fase-3/</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="p-2 rounded mb-2" style="background:rgba(66,165,245,.08)">
+                        <strong style="font-size:.82rem;color:var(--angular)">🔵 Skills Angular</strong>
+                        <div class="mt-1" style="font-size:.75rem"><code>angular-testes</code> &nbsp; <code>angular-review</code></div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="p-2 rounded mb-2" style="background:rgba(102,187,106,.08)">
+                        <strong style="font-size:.82rem;color:var(--spring)">🟢 Skills Spring Boot</strong>
+                        <div class="mt-1" style="font-size:.75rem"><code>validacao-mvc</code> &nbsp; <code>testes-junit5</code> &nbsp; +4</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="p-2 rounded mb-2" style="background:rgba(128,203,196,.08)">
+                        <strong style="font-size:.82rem;color:var(--cobol)">🔷 Skills COBOL</strong>
+                        <div class="mt-1" style="font-size:.75rem"><code>cobol-geracao-jcl</code> &nbsp; <code>cobol-abend</code> &nbsp; +7</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row g-2 mt-2">
+                    <div class="col-md-6">
+                      <div class="p-2 rounded mb-2" style="background:rgba(160,160,200,.08)">
+                        <strong style="font-size:.82rem;color:#9e9eb8">⬜ Processo (Shared)</strong>
+                        <div class="mt-1" style="font-size:.75rem"><code>especificacao-tecnica</code> &nbsp; <code>refinamento-negocio</code> &nbsp; +2</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="p-2 rounded mb-2" style="background:rgba(206,147,216,.08)">
+                        <strong style="font-size:.82rem;color:#ce93d8">✏️ Custom Skills</strong>
+                        <div class="mt-1" style="font-size:.75rem">
+                          Vazio: botões <code>📂 Abrir Pasta</code> e <code>📄 Nova Skill</code><br/>
+                          Com skills: exibe lista clicável (hover roxo)
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ CHAT PARTICIPANT ══ -->
+        <section id="chat" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-comments me-2" style="color:var(--foursys)"></i>Chat Participant — @foursys_sdd</div>
+          <div class="section-line"></div>
+          <p style="font-size:.88rem" class="mb-3">Invoque no VS Code Chat com <code>@foursys_sdd</code> seguido de um comando <code>/</code>:</p>
+
+          <div class="table-responsive">
+            <table class="table table-hover cmd-table">
+              <thead>
+                <tr>
+                  <th>Comando</th>
+                  <th>Fase</th>
+                  <th>Artefato</th>
+                  <th>Modelo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code class="cmd-badge">/constitution</code></td><td><span class="badge" style="background:rgba(108,92,231,.2);color:var(--foursys-light)">Fase 0</span></td><td><code>constitution.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/specify</code></td><td><span class="badge" style="background:rgba(66,165,245,.2);color:var(--angular)">Fase 1</span></td><td><code>user_story.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/plan</code></td><td><span class="badge" style="background:rgba(102,187,106,.2);color:var(--spring)">Fase 2</span></td><td><code>implementation_plan.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/tasks</code></td><td><span class="badge" style="background:rgba(255,183,77,.2);color:var(--node)">Fase 3</span></td><td><code>task_list.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/implement</code></td><td><span class="badge" style="background:rgba(108,92,231,.3);color:#fff">Fase 4</span></td><td>Código gerado</td><td><span class="badge" style="background:rgba(108,92,231,.5);color:#fff">Sonnet 4.6</span></td></tr>
+                <tr><td><code class="cmd-badge">/qa-test-plan</code></td><td><span class="badge" style="background:rgba(128,203,196,.2);color:var(--cobol)">QA-1</span></td><td><code>qa/plano_testes.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/qa-test-cases</code></td><td><span class="badge" style="background:rgba(128,203,196,.2);color:var(--cobol)">QA-2</span></td><td><code>qa/casos_teste.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/qa-automation</code></td><td><span class="badge" style="background:rgba(128,203,196,.2);color:var(--cobol)">QA-3</span></td><td><code>qa/roteiros_teste.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/qa-coverage</code></td><td><span class="badge" style="background:rgba(128,203,196,.2);color:var(--cobol)">QA-5</span></td><td><code>qa/review_cobertura.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/qa-report</code></td><td><span class="badge" style="background:rgba(128,203,196,.2);color:var(--cobol)">QA-6</span></td><td><code>qa/relatorio_qualidade.md</code></td><td><span class="badge bg-secondary">Haiku</span></td></tr>
+                <tr><td><code class="cmd-badge">/skill [nome]</code></td><td><span class="badge bg-secondary">Utility</span></td><td>Injeta skill no chat</td><td>—</td></tr>
+                <tr><td><code class="cmd-badge">/playbook [nome]</code></td><td><span class="badge bg-secondary">Utility</span></td><td>Carrega playbook</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ══ MEND ADVISE ══ -->
+        <section id="mend" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-shield-halved me-2" style="color:#4caf50"></i>Mend Advise — AppSec Integration</div>
+          <div class="section-line"></div>
+
+          <div class="row g-3">
+            <div class="col-md-7">
+              <div class="card border-0 rounded-3 h-100" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3">Como funciona</h6>
+                  <ul style="font-size:.88rem">
+                    <li>Detecta CVEs em dependências do projeto automaticamente</li>
+                    <li>Exibe vulnerabilidades no painel <strong>Problems</strong> (<kbd>Ctrl+Shift+M</kbd>)</li>
+                    <li>Auto-detecta se Mend está instalado ao carregar o plugin</li>
+                    <li>Prompt único por workspace para configurar a chave de licença</li>
+                    <li>Scan manual via comando <code>foursys.runMend</code></li>
+                    <li>Chave armazenada com segurança via VS Code Secrets API</li>
+                  </ul>
+                  <div class="mt-3">
+                    <strong style="font-size:.85rem">Extension ID:</strong> <code>mend.mend-advise</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <div class="card border-0 rounded-3 h-100" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3">Comandos</h6>
+                  <div class="d-grid gap-2" style="font-size:.82rem">
+                    <div class="p-2 rounded" style="background:rgba(76,175,80,.1)">
+                      <code>foursys.runMend</code><br/>
+                      <small class="text-muted">Executar scan de segurança</small>
+                    </div>
+                    <div class="p-2 rounded" style="background:rgba(76,175,80,.1)">
+                      <strong>Botão "Instalar Mend"</strong><br/>
+                      <small class="text-muted">Na sidebar, seção Mend Advise</small>
+                    </div>
+                    <div class="p-2 rounded" style="background:rgba(76,175,80,.1)">
+                      <strong>Copiar Chave de Licença</strong><br/>
+                      <small class="text-muted">Para ativação manual</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ FIGMA MCP ══ -->
+        <section id="figma" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-pen-ruler me-2" style="color:var(--angular)"></i>Figma MCP — Design Integration <span class="badge ms-2" style="background:rgba(66,165,245,.2);color:var(--angular);font-size:.7rem">Angular only</span></div>
+          <div class="section-line"></div>
+          <p style="font-size:.88rem" class="mb-3">Integração com o servidor MCP oficial do Figma para importar designs diretamente como contexto do Copilot Chat, gerando critérios de aceite visuais automaticamente.</p>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <div class="card border-0 rounded-3 h-100" style="background:rgba(66,165,245,.06);border:1px solid rgba(66,165,245,.2)!important">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2" style="color:var(--angular)"><span class="me-2">📦</span>Estado 1 — Instalar</h6>
+                  <p style="font-size:.82rem" class="mb-2">Extensão Figma não instalada. Botão aparece na sidebar.</p>
+                  <div class="p-2 rounded" style="background:rgba(66,165,245,.08);font-size:.8rem">
+                    <strong>Botão:</strong> <code>📦 Figma</code><br/>
+                    <strong>Ação:</strong> Instala <code>figma.figma-vscode-extension</code><br/>
+                    <strong>Após:</strong> Recarrega janela + prompt de login no Figma
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 rounded-3 h-100" style="background:rgba(66,165,245,.06);border:1px solid rgba(66,165,245,.2)!important">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2" style="color:var(--angular)"><span class="me-2">⚙️</span>Estado 2 — Configurar MCP</h6>
+                  <p style="font-size:.82rem" class="mb-2">Figma instalado, mas MCP não configurado.</p>
+                  <div class="p-2 rounded" style="background:rgba(66,165,245,.08);font-size:.8rem">
+                    <strong>Botão:</strong> <code>⚙️ Figma MCP</code><br/>
+                    <strong>Ação:</strong> Escreve <code>mcp.json</code> automaticamente<br/>
+                    <strong>Config:</strong> <code>https://mcp.figma.com/mcp</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 rounded-3 h-100" style="background:rgba(66,165,245,.06);border:1px solid rgba(66,165,245,.2)!important">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2" style="color:var(--angular)"><span class="me-2">🎨</span>Estado 3 — Importar</h6>
+                  <p style="font-size:.82rem" class="mb-2">Figma + MCP ativos. Botão ativado na sidebar.</p>
+                  <div class="p-2 rounded" style="background:rgba(66,165,245,.08);font-size:.8rem">
+                    <strong>Botão:</strong> <code>🎨 Figma MCP</code><br/>
+                    <strong>Ação:</strong> Solicita URL do Figma → salva em <code>figma_ref.txt</code> → abre Chat com análise do design
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-7">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2">O que o MCP analisa no Figma</h6>
+                  <ul style="font-size:.85rem" class="mb-0">
+                    <li>Layout, cores e elementos visuais do frame</li>
+                    <li>Componentes do <strong>Liquid Design System / DS Bradesco</strong></li>
+                    <li>Estados visíveis (loading, vazio, erro, sucesso, validação)</li>
+                    <li>Gera critérios de aceite visuais para Angular (Material / PrimeNG)</li>
+                    <li>Referencia o <code>user_story.md</code> como contexto</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2">Arquivo de Referência</h6>
+                  <div class="file-tree" style="font-size:.82rem">
+                    <span class="folder">doc_projeto/screens/</span><br/>
+                    ├── <span class="file">mockup.png</span> <span class="comment">← upload local</span><br/>
+                    └── <span class="file">figma_ref.txt</span> <span class="comment">← URL do Figma</span>
+                  </div>
+                  <div class="mt-2" style="font-size:.78rem;color:var(--text-muted-custom)">
+                    Ambos são incluídos automaticamente no contexto do <code>/specify</code>.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ MODELOS IA ══ -->
+        <section id="modelos-ia" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-microchip me-2" style="color:var(--foursys)"></i>Gerenciamento de Modelos IA</div>
+          <div class="section-line"></div>
+
+          <div class="table-responsive mb-3">
+            <table class="table table-hover">
+              <thead>
+                <tr><th>Tipo de Fase</th><th>Fases</th><th>Modelo Primário</th><th>Motivo</th></tr>
+              </thead>
+              <tbody>
+                <tr class="model-row-light"><td><span class="badge bg-primary">light</span></td><td>Constitution, Plan, Tasks</td><td><code>claude-haiku-4-5</code></td><td>Grande contexto, determinístico, econômico</td></tr>
+                <tr class="model-row-mini"><td><span class="badge bg-success">mini</span></td><td>Specify</td><td><code>claude-haiku-4-5</code></td><td>Ultra-leve para análise de stories</td></tr>
+                <tr class="model-row-impl"><td><span class="badge" style="background:var(--foursys)">implement</span></td><td>Implement</td><td><code>claude-sonnet-4-6</code></td><td>Melhor qualidade para geração de código</td></tr>
+                <tr class="model-row-std"><td><span class="badge bg-info text-dark">standard</span></td><td>QA phases</td><td><code>claude-haiku-4-5</code></td><td>Uso geral, custo controlado</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2"><i class="fa-solid fa-coins me-1" style="color:var(--node)"></i>Token Budget</h6>
+                  <ul style="font-size:.85rem" class="mb-2">
+                    <li>Limite padrão: <strong>4.500 tokens</strong> de entrada</li>
+                    <li>Output máximo por request: <strong>3.500 tokens</strong></li>
+                    <li>Aviso modal se input exceder o budget</li>
+                    <li>Opções: continuar ou cancelar</li>
+                    <li>Configure <code>0</code> para desabilitar</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2"><i class="fa-solid fa-sliders me-1" style="color:var(--foursys-light)"></i>Override Manual</h6>
+                  <p style="font-size:.85rem" class="mb-2">Para forçar um modelo específico em todas as fases:</p>
+                  <div class="code-block">
+                    <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy me-1"></i>Copiar</button>
+                    <pre>{
+  "foursys.modelOverride": "claude-sonnet-4-6"
+}</pre>
+                  </div>
+                  <p class="mt-2 mb-0" style="font-size:.78rem;color:var(--text-muted-custom)">Deixe vazio (<code>""</code>) para usar seleção automática por fase.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ CONFIGURAÇÕES ══ -->
+        <section id="configuracoes" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-gear me-2" style="color:var(--foursys)"></i>Configurações (settings.json)</div>
+          <div class="section-line"></div>
+
+          <div class="code-block mb-3">
+            <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy me-1"></i>Copiar</button>
+            <pre>{
+  // Força família de modelo específica (vazio = auto-select por fase)
+  "foursys.modelOverride": "",
+
+  // Budget de tokens de entrada por request (0 = desabilitar aviso)
+  "foursys.tokenBudget": 4500,
+
+  // URL base do Jira para export ao Xray
+  "foursys.xrayJiraUrl": "https://jira.sua-empresa.com.br",
+
+  // Chave do projeto Jira
+  "foursys.xrayProjectKey": "PROJ"
+}</pre>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover" style="font-size:.85rem">
+              <thead><tr><th>Setting</th><th>Tipo</th><th>Padrão</th><th>Descrição</th></tr></thead>
+              <tbody>
+                <tr><td><code>foursys.modelOverride</code></td><td>string</td><td><code>""</code></td><td>Override do modelo IA (família)</td></tr>
+                <tr><td><code>foursys.tokenBudget</code></td><td>number</td><td><code>4500</code></td><td>Limite de tokens de entrada por requisição</td></tr>
+                <tr><td><code>foursys.xrayJiraUrl</code></td><td>string</td><td><code>""</code></td><td>URL base do Jira (ex: https://jira.empresa.com)</td></tr>
+                <tr><td><code>foursys.xrayProjectKey</code></td><td>string</td><td><code>""</code></td><td>Chave do projeto Jira para export Xray</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-info" style="font-size:.83rem">
+            <i class="fa-solid fa-lock me-1"></i>
+            <strong>Secrets (armazenados com segurança):</strong>
+            <code>foursys.xrayApiToken</code> (token Bearer do Jira) e
+            <code>foursys.mendLicenseKey</code> (licença Mend) são armazenados via VS Code Secrets API — nunca em texto plano.
+            Configure via: <kbd>Ctrl+Shift+P</kbd> → <strong>Foursys: Configurar Token Xray</strong>
+          </div>
+        </section>
+
+        <!-- ══ SKILLS & PLAYBOOKS ══ -->
+        <section id="skills" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-book-bookmark me-2" style="color:var(--foursys)"></i>Skills &amp; Playbooks</div>
+          <div class="section-line"></div>
+
+          <div class="mb-3">
+            <input type="text" id="skills-search" class="form-control" placeholder="🔍 Filtrar skills..." style="max-width:400px" oninput="filterSkills(this.value)" />
+          </div>
+
+          <div id="skills-list">
+            <!-- Spring Boot Skills -->
+            <div class="mb-3 skill-group">
+              <h6 class="fw-bold mb-2" style="color:var(--spring)"><i class="fa-brands fa-java me-1"></i>Spring Boot</h6>
+              <div>
+                <span class="skill-item" style="background:rgba(102,187,106,.12);color:var(--spring);border:1px solid rgba(102,187,106,.3)"><i class="fa-solid fa-file-code me-1"></i>springboot-autorizador</span>
+                <span class="skill-item" style="background:rgba(102,187,106,.12);color:var(--spring);border:1px solid rgba(102,187,106,.3)"><i class="fa-solid fa-file-code me-1"></i>springboot-certificado</span>
+                <span class="skill-item" style="background:rgba(102,187,106,.12);color:var(--spring);border:1px solid rgba(102,187,106,.3)"><i class="fa-solid fa-file-code me-1"></i>springboot-validacao-mvc</span>
+                <span class="skill-item" style="background:rgba(102,187,106,.12);color:var(--spring);border:1px solid rgba(102,187,106,.3)"><i class="fa-solid fa-file-code me-1"></i>springboot-validacao-hexagonal</span>
+                <span class="skill-item" style="background:rgba(102,187,106,.12);color:var(--spring);border:1px solid rgba(102,187,106,.3)"><i class="fa-solid fa-file-code me-1"></i>springboot-testes-junit5</span>
+                <span class="skill-item" style="background:rgba(102,187,106,.12);color:var(--spring);border:1px solid rgba(102,187,106,.3)"><i class="fa-solid fa-file-code me-1"></i>springboot-review</span>
+              </div>
+            </div>
+
+            <!-- Angular Skills -->
+            <div class="mb-3 skill-group">
+              <h6 class="fw-bold mb-2" style="color:var(--angular)"><i class="fa-brands fa-angular me-1"></i>Angular</h6>
+              <div>
+                <span class="skill-item" style="background:rgba(66,165,245,.12);color:var(--angular);border:1px solid rgba(66,165,245,.3)"><i class="fa-solid fa-file-code me-1"></i>angular-testes</span>
+                <span class="skill-item" style="background:rgba(66,165,245,.12);color:var(--angular);border:1px solid rgba(66,165,245,.3)"><i class="fa-solid fa-file-code me-1"></i>angular-review</span>
+              </div>
+            </div>
+
+            <!-- COBOL Skills -->
+            <div class="mb-3 skill-group">
+              <h6 class="fw-bold mb-2" style="color:var(--cobol)"><i class="fa-solid fa-server me-1"></i>COBOL</h6>
+              <div>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-geracao-jcl</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-geracao-sql-exec</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-transpilacao-java</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-refatoracao</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-teste-borda</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-otimizacao-performance</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-analise-abend</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-explica-variaveis</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-documenta</span>
+                <span class="skill-item" style="background:rgba(128,203,196,.12);color:var(--cobol);border:1px solid rgba(128,203,196,.3)"><i class="fa-solid fa-file-code me-1"></i>cobol-reversa-completa</span>
+              </div>
+            </div>
+
+            <!-- Shared Skills -->
+            <div class="mb-3 skill-group">
+              <h6 class="fw-bold mb-2" style="color:#9e9eb8"><i class="fa-solid fa-share-nodes me-1"></i>Shared / Cross-Stack</h6>
+              <div>
+                <span class="skill-item" style="background:rgba(160,160,200,.1);color:#b0b0cc;border:1px solid rgba(160,160,200,.3)"><i class="fa-solid fa-file-code me-1"></i>checklist-homologacao</span>
+                <span class="skill-item" style="background:rgba(160,160,200,.1);color:#b0b0cc;border:1px solid rgba(160,160,200,.3)"><i class="fa-solid fa-file-code me-1"></i>especificacao-tecnica</span>
+                <span class="skill-item" style="background:rgba(160,160,200,.1);color:#b0b0cc;border:1px solid rgba(160,160,200,.3)"><i class="fa-solid fa-file-code me-1"></i>refinamento-negocio</span>
+                <span class="skill-item" style="background:rgba(160,160,200,.1);color:#b0b0cc;border:1px solid rgba(160,160,200,.3)"><i class="fa-solid fa-file-code me-1"></i>diagrama-sequencia</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card border-0 rounded-3 mt-3" style="background:rgba(206,147,216,.08);border:1px solid rgba(206,147,216,.25)!important">
+            <div class="card-body">
+              <h6 class="fw-bold mb-2" style="color:#ce93d8"><i class="fa-solid fa-pencil me-2"></i>✏️ Custom Skills — Skills Personalizadas</h6>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <ul style="font-size:.83rem" class="mb-0">
+                    <li>Ficam em <code>globalStorage/custom-skills/</code></li>
+                    <li><strong>Nunca sobrescritas</strong> pelo Sync do Hub</li>
+                    <li>Aparecem no Catalog após próximo sync</li>
+                    <li>Hover roxo para diferenciar de Hub Skills</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <strong style="font-size:.82rem">Como criar:</strong>
+                  <div class="d-grid gap-1 mt-1">
+                    <div class="p-2 rounded" style="background:rgba(206,147,216,.1);font-size:.8rem"><strong>📂 Abrir Pasta</strong> — abre a pasta no Explorer</div>
+                    <div class="p-2 rounded" style="background:rgba(206,147,216,.1);font-size:.8rem"><strong>📄 Nova Skill</strong> — pede nome e cria <code>.md</code> template</div>
+                    <div class="p-2 rounded" style="background:rgba(206,147,216,.1);font-size:.8rem"><code>@foursys_sdd /skill [nome]</code> — carrega via chat</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ ESTRUTURA DE ARQUIVOS ══ -->
+        <section id="estrutura" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-folder-tree me-2" style="color:var(--foursys)"></i>Estrutura de Arquivos Gerados</div>
+          <div class="section-line"></div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3"><i class="fa-solid fa-folder me-1" style="color:var(--node)"></i>doc_projeto/ (auto-criado)</h6>
+                  <div class="file-tree">
+<span class="folder">doc_projeto/</span><br/>
+├── <span class="file">constitution.md</span> <span class="comment">← Fase 0</span><br/>
+├── <span class="file">user_story.md</span> <span class="comment">← Fase 1</span><br/>
+├── <span class="file">technical_spec.md</span> <span class="comment">← Fase 1</span><br/>
+├── <span class="file">implementation_plan.md</span> <span class="comment">← Fase 2</span><br/>
+├── <span class="file">task_list.md</span> <span class="comment">← Fase 3</span><br/>
+├── <span class="folder">screens/</span><br/>
+│   ├── <span class="file">mockup.png</span> <span class="comment">← Angular: upload local</span><br/>
+│   └── <span class="file">figma_ref.txt</span> <span class="comment">← Angular: URL do Figma</span><br/>
+└── <span class="folder">qa/</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">plano_testes.md</span> <span class="comment">← QA-1</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">casos_teste.md</span> <span class="comment">← QA-2</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">roteiros_teste.md</span> <span class="comment">← QA-3</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">review_cobertura.md</span> <span class="comment">← QA-5</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">relatorio_qualidade.md</span> <span class="comment">← QA-6</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">xray_export.feature</span> <span class="comment">← QA-4</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card border-0 rounded-3 mb-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2"><i class="fa-solid fa-eye-slash me-1" style="color:#ef5350"></i>.gitignore Auto-adicionado</h6>
+                  <div class="code-block">
+                    <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy me-1"></i>Copiar</button>
+                    <pre>doc_projeto/
+.github/copilot-instructions.md
+.github/skills/
+agentes_foursys/</pre>
+                  </div>
+                  <p class="mt-2 mb-0" style="font-size:.78rem;color:var(--text-muted-custom)">Adicionado automaticamente na primeira execução para proteger documentação local de commits acidentais.</p>
+                </div>
+              </div>
+              <div class="card border-0 rounded-3" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-2"><i class="fa-solid fa-shield me-1" style="color:var(--spring)"></i>Proteção de Arquivos</h6>
+                  <p style="font-size:.82rem" class="mb-0">Arquivos existentes com conteúdo real (&gt; 100 chars) recebem aviso antes de sobrescrita: <em>"Sobrescrever com nova geração?"</em></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ XRAY ══ -->
+        <section id="xray" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-vial me-2" style="color:var(--foursys)"></i>Integração Xray / Jira</div>
+          <div class="section-line"></div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card border-0 rounded-3 h-100" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3">Configuração</h6>
+                  <ol style="font-size:.87rem">
+                    <li>Configure <code>foursys.xrayJiraUrl</code> e <code>foursys.xrayProjectKey</code> no settings.json</li>
+                    <li>Execute: <kbd>Ctrl+Shift+P</kbd> → <strong>Foursys: Configurar Token Xray</strong></li>
+                    <li>Insira o Bearer token do Jira (armazenado com segurança)</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card border-0 rounded-3 h-100" style="background:var(--bg-card)">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3">Workflow de Export</h6>
+                  <ol style="font-size:.87rem">
+                    <li>Execute QA-2: gera <code>casos_teste.md</code> em Gherkin (inglês)</li>
+                    <li>Execute QA-3: gera <code>roteiros_teste.md</code></li>
+                    <li>Clique <strong>📤 Exportar para Xray</strong> na sidebar QA</li>
+                    <li>O plugin valida keywords Gherkin (devem ser em inglês)</li>
+                    <li>Envia via API REST ao Jira Xray</li>
+                    <li>Arquivo local: <code>qa/xray_export.feature</code></li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-warning mt-3" style="font-size:.82rem">
+            <i class="fa-solid fa-language me-1"></i>
+            <strong>Atenção:</strong> Os casos de teste BDD devem ter keywords Gherkin em <strong>inglês</strong> (<code>Given</code>, <code>When</code>, <code>Then</code>, <code>And</code>, <code>But</code>) para compatibilidade com o Xray. O plugin valida e avisa se encontrar keywords em português.
+          </div>
+        </section>
+
+        <!-- ══ WORKFLOWS ══ -->
+        <section id="workflows" class="mb-5">
+          <div class="section-title"><i class="fa-solid fa-route me-2" style="color:var(--foursys)"></i>Cenários de Uso</div>
+          <div class="section-line"></div>
+
+          <div class="accordion" id="accordionWorkflows">
+
+            <div class="accordion-item border-0 mb-2 rounded-3 overflow-hidden">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#wf1">
+                  <i class="fa-solid fa-seedling me-2" style="color:var(--spring)"></i>1. Desenvolvimento Greenfield (Completo)
+                </button>
+              </h2>
+              <div id="wf1" class="accordion-collapse collapse" data-bs-parent="#accordionWorkflows">
+                <div class="accordion-body" style="font-size:.87rem">
+                  <div class="step-flow mb-3">
+                    <span class="step-box" style="background:rgba(108,92,231,.15);color:var(--foursys-light);border:1px solid var(--foursys)">Constitution</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(66,165,245,.1);color:var(--angular);border:1px solid var(--angular)">Specify</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(102,187,106,.1);color:var(--spring);border:1px solid var(--spring)">Plan</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(255,183,77,.1);color:var(--node);border:1px solid var(--node)">Tasks</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(108,92,231,.2);color:#fff;border:1px solid var(--foursys)">Implement</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(128,203,196,.1);color:var(--cobol);border:1px solid var(--cobol)">QA</span>
+                  </div>
+                  <p>Ciclo completo com rastreabilidade total via <code>doc_projeto/</code>. Ideal para features novas em projetos existentes ou projetos do zero.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0 mb-2 rounded-3 overflow-hidden">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#wf2">
+                  <i class="fa-solid fa-plus me-2" style="color:var(--angular)"></i>2. Feature Incremental
+                </button>
+              </h2>
+              <div id="wf2" class="accordion-collapse collapse" data-bs-parent="#accordionWorkflows">
+                <div class="accordion-body" style="font-size:.87rem">
+                  <div class="step-flow mb-3">
+                    <span class="step-box" style="background:rgba(66,165,245,.1);color:var(--angular);border:1px solid var(--angular)">Specify story</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(102,187,106,.1);color:var(--spring);border:1px solid var(--spring)">Plan incremento</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(255,183,77,.1);color:var(--node);border:1px solid var(--node)">Tasks</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(108,92,231,.15);color:var(--foursys-light);border:1px solid var(--foursys)">Session 1</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(108,92,231,.15);color:var(--foursys-light);border:1px solid var(--foursys)">Session 2</span>
+                  </div>
+                  <p>Adicionar features a um sistema existente com contexto de workspace injetado automaticamente.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0 mb-2 rounded-3 overflow-hidden">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#wf3">
+                  <i class="fa-solid fa-server me-2" style="color:var(--cobol)"></i>3. Modernização COBOL
+                </button>
+              </h2>
+              <div id="wf3" class="accordion-collapse collapse" data-bs-parent="#accordionWorkflows">
+                <div class="accordion-body" style="font-size:.87rem">
+                  <div class="step-flow mb-3">
+                    <span class="step-box" style="background:rgba(128,203,196,.1);color:var(--cobol);border:1px solid var(--cobol)">Constitution COBOL</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(128,203,196,.1);color:var(--cobol);border:1px solid var(--cobol)">Specify modernização</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(128,203,196,.1);color:var(--cobol);border:1px solid var(--cobol)">Plan transpilação</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(108,92,231,.15);color:var(--foursys-light);border:1px solid var(--foursys)">Implement</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(128,203,196,.1);color:var(--cobol);border:1px solid var(--cobol)">QA</span>
+                  </div>
+                  <p>Usar skills especializadas: <code>cobol-reversa-completa</code>, <code>cobol-transpilacao-java</code>, <code>cobol-analise-abend</code>.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0 mb-2 rounded-3 overflow-hidden">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#wf4">
+                  <i class="fa-solid fa-shield-halved me-2" style="color:#4caf50"></i>4. Security-Driven (AppSec First)
+                </button>
+              </h2>
+              <div id="wf4" class="accordion-collapse collapse" data-bs-parent="#accordionWorkflows">
+                <div class="accordion-body" style="font-size:.87rem">
+                  <div class="step-flow mb-3">
+                    <span class="step-box" style="background:rgba(108,92,231,.15);color:var(--foursys-light);border:1px solid var(--foursys)">Constitution AppSec</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(102,187,106,.1);color:var(--spring);border:1px solid var(--spring)">Plan</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(108,92,231,.2);color:#fff;border:1px solid var(--foursys)">Implement</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(76,175,80,.15);color:#4caf50;border:1px solid #4caf50">Mend Scan</span>
+                    <span class="step-arrow">→</span>
+                    <span class="step-box" style="background:rgba(128,203,196,.1);color:var(--cobol);border:1px solid var(--cobol)">QA Report</span>
+                  </div>
+                  <p>Foco em compliance e segurança, com scan de CVEs integrado e relatório final de qualidade.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0 mb-2 rounded-3 overflow-hidden">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#wf5">
+                  <i class="fa-brands fa-figma me-2" style="color:var(--angular)"></i>5. Design-First com Figma MCP <span class="badge ms-2" style="background:rgba(66,165,245,.2);color:var(--angular);font-size:.68rem">Angular</span>
+                </button>
+              </h2>
+              <div id="wf5" class="accordion-collapse collapse" data-bs-parent="#accordionWorkflows">
+                <div class="accordion-body" style="font-size:.87rem">
+                  <div class="step-flow mb-3">
+                    <span class="step-box" style="background:rgba(66,165,245,.1);color:var(--angular);border:1px solid var(--angular)">🎨 Figma MCP</span>
+                    <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                    <span class="step-box" style="background:rgba(66,165,245,.1);color:var(--angular);border:1px solid var(--angular)">Specify</span>
+                    <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                    <span class="step-box" style="background:rgba(102,187,106,.1);color:var(--spring);border:1px solid var(--spring)">Plan</span>
+                    <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                    <span class="step-box" style="background:rgba(255,183,77,.1);color:var(--node);border:1px solid var(--node)">Tasks</span>
+                    <span class="step-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                    <span class="step-box" style="background:rgba(108,92,231,.2);color:#fff;border:1px solid var(--foursys)">Implement</span>
+                  </div>
+                  <p>Clique em <strong>🎨 Figma MCP</strong> na sidebar → cole a URL do frame → o Copilot analisa o design via MCP e gera critérios de aceite visuais → use no <code>/specify</code> com contexto visual completo do Liquid DS / Angular Material. A URL fica salva em <code>doc_projeto/screens/figma_ref.txt</code> e é incluída automaticamente nas fases seguintes.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div><!-- /px-lg-3 -->
+    </div><!-- /col-lg-10 -->
+  </div><!-- /row -->
+</div><!-- /container-fluid -->
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="py-4 mt-2">
+  <div class="container text-center">
+    <div class="mb-2">
+      <span class="hero-badge mx-auto" style="display:inline-flex">
+        <i class="fa-solid fa-robot me-1"></i>
+        Foursys SDD Engine Hybrid &nbsp;·&nbsp; v1.1.2 &nbsp;·&nbsp; Publisher: Foursys
+      </span>
+    </div>
+    <p class="mb-1" style="font-size:.8rem;color:var(--text-muted-custom)">
+      Extension ID: <code>foursys.foursys-sdd-engine-hybrid</code> &nbsp;·&nbsp;
+      VS Code Min: 1.96.0 &nbsp;·&nbsp;
+      TypeScript 5.5
+    </p>
+    <p class="mb-0" style="font-size:.75rem;color:#555570">
+      Manual gerado em 19/06/2026 &nbsp;·&nbsp; Versão estável &nbsp;·&nbsp; GitHub Copilot API
+    </p>
+  </div>
+</footer>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ── Dark/Light theme toggle
+  const html = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  const saved = localStorage.getItem('foursys-theme') || 'dark';
+  html.setAttribute('data-bs-theme', saved);
+  toggle.checked = saved === 'light';
+  toggle.addEventListener('change', () => {
+    const t = toggle.checked ? 'light' : 'dark';
+    html.setAttribute('data-bs-theme', t);
+    localStorage.setItem('foursys-theme', t);
+  });
+
+  // ── Copy to clipboard
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.textContent.trim()).then(() => {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check me-1"></i>Copiado!';
+      btn.classList.add('btn-success');
+      btn.classList.remove('btn-outline-secondary');
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+      }, 1800);
+    });
+  }
+
+  // ── Skills filter
+  function filterSkills(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('.skill-group').forEach(group => {
+      const items = group.querySelectorAll('.skill-item');
+      let visible = 0;
+      items.forEach(item => {
+        const match = item.textContent.toLowerCase().includes(q);
+        item.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+      group.style.display = visible === 0 && q ? 'none' : '';
+    });
+  }
+
+  // ── Smooth scroll for all anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // ── Sidebar active link highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('#sidebar .nav-link');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => {
+          l.classList.toggle('active', l.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+
+  // ── Tooltips
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el);
+  });
+</script>
+</body>
+</html>

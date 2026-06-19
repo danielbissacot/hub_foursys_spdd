@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { exec } from 'child_process';
 import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
 
 const MEND_EXT_ID = 'mend.mend-advise';
+const FIGMA_EXT_ID = 'figma.figma-vscode-extension';
 
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'foursys-sdd-sidebar-view';
@@ -34,9 +36,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             const mendInstalling = !!this._context.workspaceState.get('mendInstalling');
             const storyHasContent = this._checkStoryHasContent(workspaceRoot);
             const qaScriptsReady = this._checkQaScriptsReady(workspaceRoot);
+            const casosTesteReady = this._checkCasosTesteReady(workspaceRoot);
             const mockupExists = this._checkMockupExists(workspaceRoot);
+            const figmaExtInstalled = !!vscode.extensions.getExtension(FIGMA_EXT_ID);
+            const figmaMcpConfigured = figmaExtInstalled && this._checkFigmaMcpConfigured();
             const activeDesignSystem = this._context.workspaceState.get<string>('activeDesignSystem') || null;
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, mockupExists, activeDesignSystem);
+            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured);
         };
 
         updateWebview();
@@ -106,6 +111,20 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'AddMockup':
                     await vscode.commands.executeCommand('foursys.addMockup');
                     updateWebview();
+                    break;
+                case 'QaExportXray':
+                    vscode.commands.executeCommand('foursys.qaExportXray');
+                    break;
+                case 'InstallFigmaExt':
+                    await this._installFigmaExt();
+                    updateWebview();
+                    break;
+                case 'SetupFigmaMcp':
+                    await vscode.commands.executeCommand('foursys.setupFigmaMcp');
+                    updateWebview();
+                    break;
+                case 'ImportFromFigma':
+                    vscode.commands.executeCommand('foursys.importFromFigma');
                     break;
                 case 'InstallMend':
                     await this._installMend();
@@ -208,8 +227,70 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     vscode.env.openExternal(vscode.Uri.file(customSkillsDir));
                     break;
                 }
+                case 'CreateCustomSkill': {
+                    const globalStoragePath = this._context.globalStorageUri.fsPath;
+                    const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
+                    if (!fs.existsSync(customSkillsDir)) {
+                        fs.mkdirSync(customSkillsDir, { recursive: true });
+                    }
+                    const name = await vscode.window.showInputBox({
+                        prompt: 'Nome da nova skill (sem espaços, sem .md)',
+                        placeHolder: 'ex: minha-skill',
+                        validateInput: v => /^[a-z0-9_-]+$/i.test(v) ? null : 'Use apenas letras, números, - ou _'
+                    });
+                    if (!name) { break; }
+                    const filePath = path.join(customSkillsDir, `${name}.md`);
+                    if (!fs.existsSync(filePath)) {
+                        fs.writeFileSync(filePath,
+                            `---\ndescription: ${name}\n---\n\n# ${name}\n\nDescreva aqui o que esta skill faz e como usá-la.\n`
+                        );
+                    }
+                    const doc = await vscode.workspace.openTextDocument(filePath);
+                    await vscode.window.showTextDocument(doc);
+                    break;
+                }
+                default: {
+                    if (typeof data.value === 'string' && data.value.startsWith('RunSkill:')) {
+                        const slug = data.value.replace('RunSkill:', '');
+                        await vscode.commands.executeCommand('workbench.action.chat.open', {
+                            query: `@foursys_sdd /skill ${slug} `,
+                            isPartialQuery: true
+                        });
+                    } else if (typeof data.value === 'string' && data.value.startsWith('RunPlaybook:')) {
+                        const slug = data.value.replace('RunPlaybook:', '');
+                        await vscode.commands.executeCommand('workbench.action.chat.open', {
+                            query: `@foursys_sdd /playbook ${slug} `,
+                            isPartialQuery: true
+                        });
+                    }
+                    break;
+                }
             }
         });
+    }
+
+    private async _installFigmaExt(): Promise<void> {
+        try {
+            await vscode.commands.executeCommand(
+                'workbench.extensions.installExtension',
+                FIGMA_EXT_ID
+            );
+            const choice = await vscode.window.showInformationMessage(
+                '✅ Figma for VS Code instalado! Recarregue a janela e faça login no Figma.',
+                'Recarregar Agora'
+            );
+            if (choice === 'Recarregar Agora') {
+                vscode.commands.executeCommand('workbench.action.reloadWindow');
+            }
+        } catch {
+            const choice = await vscode.window.showWarningMessage(
+                '⚠️ Não foi possível instalar o Figma for VS Code automaticamente.',
+                'Abrir no Marketplace'
+            );
+            if (choice === 'Abrir no Marketplace') {
+                vscode.commands.executeCommand('workbench.extensions.search', FIGMA_EXT_ID);
+            }
+        }
     }
 
     private async _installMend(): Promise<void> {
@@ -267,6 +348,27 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'scripts_automacao.md'));
     }
 
+    private _checkCasosTesteReady(workspaceRoot: string): boolean {
+        if (!workspaceRoot) { return false; }
+        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'casos_teste.md'));
+    }
+
+    private _checkFigmaMcpConfigured(): boolean {
+        try {
+            let mcpPath: string;
+            if (process.platform === 'win32') {
+                mcpPath = path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
+            } else if (process.platform === 'darwin') {
+                mcpPath = path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
+            } else {
+                mcpPath = path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
+            }
+            if (!fs.existsSync(mcpPath)) { return false; }
+            const cfg = JSON.parse(fs.readFileSync(mcpPath, 'utf-8'));
+            return !!cfg?.servers?.figmaRemoteMcp;
+        } catch { return false; }
+    }
+
     private _checkStoryHasContent(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
         const storyPath = path.join(workspaceRoot, 'doc_projeto', 'user_story.md');
@@ -288,6 +390,169 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         if (!workspaceRoot) { return false; }
         return fs.existsSync(path.join(workspaceRoot, 'agentes_foursys', 'catalog'))
             || fs.existsSync(path.join(workspaceRoot, 'catalog'));
+    }
+
+    private _loadCatalogData(currentStackId: string | null) {
+        const globalStoragePath = this._context.globalStorageUri.fsPath;
+        const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
+
+        // Skills ficam cada uma em subpasta: skills/<slug>/SKILL_*.md
+        const getSkillSlugs = (dir: string): string[] => {
+            if (!fs.existsSync(dir)) { return []; }
+            try {
+                return fs.readdirSync(dir)
+                    .filter(entry => {
+                        try { return fs.statSync(path.join(dir, entry)).isDirectory(); } catch { return false; }
+                    })
+                    .sort();
+            } catch { return []; }
+        };
+
+        // Custom skills são .md planos na raiz
+        const getMd = (dir: string): string[] => {
+            if (!fs.existsSync(dir)) { return []; }
+            try {
+                return fs.readdirSync(dir)
+                    .filter(f => f.endsWith('.md') && f !== 'README.md')
+                    .sort()
+                    .map(f => path.basename(f, '.md'));
+            } catch { return []; }
+        };
+
+        // PlayBooks: percorre fase-* em ordem
+        const playbooks: { slug: string; label: string }[] = [];
+        const playbookRoot = path.join(catalogPath, 'playbook');
+        if (fs.existsSync(playbookRoot)) {
+            try {
+                const fases = fs.readdirSync(playbookRoot).sort().filter(e => {
+                    try { return fs.statSync(path.join(playbookRoot, e)).isDirectory() && e.startsWith('fase'); } catch { return false; }
+                });
+                for (const fase of fases) {
+                    for (const name of getMd(path.join(playbookRoot, fase))) {
+                        playbooks.push({ slug: `${fase}/${name}`, label: `${fase} · ${name}` });
+                    }
+                }
+            } catch { /**/ }
+        }
+
+        const STACKS = [
+            { id: 'angular',     label: 'Angular 18+',            color: '#42a5f5', folder: 'agents_skills/angular/skills' },
+            { id: 'spring_boot', label: 'Java 21 + Spring Boot',  color: '#66bb6a', folder: 'agents_skills/spring_boot/skills' },
+            { id: 'node',        label: 'Node.js / NestJS',        color: '#ffb74d', folder: 'agents_skills/node/skills' },
+            { id: 'cobol',       label: 'COBOL',                   color: '#80cbc4', folder: 'agents_skills/cobol/skills' },
+            { id: 'ios',         label: 'iOS — Swift / Xcode',     color: '#a0c4ff', folder: 'agents_skills/ios/skills' },
+            { id: 'android',     label: 'Android — Kotlin',        color: '#b5ead7', folder: 'agents_skills/android/skills' },
+        ];
+
+        const stacks = STACKS.map(s => ({
+            id: s.id,
+            label: s.label,
+            color: s.color,
+            isCurrent: s.id === currentStackId,
+            skills: getSkillSlugs(path.join(catalogPath, s.folder))
+        }));
+
+        const shared = getSkillSlugs(path.join(catalogPath, 'agents_skills', 'shared', 'skills'));
+        const custom = getMd(path.join(globalStoragePath, 'custom-skills'));
+
+        return { playbooks, stacks, shared, custom };
+    }
+
+    private _buildCatalogHtml(data: ReturnType<FoursysSDDSidebarProvider['_loadCatalogData']>): string {
+        const e = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        const skillSearch = (secId: string, placeholder: string) =>
+            `<div class="skill-search">` +
+            `<span class="skill-search-icon">🔍</span>` +
+            `<input type="text" placeholder="${placeholder}" oninput="filterSkills(this,'${secId}')" />` +
+            `<button class="skill-clear" onclick="clearSkillSearch(this,'${secId}')">✕</button>` +
+            `</div>` +
+            `<div class="skill-no-results" id="nr-${secId}">Nenhum resultado encontrado</div>`;
+
+        const skillItem = (name: string, type: 'skill' | 'playbook', isCustom = false) =>
+            `<div class="catalog-item${isCustom ? ' custom' : ''}" onclick="sendAction('${type === 'skill' ? 'RunSkill' : 'RunPlaybook'}:${name}')">` +
+            `<span class="catalog-item-icon">${type === 'playbook' ? '📋' : isCustom ? '✏️' : '📄'}</span>` +
+            `<span class="catalog-item-name">${e(name)}</span>` +
+            `<span class="catalog-item-arrow">→</span>` +
+            `</div>`;
+
+        let html = '';
+
+        // ── PlayBooks — seção própria no topo ──
+        html += `<div class="catalog-section" id="sec-playbooks">`;
+        html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-playbooks')">`;
+        html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ff6b00"></span>📋 PlayBooks</span>`;
+        html += `<span class="catalog-chevron">▶</span></div>`;
+        html += `<div class="catalog-section-body">`;
+        html += skillSearch('sec-playbooks', 'Buscar playbook...');
+        if (data.playbooks.length === 0) {
+            html += `<div class="catalog-empty">Nenhum playbook — sincronize o Hub</div>`;
+        } else {
+            for (const pb of data.playbooks) {
+                html += `<div class="catalog-item" onclick="sendAction('RunPlaybook:${pb.slug}')">` +
+                    `<span class="catalog-item-icon">📋</span>` +
+                    `<span class="catalog-item-name">${e(pb.label)}</span>` +
+                    `<span class="catalog-item-arrow">→</span></div>`;
+            }
+        }
+        html += `</div></div>`;
+
+        // ── Stacks ──
+        for (const stack of data.stacks) {
+            const openClass = stack.isCurrent ? ' open' : '';
+            const currentClass = stack.isCurrent ? ' current-stack' : '';
+            const currentTag = stack.isCurrent ? `<span class="current-tag">stack atual</span>` : '';
+            html += `<div class="catalog-section${openClass}" id="sec-${stack.id}">`;
+            html += `<div class="catalog-stack-header${currentClass}" onclick="toggleCatalog('sec-${stack.id}')">`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:${stack.color}"></span>${e(stack.label)}${currentTag}</span>`;
+            html += `<span class="catalog-chevron">▶</span></div>`;
+            html += `<div class="catalog-section-body">`;
+            html += skillSearch(`sec-${stack.id}`, 'Buscar skill...');
+            if (stack.skills.length === 0) {
+                html += `<div class="catalog-empty">Nenhuma skill — sincronize o Hub</div>`;
+            } else {
+                for (const s of stack.skills) { html += skillItem(s, 'skill'); }
+            }
+            html += `</div></div>`;
+        }
+
+        // ── Shared ──
+        if (data.shared.length > 0) {
+            html += `<div class="catalog-section" id="sec-shared">`;
+            html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-shared')">`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#bdbdbd"></span>Processo</span>`;
+            html += `<span class="catalog-chevron">▶</span></div>`;
+            html += `<div class="catalog-section-body">`;
+            html += skillSearch('sec-shared', 'Buscar skill...');
+            for (const s of data.shared) { html += skillItem(s, 'skill'); }
+            html += `</div></div>`;
+        }
+
+        // ── Custom Skills ──
+        html += `<div class="catalog-section" id="sec-custom">`;
+        html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-custom')">`;
+        html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ce93d8"></span>✏️ Custom Skills</span>`;
+        html += `<span class="catalog-chevron">▶</span></div>`;
+        html += `<div class="catalog-section-body">`;
+        html += skillSearch('sec-custom', 'Buscar skill...');
+        if (data.custom.length === 0) {
+            html += `<div class="catalog-empty">
+                <div style="margin-bottom:8px">Nenhuma custom skill encontrada.</div>
+                <div style="display:flex;gap:6px;justify-content:center">
+                  <button class="btn-empty-action" onclick="sendAction('OpenCustomSkills')">📂 Abrir Pasta</button>
+                  <button class="btn-empty-action" onclick="sendAction('CreateCustomSkill')">📄 Nova Skill</button>
+                </div>
+            </div>`;
+        } else {
+            for (const s of data.custom) { html += skillItem(s, 'skill', true); }
+            html += `<div style="display:flex;gap:6px;margin-top:6px">
+                <button class="btn-empty-action" onclick="sendAction('OpenCustomSkills')">📂 Abrir Pasta</button>
+                <button class="btn-empty-action" onclick="sendAction('CreateCustomSkill')">📄 Nova Skill</button>
+            </div>`;
+        }
+        html += `</div></div>`;
+
+        return html;
     }
 
     private async _syncHub(webviewView: vscode.WebviewView) {
@@ -457,8 +722,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false, mockupExists: boolean = false, activeDesignSystem: string | null = null) {
+    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false, casosTesteReady: boolean = false, mockupExists: boolean = false, activeDesignSystem: string | null = null, figmaExtInstalled: boolean = false, figmaMcpConfigured: boolean = false) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
+        const catalogData = this._loadCatalogData(stackId);
+        const catalogHtml = this._buildCatalogHtml(catalogData);
         const config = stackId ? getStackConfig(stackId) : null;
         const stackName = config ? config.displayName : 'Não detectada';
         const stackSource = stackId ? detection.source : '';
@@ -694,6 +961,75 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             transition: all 0.2s;
         }
         .btn-skill:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+
+        .figma-row { display: flex; gap: 6px; margin-bottom: 4px; }
+        .mockup-row {
+            display: flex;
+            gap: 6px;
+            margin-left: 28px;
+            margin-bottom: 8px;
+            width: calc(100% - 28px);
+        }
+        .btn-mockup-sm {
+            flex: 1;
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.18);
+            color: var(--vscode-foreground);
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0.7;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .btn-mockup-sm:hover { opacity: 1; border-style: solid; background: rgba(255,255,255,0.06); }
+        .btn-mockup-sm.has-mockup { border-style: solid; border-color: rgba(76,175,80,0.45); opacity: 0.9; }
+        .btn-figma-sm {
+            flex: 1;
+            background: rgba(162,89,255,0.06);
+            border: 1px dashed rgba(162,89,255,0.30);
+            color: var(--vscode-foreground);
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0.70;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .btn-figma-sm:hover { opacity: 1; border-style: solid; background: rgba(162,89,255,0.12); }
+        .btn-figma-sm.figma-active { border-style: solid; border-color: rgba(162,89,255,0.55); opacity: 0.90; }
+
+        /* ── Catalog Tab ── */
+        .catalog-section { margin-bottom: 5px; border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+        .catalog-stack-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; cursor: pointer; font-size: 11px; font-weight: bold; background: rgba(255,255,255,0.04); transition: background 0.15s; user-select: none; }
+        .catalog-stack-header:hover { background: rgba(255,255,255,0.09); }
+        .catalog-stack-header.current-stack { background: rgba(255,107,0,0.1); border-bottom: 1px solid rgba(255,107,0,0.2); }
+        .catalog-section-body { display: none; padding: 8px 10px 10px; background: rgba(0,0,0,0.12); }
+        .catalog-section.open .catalog-section-body { display: block; }
+        .catalog-section.open .catalog-chevron { transform: rotate(90deg); }
+        .catalog-chevron { font-size: 9px; opacity: 0.45; transition: transform 0.2s; }
+        .catalog-header-left { display: flex; align-items: center; gap: 6px; }
+        .catalog-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .current-tag { font-size: 9px; font-weight: normal; opacity: 0.6; background: rgba(255,107,0,0.2); border-radius: 3px; padding: 1px 4px; }
+        .catalog-item { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; margin-bottom: 3px; }
+        .catalog-item:hover { background: rgba(255,107,0,0.1); border-color: rgba(255,107,0,0.25); }
+        .catalog-item-icon { flex-shrink: 0; font-size: 12px; }
+        .catalog-item-name { flex: 1; }
+        .catalog-item-arrow { font-size: 9px; opacity: 0; transition: opacity 0.15s; margin-left: auto; }
+        .catalog-item:hover .catalog-item-arrow { opacity: 0.6; }
+        .catalog-item.custom:hover { background: rgba(156,39,176,0.12); border-color: rgba(156,39,176,0.3); }
+        .catalog-empty { text-align: center; padding: 12px 8px; font-size: 11px; color: rgba(204,204,204,0.35); }
+        .btn-empty-action { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: rgba(204,204,204,0.7); font-size: 10px; padding: 4px 8px; cursor: pointer; transition: all 0.2s; }
+        .btn-empty-action:hover { background: rgba(206,147,216,0.15); border-color: rgba(206,147,216,0.4); color: #ce93d8; }
+        .skill-search { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; padding: 5px 8px; margin-bottom: 6px; }
+        .skill-search:focus-within { border-color: rgba(255,107,0,0.5); }
+        .skill-search-icon { font-size: 11px; opacity: 0.5; flex-shrink: 0; }
+        .skill-search input { flex: 1; background: transparent; border: none; outline: none; color: var(--vscode-foreground); font-size: 11px; }
+        .skill-clear { background: none; border: none; color: rgba(204,204,204,0.4); cursor: pointer; font-size: 13px; padding: 0; }
+        .skill-no-results { text-align: center; padding: 12px 8px; font-size: 11px; color: rgba(204,204,204,0.35); display: none; }
+        mark { background: rgba(255,107,0,0.3); color: #ffffff; border-radius: 2px; padding: 0 1px; }
     </style>
 </head>
 <body>
@@ -722,12 +1058,31 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     <div class="tabs">
         <button class="tab-btn active" data-tab="dev" onclick="switchTab('dev')">Dev</button>
         <button class="tab-btn" data-tab="qa" onclick="switchTab('qa')">QA Auto</button>
+        <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">📚 Catalog</button>
     </div>
 
     <!-- TAB DEV -->
     <div id="tab-dev" class="tab-content active">
         <div class="section-label">Workflow SDD</div>
         <div class="${isConnected ? '' : 'disabled'}">
+            ${stackId === 'angular' || isMobile ? `
+            <div class="figma-row">
+                ${!figmaExtInstalled
+                    ? `<button class="btn-figma-sm" onclick="sendAction('InstallFigmaExt')"
+                           title="Instalar Figma for VS Code">
+                           📦 Figma
+                       </button>`
+                    : !figmaMcpConfigured
+                    ? `<button class="btn-figma-sm" onclick="sendAction('SetupFigmaMcp')"
+                           title="Configurar MCP do Figma automaticamente">
+                           ⚙️ Figma MCP
+                       </button>`
+                    : `<button class="btn-figma-sm figma-active" onclick="sendAction('ImportFromFigma')"
+                           title="Importar design do Figma via MCP">
+                           🎨 Figma MCP
+                       </button>`
+                }
+            </div>` : ''}
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Constitution')">
                 <span class="step-number">0</span>
                 <span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança & padrões</span></span>
@@ -739,7 +1094,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
                 </span>
             </button>
-            ${(stackId === 'angular' || isMobile) ? `
+            ${stackId === 'angular' ? `
+            <div class="mockup-row">
+                <button class="btn-mockup-sm ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')"
+                    title="${mockupExists ? 'Ver/trocar mockup' : 'Adicionar Mockup de Tela'}">
+                    ${mockupExists ? '📸 ✅ Mockup' : '📸 Mockup'}
+                </button>
+            </div>` : isMobile ? `
             <button class="btn-mockup ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')">
                 ${mockupExists ? '📸 Mockup: ✅ ver/trocar' : '📸 Adicionar Mockup de Tela'}
             </button>` : ''}
@@ -758,6 +1119,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         </div>
     </div>
 
+    <!-- TAB CATALOG -->
+    <div id="tab-catalog" class="tab-content">
+        ${catalogHtml}
+    </div>
+
     <!-- TAB QA AUTO -->
     <div id="tab-qa" class="tab-content">
         <div class="section-label">Workflow SDD</div>
@@ -770,23 +1136,30 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 <span class="step-number">2</span>
                 <span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cenários BDD / Gherkin</span></span>
             </button>
-            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaAutomation')">
+            <button class="btn btn-implement-tests ${casosTesteReady ? '' : 'disabled'}" onclick="sendAction('QaExportXray')">
                 <span class="step-number">3</span>
+                <span class="step-label">
+                    <span class="step-title">📤 Exportar para Xray</span>
+                    <span class="step-sub">${casosTesteReady ? 'Enviar casos BDD para o Xray' : 'Aguardando Casos de Teste'}</span>
+                </span>
+            </button>
+            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaAutomation')">
+                <span class="step-number">4</span>
                 <span class="step-label"><span class="step-title">🤖 Scripts de Automação</span><span class="step-sub">Gerar código de teste</span></span>
             </button>
             <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')">
-                <span class="step-number">4</span>
+                <span class="step-number">5</span>
                 <span class="step-label">
                     <span class="step-title">🚀 Implementar Testes</span>
                     <span class="step-sub">${qaScriptsReady ? 'Extrair e criar arquivos de teste' : 'Aguardando Scripts de Automação'}</span>
                 </span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaCoverage')">
-                <span class="step-number">5</span>
+                <span class="step-number">6</span>
                 <span class="step-label"><span class="step-title">🔍 Review de Cobertura</span><span class="step-sub">Análise de cobertura</span></span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaReport')">
-                <span class="step-number">6</span>
+                <span class="step-number">7</span>
                 <span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span>
             </button>
         </div>
@@ -829,6 +1202,54 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
             document.getElementById('tab-' + tab).classList.add('active');
         }
+        function toggleCatalog(secId) {
+            const sec = document.getElementById(secId);
+            if (!sec) { return; }
+            sec.classList.toggle('open');
+        }
+        function filterSkills(input, secId) {
+            const q = input.value.trim().toLowerCase();
+            const sec = document.getElementById(secId);
+            if (!sec) { return; }
+            const items = sec.querySelectorAll('.catalog-item');
+            let anyVisible = false;
+            items.forEach(item => {
+                const nameEl = item.querySelector('.catalog-item-name');
+                if (!nameEl) { return; }
+                if (!nameEl.dataset.original) { nameEl.dataset.original = nameEl.textContent || ''; }
+                const original = nameEl.dataset.original;
+                if (!q) {
+                    nameEl.textContent = original;
+                    item.style.display = '';
+                    anyVisible = true;
+                } else {
+                    const idx = original.toLowerCase().indexOf(q);
+                    if (idx >= 0) {
+                        nameEl.innerHTML = original.substring(0, idx) + '<mark>' + original.substring(idx, idx + q.length) + '</mark>' + original.substring(idx + q.length);
+                        item.style.display = '';
+                        anyVisible = true;
+                    } else {
+                        nameEl.textContent = original;
+                        item.style.display = 'none';
+                    }
+                }
+            });
+            const noRes = sec.querySelector('.skill-no-results');
+            if (noRes) { noRes.style.display = (!anyVisible && q) ? 'block' : 'none'; }
+        }
+        function clearSkillSearch(btn, secId) {
+            const sec = document.getElementById(secId);
+            if (!sec) { return; }
+            const input = sec.querySelector('.skill-search input');
+            if (input) { input.value = ''; filterSkills(input, secId); }
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.skill-search input').forEach(input => {
+                    if (input.value) { input.value = ''; filterSkills(input, input.closest('.catalog-section')?.id || ''); }
+                });
+            }
+        });
     </script>
 </body>
 </html>`;

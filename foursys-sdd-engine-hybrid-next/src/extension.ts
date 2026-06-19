@@ -1,23 +1,44 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { AIClient } from './ai-client';
 import { loadPlaybookForStack, findCatalogPath, detectTechnology } from './catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 import { getStackConfig, getAllStacks, resolveStack } from './stack-registry';
 
 const DOC_FOLDER = 'doc_projeto';
-const WORKSPACE_CONTEXT_MAX_FILES = 5;
-const WORKSPACE_CONTEXT_MAX_LINES = 300;
-const CONTEXT_FILE_MAX_LINES = 800;
+const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de workspace em 60%
+const WORKSPACE_CONTEXT_MAX_LINES = 80;  // era 300 — snippet curto de imports + assinaturas
+const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc é suficiente
 const PHASES_NEEDING_WORKSPACE = new Set([
-    'plan', 'qa-test-plan', 'qa-test-cases', 'qa-automation'
+    'plan', 'qa-test-plan', 'qa-automation'  // removido qa-test-cases (não precisa de código)
 ]);
 
 // Mend Advise — ID correto na marketplace VS Code (case-sensitive no getExtension)
 const MEND_EXTENSION_ID   = 'mend.mend-advise';
 const MEND_LICENSE_SECRET  = 'foursys.mendLicenseKey';
 const MEND_API_TOKEN       = 'eyJ1cmwiOiJodHRwczovL2Rzcy1hcHBzZWMubWVuZC5pby9hcGkiLCJ0b2tlbiI6ImVmMTQ5YTMyLTEwMzgtNDBiMi05OTE3LTQzNmExMjY2ZWQxNyJ9';
+
+// Figma MCP — localiza o mcp.json do VS Code por plataforma e verifica se figmaRemoteMcp está configurado
+function getMcpConfigPath(): string {
+    if (process.platform === 'win32') {
+        return path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
+    }
+    if (process.platform === 'darwin') {
+        return path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
+    }
+    return path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
+}
+
+export function checkFigmaMcpConfigured(): boolean {
+    try {
+        const p = getMcpConfigPath();
+        if (!fs.existsSync(p)) { return false; }
+        const cfg = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        return !!cfg?.servers?.figmaRemoteMcp;
+    } catch { return false; }
+}
 
 async function ensureMendAdvise(
     context: vscode.ExtensionContext,
@@ -179,24 +200,197 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`✅ ${blocks.length} arquivo(s) de teste criados com sucesso.`);
     }));
 
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaExportXray', async () => {
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
+        const casesPath = path.join(rootPath, DOC_FOLDER, 'qa', 'casos_teste.md');
+        if (!fs.existsSync(casesPath)) {
+            vscode.window.showWarningMessage('⚠️ Execute "Casos de Teste" primeiro para gerar o arquivo BDD.');
+            return;
+        }
+
+        const content = fs.readFileSync(casesPath, 'utf8');
+
+        // Extrai todos os blocos gherkin
+        const gherkinBlocks: string[] = [];
+        const lines = content.split('\n');
+        let inBlock = false;
+        let blockLines: string[] = [];
+        for (const line of lines) {
+            if (!inBlock) {
+                if (/^```gherkin/i.test(line)) { inBlock = true; blockLines = []; }
+            } else {
+                if (line.startsWith('```')) {
+                    if (blockLines.length > 0) { gherkinBlocks.push(blockLines.join('\n')); }
+                    inBlock = false;
+                } else {
+                    blockLines.push(line);
+                }
+            }
+        }
+
+        if (gherkinBlocks.length === 0) {
+            vscode.window.showWarningMessage('⚠️ Nenhum bloco gherkin encontrado em casos_teste.md. Verifique se o arquivo contém blocos ```gherkin.');
+            return;
+        }
+
+        // Avisa se encontrar keywords em português
+        const ptKeywords = /^\s*(Dado|Quando|Então|E\s|Mas\s)/m;
+        if (gherkinBlocks.some(b => ptKeywords.test(b))) {
+            vscode.window.showWarningMessage('⚠️ Detectadas keywords em português (Dado/Quando/Então). O Xray requer Given/When/Then em inglês. Regere os Casos de Teste.');
+            return;
+        }
+
+        const featureContent = gherkinBlocks.join('\n\n');
+
+        // Verifica configurações Xray
+        const cfg = vscode.workspace.getConfiguration('foursys');
+        const jiraUrl = cfg.get<string>('xrayJiraUrl', '').trim();
+        const projectKey = cfg.get<string>('xrayProjectKey', '').trim();
+        const apiToken = await context.secrets.get('foursys.xrayApiToken');
+
+        if (jiraUrl && projectKey && apiToken) {
+            outputChannel.appendLine(`[Xray] Enviando ${gherkinBlocks.length} bloco(s) para ${jiraUrl} — projeto ${projectKey}...`);
+            try {
+                const https = require('https');
+                const postData = Buffer.from(featureContent, 'utf8');
+                const endpoint = new URL(`${jiraUrl}/rest/raven/1.0/import/feature?projectKey=${projectKey}`);
+                const options = {
+                    hostname: endpoint.hostname,
+                    port: endpoint.port || 443,
+                    path: endpoint.pathname + endpoint.search,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'Authorization': `Bearer ${apiToken}`,
+                        'Content-Length': postData.length
+                    }
+                };
+                const result = await new Promise<string>((resolve, reject) => {
+                    const req = https.request(options, (res: any) => {
+                        let data = '';
+                        res.on('data', (chunk: any) => { data += chunk; });
+                        res.on('end', () => resolve(data));
+                    });
+                    req.on('error', reject);
+                    req.write(postData);
+                    req.end();
+                });
+                outputChannel.appendLine(`[Xray] Resposta: ${result}`);
+                vscode.window.showInformationMessage(`✅ Casos enviados para o Xray! Projeto: ${projectKey}`);
+            } catch (error: any) {
+                vscode.window.showErrorMessage(`❌ Erro ao enviar para o Xray: ${error.message}`);
+                outputChannel.appendLine(`[Xray ERRO] ${error.message}`);
+            }
+        } else {
+            // Exporta arquivo .feature localmente
+            const exportPath = path.join(rootPath, DOC_FOLDER, 'qa', 'xray_export.feature');
+            const exportDir = path.dirname(exportPath);
+            if (!fs.existsSync(exportDir)) { fs.mkdirSync(exportDir, { recursive: true }); }
+            fs.writeFileSync(exportPath, featureContent);
+            await openFile(exportPath);
+            const hint = !jiraUrl
+                ? 'Configure foursys.xrayJiraUrl e foursys.xrayProjectKey nas Settings para enviar direto ao Xray.'
+                : !apiToken
+                ? 'Configure o token com o comando "Foursys: Configurar Token Xray".'
+                : '';
+            vscode.window.showInformationMessage(`📤 Exportado: xray_export.feature. ${hint}`);
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.setXrayToken', async () => {
+        const token = await vscode.window.showInputBox({
+            title: 'Foursys — Token de API do Xray',
+            prompt: 'Cole o Bearer token de API do Jira/Xray (será armazenado com segurança)',
+            password: true,
+            ignoreFocusOut: true
+        });
+        if (token && token.trim()) {
+            await context.secrets.store('foursys.xrayApiToken', token.trim());
+            vscode.window.showInformationMessage('✅ Token Xray salvo com segurança.');
+        }
+    }));
+
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', async () => {
         const stackId = getActiveStackId(context);
         const config = getStackConfig(stackId);
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${config.implementSkillTag}.`
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${config.implementSkillTag}.`
         });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession1', async () => {
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
         });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession2', async () => {
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
+            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
         });
+    }));
+
+    // Configura o MCP do Figma automaticamente no mcp.json do VS Code (sem restart necessário)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.setupFigmaMcp', async () => {
+        const mcpPath = getMcpConfigPath();
+        try {
+            let cfg: Record<string, unknown> = { inputs: [], servers: {} };
+            if (fs.existsSync(mcpPath)) {
+                const raw = fs.readFileSync(mcpPath, 'utf-8').trim();
+                if (raw.length > 0) {
+                    try { cfg = JSON.parse(raw); } catch { /* arquivo corrompido — sobrescreve com config nova */ }
+                }
+            }
+            if (!cfg.servers) { cfg.servers = {}; }
+            (cfg.servers as Record<string, unknown>)['figmaRemoteMcp'] = {
+                url: 'https://mcp.figma.com/mcp',
+                type: 'http'
+            };
+            fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
+            fs.writeFileSync(mcpPath, JSON.stringify(cfg, null, 2), 'utf-8');
+            await vscode.window.showTextDocument(vscode.Uri.file(mcpPath));
+            vscode.window.showInformationMessage(
+                '✅ MCP do Figma configurado! O VS Code vai detectar automaticamente e solicitar login no Figma em instantes.'
+            );
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            vscode.window.showErrorMessage(`❌ Erro ao configurar MCP do Figma: ${msg}`);
+        }
+    }));
+
+    // Abre Copilot Chat com prompt que usa o Figma MCP para analisar o design
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.importFromFigma', async () => {
+        if (!checkFigmaMcpConfigured()) {
+            vscode.window.showWarningMessage('MCP do Figma não configurado. Use o botão "⚙️ Figma MCP" na sidebar.');
+            return;
+        }
+        const figmaUrl = await vscode.window.showInputBox({
+            prompt: 'Cole a URL do frame ou arquivo do Figma',
+            placeHolder: 'https://www.figma.com/design/...',
+            validateInput: (v) => (v && v.includes('figma.com')) ? null : 'URL inválida: deve ser do figma.com'
+        });
+        if (!figmaUrl) { return; }
+
+        const rootPath = getWorkspaceRoot();
+        if (rootPath) {
+            const screensDir = path.join(rootPath, DOC_FOLDER, 'screens');
+            if (!fs.existsSync(screensDir)) { fs.mkdirSync(screensDir, { recursive: true }); }
+            fs.writeFileSync(path.join(screensDir, 'figma_ref.txt'), figmaUrl, 'utf-8');
+        }
+
+        const prompt = `Use o servidor MCP do Figma para analisar o design em: ${figmaUrl}
+
+Por favor:
+1. Acesse o frame no Figma e descreva os elementos visuais, layout, cores e componentes de UI
+2. Identifique componentes do Liquid Design System / Design System Bradesco utilizados
+3. Liste os estados visíveis na tela (loading, vazio, erro, sucesso, validação)
+4. Gere critérios de aceite visuais para Angular (Angular Material / PrimeNG)
+
+Este design é o mockup da User Story em doc_projeto/user_story.md`;
+
+        await vscode.commands.executeCommand('workbench.action.chat.open', { query: prompt });
+        vscode.window.showInformationMessage('🎨 URL do Figma salva em doc_projeto/screens/figma_ref.txt');
     }));
 
     // Mend Advise é passivo — escaneia automaticamente e exibe CVEs no painel Problems.
@@ -317,7 +511,7 @@ async function executeSDDPhase(
     // skill e playbook não precisam de workspace nem de stack
     if (command === 'skill' || command === 'playbook') {
         const globalStoragePath = context.globalStorageUri.fsPath;
-        const slug = userInstruction.trim().toLowerCase().replace(/\.md$/, '');
+        const slug = userInstruction.trim().toLowerCase().split(/\s+/)[0].replace(/\.md$/, '');
         if (command === 'skill') {
             const skillsDir = path.join(globalStoragePath, 'skills');
             const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
@@ -326,6 +520,25 @@ async function executeSDDPhase(
                 for (const dir of [skillsDir, customSkillsDir]) {
                     const candidate = path.join(dir, `${slug}.md`);
                     if (fs.existsSync(candidate)) { filePath = candidate; break; }
+                }
+                // Fallback: busca diretamente no hub catalog pelo nome da subpasta (slug = nome do diretório)
+                if (!filePath) {
+                    const hubAgentsPath = path.join(globalStoragePath, 'hub', 'catalog', 'agents_skills');
+                    const searchSkillDir = (dir: string): string => {
+                        if (!fs.existsSync(dir)) { return ''; }
+                        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                            if (!e.isDirectory()) { continue; }
+                            const full = path.join(dir, e.name);
+                            if (e.name === slug) {
+                                const md = fs.readdirSync(full).find(f => f.endsWith('.md') && f !== 'README.md' && !fs.statSync(path.join(full, f)).isDirectory());
+                                if (md) { return path.join(full, md); }
+                            }
+                            const found = searchSkillDir(full);
+                            if (found) { return found; }
+                        }
+                        return '';
+                    };
+                    filePath = searchSkillDir(hubAgentsPath);
                 }
             }
             if (!filePath) {
@@ -353,7 +566,15 @@ async function executeSDDPhase(
             }
             const skillName = path.basename(filePath, '.md');
             const skillContent = fs.readFileSync(filePath, 'utf8');
-            chatResponse?.markdown(`## 📄 Skill: \`${skillName}\`\n\n${skillContent}`);
+            chatResponse?.markdown(`📄 **Skill:** \`${skillName}\` — aplicando instruções...\n\n`);
+            const skillExtra = userInstruction.replace(slug, '').trim();
+            await AIClient.sendPrompt(
+                skillContent,
+                skillExtra || 'Com base nesta skill, apresente brevemente o que você pode fazer e aguarde a próxima instrução do desenvolvedor.',
+                outputChannel, token,
+                (chunk) => { if (chatResponse) { chatResponse.markdown(chunk); } },
+                'standard'
+            );
         } else {
             const playbookRoot = path.join(globalStoragePath, 'hub', 'catalog', 'playbook');
             if (!fs.existsSync(playbookRoot)) {
@@ -367,7 +588,8 @@ async function executeSDDPhase(
                         const full = path.join(dir, entry.name);
                         if (entry.isDirectory()) { const found = findBySlug(full); if (found) { return found; } }
                         else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
-                            if (path.basename(entry.name, '.md').toLowerCase() === slug) { return full; }
+                            const relPath = path.relative(playbookRoot, full).replace(/\\/g, '/').replace(/\.md$/i, '').toLowerCase();
+                            if (relPath === slug || path.basename(entry.name, '.md').toLowerCase() === slug) { return full; }
                         }
                     }
                     return '';
@@ -403,7 +625,14 @@ async function executeSDDPhase(
             }
             const pbName = path.basename(filePath, '.md');
             const pbContent = fs.readFileSync(filePath, 'utf8');
-            chatResponse?.markdown(`## 📋 Playbook: \`${pbName}\`\n\n${pbContent}`);
+            chatResponse?.markdown(`📋 **PlayBook:** \`${pbName}\` — iniciando...\n\n`);
+            await AIClient.sendPrompt(
+                pbContent,
+                'Execute o fluxo de trabalho descrito neste playbook. Apresente os próximos passos de forma clara e objetiva.',
+                outputChannel, token,
+                (chunk) => { if (chatResponse) { chatResponse.markdown(chunk); } },
+                'standard'
+            );
         }
         return;
     }
@@ -519,6 +748,33 @@ async function executeSDDPhase(
         }
     }
 
+    if (command === 'specify' && userInstruction.trim() !== '') {
+        const pastedContent = userInstruction.trim();
+        let shouldWrite = true;
+        if (fs.existsSync(outputPath)) {
+            const existing = fs.readFileSync(outputPath, 'utf8').trim();
+            if (existing.length > 100 && !existing.includes('DESCREVA AQUI')) {
+                const choice = await vscode.window.showWarningMessage(
+                    `⚠️ "user_story.md" já tem conteúdo.\nSobrescrever com o texto colado no chat?`,
+                    { modal: true },
+                    'Sobrescrever',
+                    'Cancelar'
+                );
+                if (choice !== 'Sobrescrever') {
+                    if (chatResponse) { chatResponse.markdown('⛔ Cancelado. `user_story.md` preservado.'); }
+                    return;
+                }
+            }
+        }
+        if (shouldWrite) {
+            const outputDir = path.dirname(outputPath);
+            if (!fs.existsSync(outputDir)) { fs.mkdirSync(outputDir, { recursive: true }); }
+            fs.writeFileSync(outputPath, pastedContent);
+            outputChannel.appendLine('[SDD] 📋 Texto colado salvo em user_story.md para análise.');
+        }
+        userInstruction = '';
+    }
+
     if (chatResponse) { chatResponse.progress('Buscando Playbook e Regras do Hub...'); }
 
     try {
@@ -546,13 +802,18 @@ async function executeSDDPhase(
                     userContext += `\nATENÇÃO: Existe um mockup de tela em doc_projeto/screens/ (${mockupFiles.join(', ')}). Use-o como referência visual para refinar os critérios de aceite e detalhar a User Story.\n`;
                 }
             }
+            const figmaRefPath = path.join(docPath, 'screens', 'figma_ref.txt');
+            if (fs.existsSync(figmaRefPath)) {
+                const figmaUrl = fs.readFileSync(figmaRefPath, 'utf-8').trim();
+                userContext += `\nATENÇÃO: Referência de design no Figma: ${figmaUrl}. Use o MCP do Figma para obter detalhes visuais ao refinar os critérios de aceite.\n`;
+            }
         }
 
         const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL: ${userInstruction}\n\n` : '';
         const contextSection = userContext.trim() !== ''
             ? `CONTEXTO DO PROJETO:\n${userContext}`
             : 'Não há contexto adicional. Gere o documento AGORA com base estritamente no PLAYBOOK acima. NÃO solicite contexto. NÃO faça perguntas.';
-        const finalPrompt = `${instruction}GERE O ARQUIVO MD COMPLETO.\n\n${contextSection}`;
+        const finalPrompt = `${instruction}GERE O ARQUIVO MD. Seja direto e conciso. Foque nos pontos essenciais sem exemplos redundantes.\n\n${contextSection}`;
 
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { AIClient } from './ai-client';
 import { loadPlaybookForStack, findCatalogPath, detectTechnology } from './catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
@@ -18,6 +19,26 @@ const PHASES_NEEDING_WORKSPACE = new Set([
 const MEND_EXTENSION_ID   = 'mend.mend-advise';
 const MEND_LICENSE_SECRET  = 'foursys.mendLicenseKey';
 const MEND_API_TOKEN       = 'eyJ1cmwiOiJodHRwczovL2Rzcy1hcHBzZWMubWVuZC5pby9hcGkiLCJ0b2tlbiI6ImVmMTQ5YTMyLTEwMzgtNDBiMi05OTE3LTQzNmExMjY2ZWQxNyJ9';
+
+// Figma MCP — localiza o mcp.json do VS Code por plataforma e verifica se figmaRemoteMcp está configurado
+function getMcpConfigPath(): string {
+    if (process.platform === 'win32') {
+        return path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
+    }
+    if (process.platform === 'darwin') {
+        return path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
+    }
+    return path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
+}
+
+export function checkFigmaMcpConfigured(): boolean {
+    try {
+        const p = getMcpConfigPath();
+        if (!fs.existsSync(p)) { return false; }
+        const cfg = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        return !!cfg?.servers?.figmaRemoteMcp;
+    } catch { return false; }
+}
 
 async function ensureMendAdvise(
     context: vscode.ExtensionContext,
@@ -354,6 +375,68 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('📸 Mockup salvo! Arraste o arquivo para o Copilot Chat como referência visual.');
     }));
 
+    // Configura o MCP do Figma automaticamente no mcp.json do VS Code (sem restart necessário)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.setupFigmaMcp', async () => {
+        const mcpPath = getMcpConfigPath();
+        try {
+            let cfg: Record<string, unknown> = { inputs: [], servers: {} };
+            if (fs.existsSync(mcpPath)) {
+                const raw = fs.readFileSync(mcpPath, 'utf-8').trim();
+                if (raw.length > 0) {
+                    try { cfg = JSON.parse(raw); } catch { /* arquivo corrompido — sobrescreve com config nova */ }
+                }
+            }
+            if (!cfg.servers) { cfg.servers = {}; }
+            (cfg.servers as Record<string, unknown>)['figmaRemoteMcp'] = {
+                url: 'https://mcp.figma.com/mcp',
+                type: 'http'
+            };
+            fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
+            fs.writeFileSync(mcpPath, JSON.stringify(cfg, null, 2), 'utf-8');
+            await vscode.window.showTextDocument(vscode.Uri.file(mcpPath));
+            vscode.window.showInformationMessage(
+                '✅ MCP do Figma configurado! O VS Code vai detectar automaticamente e solicitar login no Figma em instantes.'
+            );
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            vscode.window.showErrorMessage(`❌ Erro ao configurar MCP do Figma: ${msg}`);
+        }
+    }));
+
+    // Abre Copilot Chat com prompt que usa o Figma MCP para analisar o design
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.importFromFigma', async () => {
+        if (!checkFigmaMcpConfigured()) {
+            vscode.window.showWarningMessage('MCP do Figma não configurado. Use o botão "⚙️ Figma MCP" na sidebar.');
+            return;
+        }
+        const figmaUrl = await vscode.window.showInputBox({
+            prompt: 'Cole a URL do frame ou arquivo do Figma',
+            placeHolder: 'https://www.figma.com/design/...',
+            validateInput: (v) => (v && v.includes('figma.com')) ? null : 'URL inválida: deve ser do figma.com'
+        });
+        if (!figmaUrl) { return; }
+
+        const rootPath = getWorkspaceRoot();
+        if (rootPath) {
+            const screensDir = path.join(rootPath, DOC_FOLDER, 'screens');
+            if (!fs.existsSync(screensDir)) { fs.mkdirSync(screensDir, { recursive: true }); }
+            fs.writeFileSync(path.join(screensDir, 'figma_ref.txt'), figmaUrl, 'utf-8');
+        }
+
+        const prompt = `Use o servidor MCP do Figma para analisar o design em: ${figmaUrl}
+
+Por favor:
+1. Acesse o frame no Figma e descreva os elementos visuais, layout, cores e componentes de UI
+2. Identifique componentes do Liquid Design System / Design System Bradesco utilizados
+3. Liste os estados visíveis na tela (loading, vazio, erro, sucesso, validação)
+4. Gere critérios de aceite visuais para Angular (Angular Material / PrimeNG)
+
+Este design é o mockup da User Story em doc_projeto/user_story.md`;
+
+        await vscode.commands.executeCommand('workbench.action.chat.open', { query: prompt });
+        vscode.window.showInformationMessage('🎨 URL do Figma salva em doc_projeto/screens/figma_ref.txt');
+    }));
+
     const sidebarProvider = new FoursysSDDSidebarProvider(context);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(FoursysSDDSidebarProvider.viewType, sidebarProvider));
 
@@ -686,6 +769,11 @@ async function executeSDDPhase(
                 if (mockupFiles.length > 0) {
                     userContext += `\nATENÇÃO: Existe um mockup de tela em doc_projeto/screens/ (${mockupFiles.join(', ')}). Use-o como referência visual para refinar os critérios de aceite e detalhar a User Story.\n`;
                 }
+            }
+            const figmaRefPath = path.join(docPath, 'screens', 'figma_ref.txt');
+            if (fs.existsSync(figmaRefPath)) {
+                const figmaUrl = fs.readFileSync(figmaRefPath, 'utf-8').trim();
+                userContext += `\nATENÇÃO: Referência de design no Figma: ${figmaUrl}. Use o MCP do Figma para obter detalhes visuais ao refinar os critérios de aceite.\n`;
             }
         }
 

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'none'; img-src {{CSP_SOURCE}} data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Product Owner Agent</title>
+<style>
+:root{--bg:#1e1e1e;--bg2:#252526;--bg3:#2d2d30;--bdr:#3c3c3c;--t1:#cccccc;--t2:#969696;--t3:#6a6a6a;
+  --or:#ff6b00;--or2:rgba(255,107,0,.12);--or3:#ff8533;--lk:#555}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);
+  color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:12px}
+
+/* HEADER */
+.hdr{background:#2a2a2b;border-bottom:1px solid var(--bdr);padding:6px 14px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hbrand{display:flex;align-items:center;gap:9px}
+.hlogo{background:#001d6e;border-radius:5px;padding:3px 9px;display:flex;align-items:center;gap:7px}
+.hlogo span{color:#fff;font-size:11px;font-weight:300;letter-spacing:.8px}
+.hbadge{background:var(--or);color:#fff;font-size:9px;padding:1px 6px;border-radius:8px;font-weight:700}
+
+/* MAIN LAYOUT */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* AGENTS SIDEBAR */
+.aside{width:200px;background:var(--bg2);border-right:1px solid var(--bdr);
+  display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.a-title{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3);
+  padding:9px 11px 5px;letter-spacing:.6px}
+.a-search{margin:0 7px 7px;position:relative}
+.a-search input{width:100%;padding:4px 8px 4px 24px;background:var(--bg3);
+  border:1px solid var(--bdr);border-radius:4px;color:var(--t1);font-size:10px;outline:none}
+.a-search input:focus{border-color:var(--or)}
+.a-ic{position:absolute;left:7px;top:50%;transform:translateY(-50%);font-size:10px;pointer-events:none}
+.a-sec{font-size:8px;font-weight:700;text-transform:uppercase;color:var(--t3);
+  padding:7px 11px 3px;letter-spacing:.8px;border-top:1px solid var(--bdr);margin-top:3px}
+.item{display:flex;align-items:center;gap:7px;padding:7px 9px;cursor:pointer;
+  border-left:2px solid transparent;transition:background .15s}
+.item:hover:not(.locked){background:#2a2d2e}
+.item.active{background:var(--or2);border-left-color:var(--or)}
+.item.locked{opacity:.4;cursor:not-allowed}
+.ico{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:13px;flex-shrink:0}
+.ic-d{background:rgba(255,107,0,.18)}.ic-p{background:rgba(0,120,212,.18)}
+.ic-s{background:rgba(78,201,176,.18)}.ic-t{background:rgba(150,150,150,.1)}
+.inf{flex:1;min-width:0}
+.iname{font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.itype{font-size:8px;padding:1px 4px;border-radius:6px;margin-top:1px;display:inline-block}
+.ba{background:rgba(255,107,0,.18);color:var(--or)}.bs{background:rgba(100,100,100,.22);color:var(--t2)}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.d-on{background:var(--or)}.d-off{background:var(--t2)}.d-lk{background:var(--lk)}
+.lkic{font-size:9px;opacity:.5;flex-shrink:0}
+
+/* EXEC AREA */
+.exec{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.v-drop{flex:1;display:flex;flex-direction:column}
+.v-chat{flex:1;display:none;flex-direction:column}
+body.chat-on .v-drop{display:none}
+body.chat-on .v-chat{display:flex}
+
+/* DROP VIEW */
+.drop-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.drop-sub{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3);
+  letter-spacing:1px;margin-bottom:18px}
+.dz{width:100%;max-width:420px;border:2px dashed var(--bdr);border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;padding:22px 20px;gap:8px}
+.dz-ico{font-size:34px;opacity:.28}
+.dz-hint{font-size:10px;color:var(--t3);text-align:center}
+
+/* DOC INPUT AREA */
+.doc-area{width:100%;max-width:420px;margin-top:12px}
+.doc-label{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);
+  margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.doc-label span{font-size:9px;background:rgba(255,107,0,.15);color:var(--or);
+  padding:1px 6px;border-radius:8px}
+.doc-paste{width:100%;height:80px;padding:8px 10px;background:var(--bg3);
+  border:1px solid var(--bdr);border-radius:6px;color:var(--t1);font-size:10px;
+  resize:none;outline:none;line-height:1.5;font-family:inherit}
+.doc-paste:focus{border-color:var(--or)}
+.doc-paste::placeholder{color:var(--t3)}
+.doc-name-row{display:flex;gap:6px;margin-top:5px}
+.doc-name{flex:1;padding:4px 8px;background:var(--bg3);border:1px solid var(--bdr);
+  border-radius:4px;color:var(--t1);font-size:10px;outline:none}
+.doc-name:focus{border-color:var(--or)}
+
+.phase-btns{display:flex;gap:8px;margin-top:16px}
+.btn-p{padding:7px 14px;background:var(--or);border:none;border-radius:5px;
+  color:#fff;font-size:11px;font-weight:600;cursor:pointer}
+.btn-p:hover{background:var(--or3)}
+.btn-p:active{transform:scale(.97)}
+.btn-lk{padding:7px 14px;background:var(--bg3);border:1px solid var(--bdr);
+  border-radius:5px;color:var(--lk);font-size:11px;cursor:not-allowed}
+
+/* CONTEXT BAR */
+.ctx{display:flex;align-items:center;gap:7px;padding:7px 14px;
+  background:var(--bg2);border-top:1px solid var(--bdr);flex-wrap:wrap;flex-shrink:0}
+.cl{font-size:9px;color:var(--t3);white-space:nowrap}
+.ci{padding:3px 7px;background:var(--bg3);border:1px solid var(--bdr);
+  border-radius:3px;color:var(--t1);font-size:10px;outline:none}
+.ci:focus{border-color:var(--or)}
+.btn-ctx{padding:3px 10px;background:var(--or);border:none;border-radius:3px;
+  color:#fff;font-size:10px;cursor:pointer;margin-left:auto}
+.btn-ctx:active{transform:scale(.97)}
+
+/* CHAT VIEW */
+.chat-hdr{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:7px 12px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-title{font-size:11px;font-weight:600}
+.chat-drops{display:flex;gap:5px;padding:6px 12px;background:var(--bg2);
+  border-bottom:1px solid var(--bdr);flex-wrap:wrap;align-items:center;flex-shrink:0}
+.csel{padding:3px 7px;background:var(--bg3);border:1px solid var(--bdr);
+  border-radius:3px;color:var(--t1);font-size:10px;outline:none}
+.doc-chip{display:flex;align-items:center;gap:4px;padding:2px 8px;
+  background:rgba(255,107,0,.1);border:1px solid rgba(255,107,0,.3);
+  border-radius:10px;font-size:9px;color:var(--or);cursor:pointer;white-space:nowrap;
+  max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.doc-chip:hover{background:rgba(255,107,0,.2)}
+.msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:8px;max-width:86%}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg.agent{align-self:flex-start}
+.av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;flex-shrink:0;background:var(--bg3)}
+.msg.agent .av{background:var(--or2)}
+.mlbl{font-size:8px;color:var(--t3);margin-bottom:2px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px}
+.mbody{background:var(--bg3);border-radius:7px;padding:7px 10px;font-size:11px;line-height:1.5}
+.msg.user .mbody{background:var(--or2);border:1px solid rgba(255,107,0,.22)}
+.in-row{display:flex;gap:7px;padding:8px 12px;background:var(--bg2);
+  border-top:1px solid var(--bdr);flex-shrink:0}
+.in{flex:1;padding:6px 9px;background:var(--bg3);border:1px solid var(--bdr);
+  border-radius:5px;color:var(--t1);font-size:11px;outline:none}
+.in:focus{border-color:var(--or)}
+.btn-send{padding:6px 12px;background:var(--or);border:none;border-radius:5px;
+  color:#fff;font-size:11px;font-weight:600;cursor:pointer}
+.btn-send:active{transform:scale(.97)}
+.btn-back{padding:3px 8px;background:transparent;border:1px solid var(--bdr);
+  border-radius:3px;color:var(--t2);font-size:10px;cursor:pointer}
+.btn-x{background:transparent;border:none;color:var(--t2);cursor:pointer;
+  font-size:15px;line-height:1;padding:1px 5px}
+
+/* ACTION BAR */
+.act{background:var(--bg2);border-top:1px solid var(--bdr);padding:7px 14px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.act-st{font-size:10px;color:var(--t2)}
+.btn-disp{padding:7px 16px;background:var(--or);border:none;border-radius:5px;
+  color:#fff;font-size:11px;font-weight:700;cursor:pointer}
+.btn-disp:hover{background:var(--or3)}
+.btn-disp:active{transform:scale(.97)}
+
+/* STATUS */
+.sbar{background:var(--or);padding:3px 14px;font-size:10px;color:#fff;
+  display:flex;gap:14px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hbrand">
+    <div class="hlogo">
+      <img src="{{LOGO_URI}}" width="20" height="11"
+        style="filter:invert(1) sepia(1) saturate(4) hue-rotate(155deg) brightness(1.2)">
+      <span>foursys</span>
+    </div>
+    <span style="font-size:12px;font-weight:500;color:var(--t2)">Product Owner Agent</span>
+    <span class="hbadge">v0.0.1</span>
+  </div>
+  <div style="font-size:9px;color:var(--t3)">foursys-sdd-engine-hybrid-po</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- AGENTS SIDEBAR -->
+  <div class="aside">
+    <div class="a-title">Skills &amp; Agents</div>
+    <div class="a-search">
+      <span class="a-ic">&#128269;</span>
+      <input type="text" placeholder="Procurar..." oninput="filtrar(this.value)">
+    </div>
+
+    <div class="a-sec">Pipeline PO</div>
+    <div class="item active" id="i-discovery" onclick="selItem('discovery')">
+      <div class="ico ic-d">&#128269;</div>
+      <div class="inf"><div class="iname">Iniciar Discovery</div><span class="itype ba">Agente</span></div>
+      <div class="dot d-on"></div>
+    </div>
+    <div class="item locked" id="i-prd" onclick="bloqueado('prd')">
+      <div class="ico ic-p">&#128203;</div>
+      <div class="inf"><div class="iname">Refinar Neg&#243;cio / PRD</div><span class="itype ba">Agente</span></div>
+      <div class="dot d-lk"></div><span class="lkic">&#128274;</span>
+    </div>
+    <div class="item locked" id="i-stories" onclick="bloqueado('stories')">
+      <div class="ico ic-s">&#128221;</div>
+      <div class="inf"><div class="iname">Gerar User Stories</div><span class="itype ba">Agente</span></div>
+      <div class="dot d-lk"></div><span class="lkic">&#128274;</span>
+    </div>
+
+    <div class="a-sec">Ferramentas de Suporte</div>
+    <div class="item" id="i-reviewer"    onclick="abrirChat('reviewer')"><div class="ico ic-t">&#9989;</div><div class="inf"><div class="iname">Business Reviewer</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-bpmn"        onclick="abrirChat('bpmn')"><div class="ico ic-t">&#128256;</div><div class="inf"><div class="iname">BPMN Generator</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-mermaid"     onclick="abrirChat('mermaid')"><div class="ico ic-t">&#128202;</div><div class="inf"><div class="iname">Mermaid Generator</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-apf"         onclick="abrirChat('apf')"><div class="ico ic-t">&#128207;</div><div class="inf"><div class="iname">APF Rules</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-jira"        onclick="abrirChat('jira')"><div class="ico ic-t">&#127915;</div><div class="inf"><div class="iname">Exportar &#8594; Jira</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-confluence"  onclick="abrirChat('confluence')"><div class="ico ic-t">&#128196;</div><div class="inf"><div class="iname">Exportar &#8594; Confluence</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-facilitator" onclick="abrirChat('facilitator')"><div class="ico ic-t">&#127908;</div><div class="inf"><div class="iname">Discovery Facilitator</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+  </div>
+
+  <!-- EXEC AREA -->
+  <div class="exec">
+
+    <!-- DROP VIEW (estado inicial) -->
+    <div class="v-drop">
+      <div class="drop-area">
+        <div class="drop-sub">&#9729;&#65039; &#193;rea de Execu&#231;&#227;o &#8212; Product Owner</div>
+        <div class="dz">
+          <div class="dz-ico">&#128193;</div>
+          <div class="dz-hint">Selecione um agente na esquerda<br>e inicie o fluxo de Discovery</div>
+        </div>
+
+        <!-- DOCUMENT INPUT -->
+        <div class="doc-area">
+          <div class="doc-label">
+            &#128196; Documento de Contexto
+            <span>opcional</span>
+          </div>
+          <textarea class="doc-paste" id="docPaste"
+            placeholder="Cole aqui o conte&#250;do do documento (requisitos, briefing, e-mail de demanda...)&#10;&#10;Ou informe apenas o nome do arquivo abaixo:"></textarea>
+          <div class="doc-name-row">
+            <input class="doc-name" id="docName" placeholder="Nome do arquivo (ex: requisitos.docx)" />
+          </div>
+        </div>
+
+        <div class="phase-btns">
+          <button class="btn-p" onclick="iniciarDiscovery()">&#128269; Iniciar Discovery</button>
+          <button class="btn-lk" disabled>&#128203; Refinar PRD &#128274;</button>
+          <button class="btn-lk" disabled>&#128221; User Stories &#128274;</button>
+        </div>
+      </div>
+
+      <div class="ctx">
+        <span class="cl">Epic:</span>
+        <input class="ci" id="epic" placeholder="EPIC-XXX" style="width:75px">
+        <span class="cl">CC:</span>
+        <input class="ci" id="cc" placeholder="CC-12345" style="width:80px">
+        <span class="cl">Projeto:</span>
+        <input class="ci" id="proj" placeholder="nome-projeto" style="width:95px">
+        <button class="btn-ctx" onclick="defCtx()">Definir</button>
+      </div>
+    </div>
+
+    <!-- CHAT VIEW (agente ativo) -->
+    <div class="v-chat">
+      <div class="chat-hdr">
+        <div class="chat-title" id="chat-title">Chat &amp; Execu&#231;&#227;o: PO Agent &#8212; Discovery</div>
+        <div style="display:flex;gap:5px;align-items:center">
+          <button class="btn-back" onclick="fecharChat()">&#8592; Voltar</button>
+          <button class="btn-x" onclick="fecharChat()">&#10005;</button>
+        </div>
+      </div>
+      <div class="chat-drops">
+        <select class="csel" id="sel-epic"><option>Epic Ativo</option></select>
+        <select class="csel" id="sel-fase"><option>Fase: Discovery</option><option>Fase: PRD</option><option>Fase: User Stories</option></select>
+        <select class="csel"><option>Centro de Custo</option></select>
+        <select class="csel"><option>Modelo: Claude Sonnet 4.6</option></select>
+        <div class="doc-chip" id="doc-chip" style="display:none" onclick="fecharChat()" title="Voltar para editar documento">
+          &#128196; <span id="doc-chip-name">sem doc</span>
+        </div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="in-row">
+        <input class="in" id="chat-in"
+          placeholder="Responda as perguntas do agente ou adicione contexto..."
+          onkeydown="if(event.key==='Enter')enviar()">
+        <button class="btn-send" onclick="enviar()">Enviar &#8599;</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ACTION BAR -->
+<div class="act">
+  <div class="act-st" id="act-st">Selecione um agente para iniciar</div>
+  <button class="btn-disp" onclick="disparar()">&#9889; Disparar Fluxo &amp; Gerar Contexto para GitCopilot</button>
+</div>
+
+<!-- STATUS BAR -->
+<div class="sbar">
+  <span>Agente: <strong id="st-ag">Pronto</strong></span>
+  <span>|</span>
+  <span>Fase: <strong id="st-fase">&#8212;</strong></span>
+  <span>|</span>
+  <span>Skills PO: <strong>Carregadas (11)</strong></span>
+  <span style="margin-left:auto"><strong id="st-last">&#8212;</strong></span>
+</div>
+
+<script>
+var NAMES = {
+  discovery:'PO Agent — Discovery',
+  prd:'PO Agent — PRD',
+  stories:'PO Agent — User Stories',
+  reviewer:'Business Reviewer',
+  bpmn:'BPMN Generator',
+  mermaid:'Mermaid Generator',
+  apf:'APF Rules',
+  jira:'Exportar → Jira',
+  confluence:'Exportar → Confluence',
+  facilitator:'Discovery Facilitator'
+};
+
+var OPENING = {
+  discovery:'<strong>&#128269; Product Owner Agent — Discovery</strong><br><br>Vou conduzir um processo de descoberta conversacional para transformar seu contexto em um <code>discovery.md</code> estruturado e revisável.<br><br><strong>Qual é a demanda ou oportunidade de negócio que motivou este Epic?</strong> Descreva com suas palavras — sem jargão técnico.',
+  reviewer:'<strong>&#9989; Business Reviewer</strong> ativo.<br><br>Qual artefato deseja revisar?<br>&#8226; <code>discovery.md</code> → Aprovado para PRD / Revisar / Bloqueado<br>&#8226; <code>prd.md</code> → Aprovado para handoff / Revisar / Bloqueado',
+  bpmn:'<strong>&#128256; BPMN Generator</strong> ativo.<br><br>Descreva o processo: atores, passos, gateways de decisão e exceções relevantes.',
+  mermaid:'<strong>&#128202; Mermaid Generator</strong> ativo.<br><br>Descreva o fluxo simples que devo representar em diagrama Mermaid.',
+  apf:'<strong>&#128207; APF Rules</strong> ativo.<br><br>Cole a user story para análise APF business-visible:',
+  jira:'<strong>&#127915; Exportar → Jira</strong><br><br>Qual artefato exportar? (discovery / prd / user-stories)<br>Qual a chave do projeto Jira?',
+  confluence:'<strong>&#128196; Exportar → Confluence</strong><br><br>Qual espaço/página e qual artefato deseja publicar?',
+  facilitator:'<strong>&#127908; Discovery Facilitator</strong> ativo.<br><br>Blocos: 1. Problema e contexto · 2. Personas · 3. Cenários e regras · 4. Escopo e limites<br><br>Por qual bloco quer começar?'
+};
+
+var FOLLOW = [
+  'Entendido. Registrado no discovery.<br><br>Quais são as <strong>personas impactadas</strong>? Quem são os usuários ou áreas afetadas?',
+  'Perfeito. Quais <strong>restrições ou premissas</strong> o negócio já definiu? (regulatório, prazo, sistemas intocáveis)',
+  'Anotado. Qual o <strong>comportamento atual (AS-IS)</strong> e o <strong>esperado (TO-BE)</strong>?',
+  'Registrado. Existem <strong>dependências externas</strong> — sistemas, fornecedores, aprovações regulatórias?',
+  'Ótimo. Quais os <strong>critérios de sucesso mensuráveis</strong>? (ex: redução de X%, aumento de Y)'
+];
+
+var cur = 'discovery';
+var cnt = 0;
+var vscode = null;
+
+try { vscode = acquireVsCodeApi(); } catch(e) { /* browser mode */ }
+
+function post(val, extra) {
+  if (!vscode) { return; }
+  var msg = Object.assign({ value: val }, extra || {});
+  vscode.postMessage(msg);
+}
+
+function selItem(id) {
+  document.querySelectorAll('.item').forEach(function(el) { el.classList.remove('active'); });
+  var el = document.getElementById('i-' + id);
+  if (el) { el.classList.add('active'); }
+  cur = id;
+  setSt(NAMES[id] + ' selecionado', NAMES[id], 'Selecionado');
+}
+
+function bloqueado(id) {
+  setSt('🔒 ' + (id === 'prd' ? 'Discovery ainda não aprovado' : 'PRD ainda não aprovado'), 'Bloqueado', null);
+}
+
+function iniciarDiscovery() {
+  var docContent = document.getElementById('docPaste').value.trim();
+  var docFileName = document.getElementById('docName').value.trim();
+  abrirChat('discovery');
+  if (docContent || docFileName) {
+    var ref = docFileName || 'documento colado';
+    document.getElementById('doc-chip').style.display = 'flex';
+    document.getElementById('doc-chip-name').textContent = ref;
+    if (docContent) {
+      setTimeout(function() {
+        addMsg('agent', '&#128196; Documento recebido: <strong>' + (docFileName || 'conteúdo colado') + '</strong><br><br>'
+          + 'Analisando... Confirme o problema central que o documento aborda para prosseguirmos com o Discovery.');
+      }, 800);
+    }
+  }
+}
+
+function abrirChat(id) {
+  if (id) {
+    cur = id;
+    document.querySelectorAll('.item').forEach(function(el) { el.classList.remove('active'); });
+    var el = document.getElementById('i-' + id);
+    if (el) { el.classList.add('active'); }
+  }
+  document.getElementById('chat-title').textContent = 'Chat & Execução: ' + NAMES[cur];
+  document.getElementById('sel-fase').value = 'Fase: ' + (cur === 'prd' ? 'PRD' : cur === 'stories' ? 'User Stories' : 'Discovery');
+  var msgs = document.getElementById('msgs');
+  msgs.innerHTML = '';
+  cnt = 0;
+  addMsg('agent', OPENING[cur] || OPENING['discovery']);
+  document.body.classList.add('chat-on');
+  setSt(NAMES[cur] + ' iniciado', NAMES[cur], 'Em execução');
+  document.getElementById('st-fase').textContent = cur;
+}
+
+function fecharChat() {
+  document.body.classList.remove('chat-on');
+  document.getElementById('st-ag').textContent = 'Pronto';
+  document.getElementById('st-fase').textContent = '—';
+}
+
+function enviar() {
+  var inp = document.getElementById('chat-in');
+  var txt = inp.value.trim();
+  if (!txt) { return; }
+  addMsg('user', txt);
+  inp.value = '';
+  setSt(null, null, 'Você respondeu');
+  setTimeout(function() {
+    addMsg('agent', FOLLOW[cnt % FOLLOW.length]);
+    cnt++;
+    setSt(null, null, 'Agente respondeu');
+  }, 700);
+}
+
+function addMsg(type, html) {
+  var c = document.getElementById('msgs');
+  var d = document.createElement('div');
+  d.className = 'msg ' + type;
+  d.innerHTML = '<div class="av">' + (type === 'agent' ? '&#129302;' : '&#128100;') + '</div>'
+    + '<div><div class="mlbl">' + (type === 'agent' ? '[Agente]' : '[Você]') + '</div>'
+    + '<div class="mbody">' + html + '</div></div>';
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function defCtx() {
+  var e = document.getElementById('epic').value || 'EPIC-?';
+  var c = document.getElementById('cc').value || 'CC-?';
+  document.getElementById('sel-epic').innerHTML = '<option>' + e + '</option>';
+  setSt('Contexto: ' + e + ' | ' + c, 'Pronto', 'Contexto: ' + e);
+}
+
+function disparar() {
+  var epic = document.getElementById('epic').value;
+  var cc = document.getElementById('cc').value;
+  var proj = document.getElementById('proj').value;
+  var docContent = document.getElementById('docPaste').value.trim();
+  setSt('⚡ Disparando fluxo...', 'Em execução', 'Fluxo disparado');
+  post('PODispararFluxo', { epic: epic, cc: cc, proj: proj, doc: docContent });
+  if (!document.body.classList.contains('chat-on')) { abrirChat('discovery'); }
+}
+
+function filtrar(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.item').forEach(function(el) {
+    var n = el.querySelector('.iname');
+    el.style.display = (!q || (n && n.textContent.toLowerCase().indexOf(q) >= 0)) ? 'flex' : 'none';
+  });
+}
+
+function setSt(action, agent, last) {
+  if (action) { document.getElementById('act-st').textContent = action; }
+  if (agent)  { document.getElementById('st-ag').textContent  = agent; }
+  if (last)   { document.getElementById('st-last').textContent = last; }
+}
+
+window.addEventListener('message', function(e) {
+  var m = e.data;
+  if (m && m.value === 'FaseIniciada') {
+    setSt('Fase iniciada', m.phase || 'discovery', 'Chat aberto');
+  }
+});
+</script>
+</body>
+</html>

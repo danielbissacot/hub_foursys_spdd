@@ -1,0 +1,120 @@
+{
+  "name": "foursys-sdd-engine-hybrid-po",
+  "displayName": "Foursys SDD Engine Hybrid PO",
+  "description": "Motor SDD + Product Owner Agent — Discovery, PRD e User Stories com pipeline business-first.",
+  "version": "1.1.3",
+  "publisher": "foursys",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danielbissacot/ai-governance-hub"
+  },
+  "homepage": "https://github.com/danielbissacot/ai-governance-hub/tree/ai-governance-plugin/foursys-sdd-engine-hybrid-po",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "foursys-sdd-po-sidebar",
+          "title": "Foursys SDD Hybrid PO",
+          "icon": "resources/logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "foursys-sdd-po-sidebar": [
+        {
+          "type": "webview",
+          "id": "foursys-sdd-po-view",
+          "name": "Ciclo Foursys SDD"
+        }
+      ]
+    },
+    "chatParticipants": [
+      {
+        "id": "foursys_sdd_po",
+        "name": "foursys_sdd_po",
+        "fullName": "Foursys SDD Hybrid PO",
+        "description": "Orquestrador SDD + Product Owner Agent: Discovery, PRD, User Stories e skills de suporte.",
+        "isDefault": false,
+        "commands": [
+          { "name": "constitution",   "description": "Gera os principios e governanca do projeto para a stack ativa" },
+          { "name": "specify",        "description": "Define a especificacao de negocio (User Story)" },
+          { "name": "plan",           "description": "Gera o plano de implementacao tecnica para a stack ativa" },
+          { "name": "tasks",          "description": "Quebra o plano em tarefas granulares" },
+          { "name": "implement",      "description": "Executa a codificacao baseada em tarefas e skills da stack ativa" },
+          { "name": "qa-test-plan",   "description": "Gera o Plano de Testes (estrategia e escopo)" },
+          { "name": "qa-test-cases",  "description": "Gera Casos de Teste em BDD/Gherkin" },
+          { "name": "qa-automation",  "description": "Gera scripts de automacao de testes" },
+          { "name": "qa-coverage",    "description": "Realiza review de cobertura de testes" },
+          { "name": "qa-report",      "description": "Gera o Relatorio de Qualidade final" },
+          { "name": "skill",          "description": "Carrega uma Skill disponivel no HUB" },
+          { "name": "playbook",       "description": "Carrega um Playbook do HUB" },
+          { "name": "po-discovery",   "description": "Inicia o Discovery conversacional com o Product Owner Agent" },
+          { "name": "po-prd",         "description": "Refina o negocio e gera o PRD (requer discovery aprovado)" },
+          { "name": "po-stories",     "description": "Gera User Stories a partir do PRD aprovado" }
+        ]
+      }
+    ],
+    "commands": [
+      { "command": "foursys.selectStack",       "title": "Foursys: Selecionar Stack do Projeto" },
+      { "command": "foursys.runMend",            "title": "Foursys: Rodar Analise Mend Advise" },
+      { "command": "foursys.qaTestPlan",         "title": "Foursys QA: Plano de Testes" },
+      { "command": "foursys.qaTestCases",        "title": "Foursys QA: Casos de Teste (BDD)" },
+      { "command": "foursys.qaAutomation",       "title": "Foursys QA: Scripts de Automacao" },
+      { "command": "foursys.qaCoverage",         "title": "Foursys QA: Review de Cobertura" },
+      { "command": "foursys.qaReport",           "title": "Foursys QA: Relatorio de Qualidade" },
+      { "command": "foursys.qaImplement",        "title": "Foursys QA: Implementar Testes" },
+      { "command": "foursys.implementSession1",  "title": "Foursys: Implementar Sessao 1 - Dominio" },
+      { "command": "foursys.implementSession2",  "title": "Foursys: Implementar Sessao 2 - Infraestrutura" },
+      { "command": "foursys.selectDesignSystem", "title": "Foursys: Selecionar Design System Angular" },
+      { "command": "foursys.addMockup",          "title": "Foursys: Adicionar Mockup de Tela" },
+      { "command": "foursys.qaExportXray",       "title": "Foursys QA: Exportar para Xray" },
+      { "command": "foursys.setXrayToken",       "title": "Foursys: Configurar Token Xray" },
+      { "command": "foursys.setupFigmaMcp",      "title": "Foursys: Configurar MCP do Figma" },
+      { "command": "foursys.importFromFigma",    "title": "Foursys: Importar Mockup do Figma (MCP)" },
+      { "command": "foursys.openPOPanel",        "title": "Foursys: Abrir Product Owner Agent" },
+      { "command": "foursys.poDiscovery",         "title": "Foursys: PO — Iniciar Discovery" }
+    ],
+    "configuration": {
+      "title": "Foursys SDD",
+      "properties": {
+        "foursys.modelOverride": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Deixe **vazio** para usar o modelo otimizado por fase. Preencha para forcar um modelo especifico."
+        },
+        "foursys.tokenBudget": {
+          "type": "number",
+          "default": 4500,
+          "markdownDescription": "Limite de tokens de **entrada** por chamada."
+        },
+        "foursys.xrayJiraUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL base do Jira com Xray instalado."
+        },
+        "foursys.xrayProjectKey": {
+          "type": "string",
+          "default": "",
+          "description": "Chave do projeto Jira onde os testes serao criados."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.96.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}

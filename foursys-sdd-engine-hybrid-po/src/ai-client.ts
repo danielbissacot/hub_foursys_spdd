@@ -62,10 +62,20 @@ export class AIClient {
                 inputTokens = counts.reduce((a, b) => a + b, 0);
             } catch { /* countTokens não disponível — ignora */ }
 
-            // Temperatura 0.1: modelo determinístico, segue instruções — reduz invenção de código/arquivos.
+            // Avisa se o prompt exceder o orçamento configurado pela empresa
+            const tokenBudget = vscode.workspace.getConfiguration('foursys').get<number>('tokenBudget', 4500);
+            if (inputTokens > 0 && tokenBudget > 0 && inputTokens > tokenBudget) {
+                const proceed = await vscode.window.showWarningMessage(
+                    `⚠️ Foursys SDD: prompt com ${inputTokens} tokens (orçamento: ${tokenBudget}). Continuar mesmo assim?`,
+                    'Continuar', 'Cancelar'
+                );
+                if (proceed !== 'Continuar') { throw new Error('Cancelado: orçamento de tokens excedido.'); }
+            }
+
+            // Temperatura 0.1: determinístico. maxTokens: cap de saída para respeitar cota empresarial.
             const response = await model.sendRequest(
                 messages,
-                { modelOptions: { temperature: 0.1 } },
+                { modelOptions: { temperature: 0.1, maxTokens: 3500 } },
                 token
             );
 

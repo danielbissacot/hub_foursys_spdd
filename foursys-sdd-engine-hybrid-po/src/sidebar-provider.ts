@@ -1260,16 +1260,6 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             title="Abrir painel visual do Product Owner Agent">
             🎯 Abrir Product Owner
         </button>
-        <button
-            onclick="sendAction('PODiscoveryDirect')"
-            style="width:100%;padding:6px 10px;background:rgba(255,107,0,.08);border:1px solid rgba(255,107,0,.25);
-                   border-radius:5px;color:#ff8533;font-size:10px;font-weight:600;cursor:pointer;
-                   display:flex;align-items:center;gap:6px;transition:background .15s"
-            onmouseover="this.style.background='rgba(255,107,0,.18)'"
-            onmouseout="this.style.background='rgba(255,107,0,.08)'"
-            title="Criar template Discovery e abrir no editor">
-            🔍 Iniciar Discovery
-        </button>
     </div>
 </body>
 </html>`;

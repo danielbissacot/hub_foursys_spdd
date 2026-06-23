@@ -33,19 +33,6 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         implementSkillTag: '#agente-angular-foursys',
         globalFilesExample: '| `app.config.ts` | Adicionar providers (provideHttpClient, provideRouter) | Descrição da mudança |\n| `app.routes.ts` | Registrar rota da feature | Descrição da mudança |\n| `index.html` | Adicionar fonte/biblioteca global | Descrição da mudança |'
     },
-    // Android ANTES do spring_boot: usa marker exclusivo (AndroidManifest.xml), sem conflito com build.gradle
-    android: {
-        id: 'android',
-        displayName: 'Android — Kotlin / Gradle',
-        fileExtensions: ['.kt', '.kts', '.java', '.xml', '.gradle'],
-        workspaceMarkers: ['app/src/main/AndroidManifest.xml'],
-        detectionKeywords: ['android', 'kotlin', 'gradle', 'androidmanifest', 'activity', 'fragment', 'jetpack', 'compose', 'viewmodel', 'room'],
-        playbookFolder: 'android',
-        skillsFolder: 'agents_skills/android',
-        agentFileName: 'AGENTE_ANDROID_FOURSYS.md',
-        implementSkillTag: '#agente-android-foursys',
-        globalFilesExample: '| `app/build.gradle.kts` | Adicionar dependência (Retrofit, Room, Hilt, etc.) | Descrição da mudança |\n| `app/src/main/AndroidManifest.xml` | Declarar permissão ou Activity/Service | Descrição da mudança |\n| `app/src/main/res/values/strings.xml` | Adicionar string de recurso | Descrição da mudança |'
-    },
     spring_boot: {
         id: 'spring_boot',
         displayName: 'Java 21 + Spring Boot',
@@ -81,18 +68,6 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         agentFileName: 'AGENTE_COBOL_FOURSYS.md',
         implementSkillTag: '#agente-cobol-foursys',
         globalFilesExample: '| `JCL/[NOME].jcl` | Adicionar step de execução do programa | Descrição da mudança |\n| `COPY/[NOME].cpy` | Definir estrutura de dados compartilhada (copybook) | Descrição da mudança |\n| `PROC/[NOME].prc` | Procedure de execução batch | Descrição da mudança |'
-    },
-    ios: {
-        id: 'ios',
-        displayName: 'iOS — Swift / Xcode',
-        fileExtensions: ['.swift', '.m', '.h', '.storyboard', '.xib', '.plist'],
-        workspaceMarkers: ['Podfile', 'Package.swift'],
-        detectionKeywords: ['ios', 'swift', 'xcode', 'cocoapods', 'swiftui', 'uikit', 'appdelegate', 'viewcontroller', 'xcodeproj'],
-        playbookFolder: 'ios',
-        skillsFolder: 'agents_skills/ios',
-        agentFileName: 'AGENTE_IOS_FOURSYS.md',
-        implementSkillTag: '#agente-ios-foursys',
-        globalFilesExample: '| `[Projeto].xcodeproj` | Adicionar target / dependência Swift Package | Descrição da mudança |\n| `Info.plist` | Declarar permissão (câmera, notificações, localização) | Descrição da mudança |\n| `Podfile` | Adicionar pod de terceiro (pod install após) | Descrição da mudança |'
     },
     generic: {
         id: 'generic',
@@ -169,11 +144,6 @@ export function resolveStack(
         if (files.some(f => f.endsWith('.cbl') || f.endsWith('.cobol') || f.endsWith('.cob'))) {
             return { stackId: 'cobol', confidence: 'workspace', source: 'arquivo .cbl detectado' };
         }
-
-        // iOS: .xcodeproj e .xcworkspace têm nome dinâmico — varredura de diretórios na raiz
-        if (files.some(f => f.endsWith('.xcodeproj') || f.endsWith('.xcworkspace'))) {
-            return { stackId: 'ios', confidence: 'workspace', source: 'diretório .xcodeproj/.xcworkspace detectado' };
-        }
     }
 
     // Nível 4: heurística por keywords no user_story.md
@@ -199,7 +169,5 @@ function _matchKeywordToStack(text: string): string {
     if (text.includes('spring') || text.includes('java')) { return 'spring_boot'; }
     if (text.includes('node') || text.includes('nestjs') || text.includes('express')) { return 'node'; }
     if (text.includes('cobol')) { return 'cobol'; }
-    if (text.includes('ios') || text.includes('swift') || text.includes('xcode') || text.includes('swiftui')) { return 'ios'; }
-    if (text.includes('android') || text.includes('kotlin') || text.includes('jetpack') || text.includes('compose')) { return 'android'; }
     return 'generic';
 }

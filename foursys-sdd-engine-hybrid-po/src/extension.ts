@@ -140,7 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
         outputChannel.appendLine(`[Mend] Erro na configuração: ${e.message}`)
     );
 
-    const agentes = vscode.chat.createChatParticipant('foursys_sdd', async (request, _chatContext, response, token) => {
+    const agentes = vscode.chat.createChatParticipant('foursys_sdd_po', async (request, _chatContext, response, token) => {
         let referencesContext = '';
         for (const ref of request.references) {
             if (ref.value instanceof vscode.Uri) {
@@ -168,38 +168,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaAutomation', () => executeSDDPhase('qa-automation',  '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaCoverage',   () => executeSDDPhase('qa-coverage',   '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaReport',     () => executeSDDPhase('qa-report',     '', '', null, commandToken(), context, outputChannel)));
-
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement', async () => {
-        const rootPath = getWorkspaceRoot();
-        if (!rootPath) { return; }
-        const scriptsPath = path.join(rootPath, DOC_FOLDER, 'qa', 'scripts_automacao.md');
-        if (!fs.existsSync(scriptsPath)) {
-            vscode.window.showWarningMessage('⚠️ Execute "Scripts de Automação" primeiro para gerar o arquivo de scripts.');
-            return;
-        }
-        const stackId = getActiveStackId(context);
-        const content = fs.readFileSync(scriptsPath, 'utf8');
-        const blocks = extractCodeBlocks(content, rootPath, stackId);
-        if (blocks.length === 0) {
-            vscode.window.showWarningMessage('⚠️ Nenhum bloco de código extraível encontrado. Verifique se o arquivo scripts_automacao.md contém blocos ```gherkin, ```typescript ou ```java com <!-- file: ... --> ou Feature: / describe(...).');
-            return;
-        }
-        const existing = blocks.filter(b => fs.existsSync(b.targetFile));
-        if (existing.length > 0) {
-            const choice = await vscode.window.showWarningMessage(
-                `⚠️ ${existing.length} arquivo(s) já existem. Sobrescrever?`,
-                { modal: true }, 'Sobrescrever', 'Cancelar'
-            );
-            if (choice !== 'Sobrescrever') { return; }
-        }
-        for (const block of blocks) {
-            const dir = path.dirname(block.targetFile);
-            if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
-            fs.writeFileSync(block.targetFile, block.content);
-            await openFile(block.targetFile);
-        }
-        vscode.window.showInformationMessage(`✅ ${blocks.length} arquivo(s) de teste criados com sucesso.`);
-    }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaExportXray', async () => {
         const rootPath = getWorkspaceRoot();
@@ -332,68 +300,6 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }));
 
-    // Configura o MCP do Figma automaticamente no mcp.json do VS Code (sem restart necessário)
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.setupFigmaMcp', async () => {
-        const mcpPath = getMcpConfigPath();
-        try {
-            let cfg: Record<string, unknown> = { inputs: [], servers: {} };
-            if (fs.existsSync(mcpPath)) {
-                const raw = fs.readFileSync(mcpPath, 'utf-8').trim();
-                if (raw.length > 0) {
-                    try { cfg = JSON.parse(raw); } catch { /* arquivo corrompido — sobrescreve com config nova */ }
-                }
-            }
-            if (!cfg.servers) { cfg.servers = {}; }
-            (cfg.servers as Record<string, unknown>)['figmaRemoteMcp'] = {
-                url: 'https://mcp.figma.com/mcp',
-                type: 'http'
-            };
-            fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
-            fs.writeFileSync(mcpPath, JSON.stringify(cfg, null, 2), 'utf-8');
-            await vscode.window.showTextDocument(vscode.Uri.file(mcpPath));
-            vscode.window.showInformationMessage(
-                '✅ MCP do Figma configurado! O VS Code vai detectar automaticamente e solicitar login no Figma em instantes.'
-            );
-        } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
-            vscode.window.showErrorMessage(`❌ Erro ao configurar MCP do Figma: ${msg}`);
-        }
-    }));
-
-    // Abre Copilot Chat com prompt que usa o Figma MCP para analisar o design
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.importFromFigma', async () => {
-        if (!checkFigmaMcpConfigured()) {
-            vscode.window.showWarningMessage('MCP do Figma não configurado. Use o botão "⚙️ Figma MCP" na sidebar.');
-            return;
-        }
-        const figmaUrl = await vscode.window.showInputBox({
-            prompt: 'Cole a URL do frame ou arquivo do Figma',
-            placeHolder: 'https://www.figma.com/design/...',
-            validateInput: (v) => (v && v.includes('figma.com')) ? null : 'URL inválida: deve ser do figma.com'
-        });
-        if (!figmaUrl) { return; }
-
-        const rootPath = getWorkspaceRoot();
-        if (rootPath) {
-            const screensDir = path.join(rootPath, DOC_FOLDER, 'screens');
-            if (!fs.existsSync(screensDir)) { fs.mkdirSync(screensDir, { recursive: true }); }
-            fs.writeFileSync(path.join(screensDir, 'figma_ref.txt'), figmaUrl, 'utf-8');
-        }
-
-        const prompt = `Use o servidor MCP do Figma para analisar o design em: ${figmaUrl}
-
-Por favor:
-1. Acesse o frame no Figma e descreva os elementos visuais, layout, cores e componentes de UI
-2. Identifique componentes do Liquid Design System / Design System Bradesco utilizados
-3. Liste os estados visíveis na tela (loading, vazio, erro, sucesso, validação)
-4. Gere critérios de aceite visuais para Angular (Angular Material / PrimeNG)
-
-Este design é o mockup da User Story em doc_projeto/user_story.md`;
-
-        await vscode.commands.executeCommand('workbench.action.chat.open', { query: prompt });
-        vscode.window.showInformationMessage('🎨 URL do Figma salva em doc_projeto/screens/figma_ref.txt');
-    }));
-
     // Mend Advise é passivo — escaneia automaticamente e exibe CVEs no painel Problems.
     // Abre o Problems panel como ação principal; tenta comandos de scan explícitos antes (versões futuras).
     context.subscriptions.push(vscode.commands.registerCommand('foursys.runMend', async () => {
@@ -470,33 +376,70 @@ Este design é o mockup da User Story em doc_projeto/user_story.md`;
         vscode.window.showInformationMessage('📸 Mockup salvo! Arraste o arquivo para o Copilot Chat como referência visual.');
     }));
 
+    // Configura o MCP do Figma automaticamente no mcp.json do VS Code (sem restart necessário)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.setupFigmaMcp', async () => {
+        const mcpPath = getMcpConfigPath();
+        try {
+            let cfg: Record<string, unknown> = { inputs: [], servers: {} };
+            if (fs.existsSync(mcpPath)) {
+                const raw = fs.readFileSync(mcpPath, 'utf-8').trim();
+                if (raw.length > 0) {
+                    try { cfg = JSON.parse(raw); } catch { /* arquivo corrompido — sobrescreve com config nova */ }
+                }
+            }
+            if (!cfg.servers) { cfg.servers = {}; }
+            (cfg.servers as Record<string, unknown>)['figmaRemoteMcp'] = {
+                url: 'https://mcp.figma.com/mcp',
+                type: 'http'
+            };
+            fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
+            fs.writeFileSync(mcpPath, JSON.stringify(cfg, null, 2), 'utf-8');
+            await vscode.window.showTextDocument(vscode.Uri.file(mcpPath));
+            vscode.window.showInformationMessage(
+                '✅ MCP do Figma configurado! O VS Code vai detectar automaticamente e solicitar login no Figma em instantes.'
+            );
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            vscode.window.showErrorMessage(`❌ Erro ao configurar MCP do Figma: ${msg}`);
+        }
+    }));
+
+    // Abre Copilot Chat com prompt que usa o Figma MCP para analisar o design
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.importFromFigma', async () => {
+        if (!checkFigmaMcpConfigured()) {
+            vscode.window.showWarningMessage('MCP do Figma não configurado. Use o botão "⚙️ Figma MCP" na sidebar.');
+            return;
+        }
+        const figmaUrl = await vscode.window.showInputBox({
+            prompt: 'Cole a URL do frame ou arquivo do Figma',
+            placeHolder: 'https://www.figma.com/design/...',
+            validateInput: (v) => (v && v.includes('figma.com')) ? null : 'URL inválida: deve ser do figma.com'
+        });
+        if (!figmaUrl) { return; }
+
+        const rootPath = getWorkspaceRoot();
+        if (rootPath) {
+            const screensDir = path.join(rootPath, DOC_FOLDER, 'screens');
+            if (!fs.existsSync(screensDir)) { fs.mkdirSync(screensDir, { recursive: true }); }
+            fs.writeFileSync(path.join(screensDir, 'figma_ref.txt'), figmaUrl, 'utf-8');
+        }
+
+        const prompt = `Use o servidor MCP do Figma para analisar o design em: ${figmaUrl}
+
+Por favor:
+1. Acesse o frame no Figma e descreva os elementos visuais, layout, cores e componentes de UI
+2. Identifique componentes do Liquid Design System / Design System Bradesco utilizados
+3. Liste os estados visíveis na tela (loading, vazio, erro, sucesso, validação)
+4. Gere critérios de aceite visuais para Angular (Angular Material / PrimeNG)
+
+Este design é o mockup da User Story em doc_projeto/user_story.md`;
+
+        await vscode.commands.executeCommand('workbench.action.chat.open', { query: prompt });
+        vscode.window.showInformationMessage('🎨 URL do Figma salva em doc_projeto/screens/figma_ref.txt');
+    }));
+
     const sidebarProvider = new FoursysSDDSidebarProvider(context);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(FoursysSDDSidebarProvider.viewType, sidebarProvider));
-
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.openPOPanel', () =>
-        POPanelProvider.openOrReveal(context)
-    ));
-
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.poDiscovery', () =>
-        POPanelProvider._abrirTemplateDiscovery()
-    ));
-
-    // PO Agent — detecta save do discovery-draft.md e abre Copilot Chat
-    context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(async (doc) => {
-        if (!doc.uri.fsPath.endsWith('discovery-draft.md')) { return; }
-        const content = doc.getText().trim();
-        if (content.length < 100) { return; }
-        const escolha = await vscode.window.showInformationMessage(
-            '📋 Discovery salvo! Enviar para o PO Agent agora?',
-            'Sim, abrir chat',
-            'Não agora'
-        );
-        if (escolha !== 'Sim, abrir chat') { return; }
-        const snippet = content.length > 3000 ? content.slice(0, 3000) + '\n\n[...conteúdo truncado...]' : content;
-        vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `@foursys_sdd_po /po-discovery Analise este contexto de Discovery e conduza as perguntas de refinamento:\n\n${snippet}`
-        });
-    }));
 
     // Notifica o usuário quando salva user_story.md com conteúdo real
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(async (doc) => {
@@ -523,6 +466,33 @@ Este design é o mockup da User Story em doc_projeto/user_story.md`;
             vscode.commands.executeCommand('foursys.specify');
         }
     }));
+
+    // Notifica quando salva discovery-draft.md e oferece enviar ao PO Agent
+    context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(async (doc) => {
+        if (!doc.uri.fsPath.endsWith('discovery-draft.md')) { return; }
+        const content = doc.getText();
+        if (!content || content.trim().length < 100) { return; }
+        const choice = await vscode.window.showInformationMessage(
+            '📝 Discovery draft salvo! Enviar ao PO Agent para análise?',
+            'Sim, enviar',
+            'Depois'
+        );
+        if (choice !== 'Sim, enviar') { return; }
+        const snippet = content.length > 3000 ? content.slice(0, 3000) + '\n\n[...conteúdo truncado...]' : content;
+        vscode.commands.executeCommand('workbench.action.chat.open', {
+            query: `@foursys_sdd_po /po-discovery Analise este contexto de Discovery e conduza as perguntas de refinamento:\n\n${snippet}`
+        });
+    }));
+
+    // Comando: Abrir PO Panel (WebviewPanel central)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.openPOPanel', () =>
+        POPanelProvider.openOrReveal(context)
+    ));
+
+    // Comando: Iniciar Discovery (abre template .md no editor)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.poDiscovery', () =>
+        POPanelProvider._abrirTemplateDiscovery()
+    ));
 }
 
 async function executeSDDPhase(
@@ -740,16 +710,28 @@ async function executeSDDPhase(
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'plano_testes.md')];
             break;
         case 'qa-automation':
-            outputPath = path.join(docPath, 'qa', 'scripts_automacao.md');
+            outputPath = path.join(docPath, 'qa', 'roteiros_teste.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'casos_teste.md')];
             break;
         case 'qa-coverage':
             outputPath = path.join(docPath, 'qa', 'review_cobertura.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'scripts_automacao.md')];
+            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'roteiros_teste.md')];
             break;
         case 'qa-report':
             outputPath = path.join(docPath, 'qa', 'relatorio_qualidade.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'review_cobertura.md')];
+            break;
+        case 'po-discovery':
+            outputPath = path.join(docPath, 'discovery.md');
+            contextFiles = [path.join(docPath, 'discovery-draft.md')];
+            break;
+        case 'po-prd':
+            outputPath = path.join(docPath, 'prd.md');
+            contextFiles = [path.join(docPath, 'discovery.md')];
+            break;
+        case 'po-stories':
+            outputPath = path.join(docPath, 'user_stories.md');
+            contextFiles = [path.join(docPath, 'discovery.md'), path.join(docPath, 'prd.md')];
             break;
     }
 
@@ -895,81 +877,5 @@ function getWorkspaceRoot(): string | null {
     return folders ? folders[0].uri.fsPath : null;
 }
 
-interface ExtractedBlock {
-    language: string;
-    content: string;
-    targetFile: string;
-}
-
-function slugify(text: string): string {
-    return text.trim().toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-}
-
-function resolveTargetFile(lang: string, content: string, hint: string | null, rootPath: string, stackId: string): string | null {
-    if (hint) { return path.join(rootPath, hint); }
-
-    if (lang === 'gherkin') {
-        const m = content.match(/^Feature:\s*(.+)/m);
-        if (!m) { return null; }
-        const dir = stackId === 'spring_boot' ? 'src/test/resources/features' : 'test/features';
-        return path.join(rootPath, dir, `${slugify(m[1])}.feature`);
-    }
-    if (lang === 'typescript') {
-        const m = content.match(/describe\s*\(\s*['"`](.+?)['"`]/);
-        if (!m) { return null; }
-        return path.join(rootPath, 'test', 'steps', `${slugify(m[1])}.steps.ts`);
-    }
-    if (lang === 'java') {
-        const m = content.match(/class\s+(\w+)/);
-        if (!m) { return null; }
-        return path.join(rootPath, 'src', 'test', 'java', 'steps', `${m[1]}.java`);
-    }
-    return null;
-}
-
-function extractCodeBlocks(markdownContent: string, rootPath: string, stackId: string): ExtractedBlock[] {
-    const EXTRACTABLE = new Set(['gherkin', 'typescript', 'java']);
-    const FILE_HINT_RE = /<!--\s*file:\s*(.+?)\s*-->/i;
-    const lines = markdownContent.split('\n');
-    const blocks: ExtractedBlock[] = [];
-    let inBlock = false;
-    let lang = '';
-    let bodyLines: string[] = [];
-    let pendingHint: string | null = null;
-
-    for (const line of lines) {
-        if (!inBlock) {
-            const hintMatch = line.match(FILE_HINT_RE);
-            if (hintMatch) { pendingHint = hintMatch[1].trim(); continue; }
-
-            const openMatch = line.match(/^```(\w+)/);
-            if (openMatch) {
-                inBlock = true;
-                lang = openMatch[1].toLowerCase();
-                bodyLines = [];
-                continue;
-            }
-            if (line.trim() && !hintMatch) { pendingHint = null; }
-        } else {
-            if (line.startsWith('```')) {
-                const content = bodyLines.join('\n');
-                if (EXTRACTABLE.has(lang)) {
-                    const target = resolveTargetFile(lang, content, pendingHint, rootPath, stackId);
-                    if (target) { blocks.push({ language: lang, content, targetFile: target }); }
-                }
-                inBlock = false;
-                lang = '';
-                bodyLines = [];
-                pendingHint = null;
-            } else {
-                bodyLines.push(line);
-            }
-        }
-    }
-    return blocks;
-}
 
 export function deactivate() {}

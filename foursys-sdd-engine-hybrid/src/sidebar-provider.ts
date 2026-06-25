@@ -415,7 +415,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
 
         const STACKS = [
-            { id: 'angular',     label: 'Angular 18+',          color: '#42a5f5', folder: 'agents_skills/angular/skills' },
+            { id: 'angular',     label: 'Angular 20+',          color: '#42a5f5', folder: 'agents_skills/angular/skills' },
             { id: 'spring_boot', label: 'Java 21 + Spring Boot', color: '#66bb6a', folder: 'agents_skills/spring_boot/skills' },
             { id: 'node',        label: 'Node.js / NestJS',      color: '#ffb74d', folder: 'agents_skills/node/skills' },
             { id: 'cobol',       label: 'COBOL',                 color: '#80cbc4', folder: 'agents_skills/cobol/skills' },

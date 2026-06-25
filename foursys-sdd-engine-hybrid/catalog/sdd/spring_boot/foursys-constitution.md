@@ -1,13 +1,13 @@
 ---
 name: Geração da Constituição Foursys SDD
-description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto.
+description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto Java 21 + Spring Boot com Arquitetura Hexagonal.
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
 ---
 
-# Playbook: Foursys Constitution Generator
+# Playbook: Foursys Constitution Generator — Java 21 + Spring Boot
 
-Este playbook é utilizado para inicializar a governança de um projeto. Ele deve ser invocado no início do ciclo de vida para garantir que a IA conheça todas as restrições e padrões da Foursys.
+Este playbook é utilizado para inicializar a governança de um projeto Spring Boot. Ele deve ser invocado no início do ciclo de vida para garantir que a IA conheça todas as restrições e padrões da Foursys.
 
 ---
 
@@ -36,6 +36,7 @@ A saída deve ser um arquivo Markdown contendo:
    - Imutabilidade: prefira Records e campos final.
    - Validação: Bean Validation (JSR 380) — @NotNull, @Size, @Valid em todos os inputs.
    - Injeção de Dependência: via construtor (nunca @Autowired em campo).
+   - Adapters de saída reconhecidos: Repository (MongoDB, PostgreSQL), Feign Client (APIs externas), Kafka Producer/Consumer (mensageria Confluent), Redis Cache (Azure Cache for Redis via CSI Driver), Blob Storage (Azure Blob), Service Bus (Azure Service Bus).
    - NÃO use padrões Angular, TypeScript ou COBOL nesta constituição.
 
 3. 📏 REGRAS DE OURO (GOLDEN RULES) — APENAS JAVA
@@ -48,21 +49,36 @@ A saída deve ser um arquivo Markdown contendo:
    - Regra 6 (Exceções de Domínio): Nunca use RuntimeException genérica — sempre lance exceções de domínio específicas.
    - Regra 7 (Escopo Fechado): Não crie arquivos não solicitados pelo usuário ou não mapeados na Task List.
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o arquivo não estiver na Task List ativa, NÃO TOQUE nele.
+   - Regra 9 (Bean Obrigatório): TODA UseCase criada em core/usecase/ EXIGE @Bean correspondente em config/. Ausência causa NoSuchBeanDefinitionException em runtime.
 
 4. 🧪 QUALIDADE E TESTES
    - Cobertura mínima de 95% (alinhado com SKILL_SPRINGBOOT_TESTING).
    - Uso de Mocks para dependências externas.
    - Padrão AAA (Arrange, Act, Assert).
 
-5. 📁 ESTRUTURA DE ARQUIVOS (Arquitetura Hexagonal — Java)
-   - `src/main/java/.../domain/` — Entidades, Records, interfaces de porta
-   - `src/main/java/.../application/usecase/` — Casos de uso (orquestração)
-   - `src/main/java/.../infrastructure/adapter/` — Adapters de entrada (REST) e saída (DB, Kafka, Feign)
-   - `src/main/java/.../infrastructure/config/` — Classes @Configuration e @Bean
+5. 🔒 SEGURANÇA DE DADOS SENSÍVEIS (PII)
+   - PROIBIDO logar dados sensíveis (CPF, CNPJ, senha, token, número de conta, número de cartão).
+   - Mascaramento obrigatório no formato `***.***.***-XX` para CPF, `**.***.***/****.XX` para CNPJ.
+   - Use `@ToString.Exclude` (Lombok) em todos os campos sensíveis de entidades JPA.
+   - DTOs de resposta: nunca retorne campos sensíveis desnecessários ao front-end.
+   - Valores monetários: SEMPRE BigDecimal — NUNCA Double ou Float.
+
+6. 📁 ESTRUTURA DE ARQUIVOS (Arquitetura Hexagonal — Java)
+   - `src/main/java/.../core/domain/model/` — Entidades de domínio puras (sem anotações Spring/JPA)
+   - `src/main/java/.../core/usecase/` — Casos de uso (implementam exatamente 1 InputPort cada)
+   - `src/main/java/.../core/exception/` — Exceções de domínio específicas
+   - `src/main/java/.../port/input/` — Interfaces InputPort (contratos de entrada)
+   - `src/main/java/.../port/output/` — Interfaces OutputPort (contratos de saída)
+   - `src/main/java/.../adapter/input/controller/` — Controllers REST + DTOs request/response
+   - `src/main/java/.../adapter/output/repository/` — Repositories + Entities JPA
+   - `src/main/java/.../adapter/output/client/` — Feign Clients + DTOs
+   - `src/main/java/.../adapter/output/producer/` — Kafka Producers
+   - `src/main/java/.../adapter/output/cache/` — Redis Cache Adapters
+   - `src/main/java/.../config/` — Classes @Configuration com @Bean para cada UseCase
    - `src/main/resources/` — application.yml e perfis (application-dev.yml, application-prod.yml)
    - `src/test/java/` — Testes unitários e de integração (espelha a estrutura de main)
 
 ### 🏁 FINALIZAÇÃO
 Ao gerar o documento, adicione no final:
-"Constituição Foursys SDD v1.5.0 gerada com sucesso. Este projeto agora está sob a governança oficial do Hub."
+"Constituição Foursys SDD v1.6.0 gerada com sucesso. Este projeto Java 21 + Spring Boot agora está sob a governança oficial do Hub."
 ```

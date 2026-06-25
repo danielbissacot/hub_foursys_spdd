@@ -1,4 +1,4 @@
-# 💻 Instrução Global: Frontend Reativo & Angular (v18+)
+# 💻 Instrução Global: Frontend Reativo & Angular (v20+)
 
 *Copie este conteúdo e cole diretamente no arquivo de configuração global da sua inteligência artificial (ex: `.cursorrules`).*
 
@@ -8,7 +8,9 @@
 
 ## 1. Era dos Signals (Reatividade Nativa de Alta Performance)
 
-- Encoraje e exija invariavelmente a adoção do framework primitivo lógico de `signal()`, `computed()`, `effect()` para o gerencimento do fluxo da tela, em vez de entulhar componentes modernos com variáveis mutáveis antigas ou instâncias verbosas puramente visuais (`BehaviorSubjects`).
+- Encoraje e exija invariavelmente a adoção do framework primitivo lógico de `signal()`, `computed()`, `effect()` e `linkedSignal()` para o gerencimento do fluxo da tela, em vez de entulhar componentes modernos com variáveis mutáveis antigas ou instâncias verbosas puramente visuais (`BehaviorSubjects`).
+- **`linkedSignal()`**: Use para estado dependente que precisa se resetar automaticamente quando o signal fonte muda (ex: seleção de item que deve limpar ao trocar de lista).
+- **`httpResource()` e `resource()`** (v20+): Para requisições HTTP de leitura, prefira `httpResource()` em vez de `HttpClient` diretamente — integração nativa com Signals, loading/error states automáticos, sem subscription manual. Reserve `HttpClient` para mutações (POST/PUT/DELETE) ou quando precisar de operadores RxJS.
 
 ## 2. Bloqueio Fatal contra Memory Leaks
 
@@ -27,11 +29,11 @@
 ## 5. Visibilidade de Membros no Template
 
 - **REGRA CRÍTICA DE BUILD**: Todo serviço ou propriedade referenciado diretamente no template HTML deve ser declarado como `protected`. Membros `private` são invisíveis ao compilador Angular e causam o erro **NG1** (`Property 'x' is private and only accessible within class 'Y'`), quebrando o build.
-- **PROIBIDO em Angular 18+**: `NgModule` e `app.module.ts`. Todo componente, diretiva e pipe deve ser **Standalone**. O uso de módulos é considerado erro grave de arquitetura legada.
+- **PROIBIDO em Angular 20+**: `NgModule` e `app.module.ts`. Todo componente, diretiva e pipe deve ser **Standalone**. O uso de módulos é considerado erro grave de arquitetura legada.
 - **OBRIGATÓRIO**: O bloco `@for` no template **sempre** deve ter a cláusula `track`. Sem `track`, o Angular emite erro de compilação no modo strict.
 
 ## 6. Padrão de Injeção de Dependência
 
-- **OBRIGATÓRIO em Angular 18+**: Use `inject()` no nível de campo. Nunca use constructor injection para serviços.
+- **OBRIGATÓRIO em Angular 20+**: Use `inject()` no nível de campo. Nunca use constructor injection para serviços.
 - Combine com a regra de visibilidade: `protected readonly svc = inject(MeuService);`
 - A injeção via construtor (`constructor(private svc: MeuService)`) é considerada padrão legado e deve ser migrada progressivamente.

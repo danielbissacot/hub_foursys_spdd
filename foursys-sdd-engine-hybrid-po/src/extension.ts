@@ -331,7 +331,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (picked) {
             await context.workspaceState.update('activeStack', picked.stackId);
             vscode.window.showInformationMessage(`✅ Stack ativa: ${picked.label}`);
-            vscode.commands.executeCommand('foursys-sdd-sidebar-view.focus');
+            vscode.commands.executeCommand('foursys-sdd-po-view.focus');
         }
     }));
 

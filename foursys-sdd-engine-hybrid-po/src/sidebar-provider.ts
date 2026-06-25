@@ -46,6 +46,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
         updateWebview();
 
+        // Garante doc_projeto/ no .gitignore do projeto ao abrir a sidebar
+        const initRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (initRoot) { this._updateGitignore(initRoot); }
+
         // Atualiza sidebar quando o editor ativo muda de projeto
         vscode.window.onDidChangeActiveTextEditor(() => updateWebview(), undefined, this._context.subscriptions);
 

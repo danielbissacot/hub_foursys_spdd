@@ -89,6 +89,29 @@ export class POPanelProvider {
                             'PO Contexto: ' + (data.epic ?? '-') + ' | ' + (data.cc ?? '-') + ' | ' + (data.proj ?? '-')
                         );
                         break;
+                    case 'POBrowseFile': {
+                        const uris = await vscode.window.showOpenDialog({
+                            canSelectFiles: true,
+                            canSelectFolders: false,
+                            canSelectMany: false,
+                            openLabel: 'Selecionar documento de contexto',
+                            filters: {
+                                'Documentos': ['md', 'txt', 'docx', 'pdf', 'xlsx', 'csv', 'json'],
+                                'Todos os arquivos': ['*']
+                            }
+                        });
+                        if (uris && uris.length > 0) {
+                            const filePath = uris[0].fsPath;
+                            const fileName = path.basename(filePath);
+                            const textExts = ['.md', '.txt', '.csv', '.json', '.yaml', '.yml'];
+                            let fileContent = '';
+                            if (textExts.includes(path.extname(filePath).toLowerCase())) {
+                                try { fileContent = fs.readFileSync(filePath, 'utf-8'); } catch { /* silencioso */ }
+                            }
+                            panel.webview.postMessage({ value: 'POFileSelected', filePath, fileName, fileContent });
+                        }
+                        break;
+                    }
                 }
             },
             undefined,
@@ -132,8 +155,15 @@ export class POPanelProvider {
         cmd: string
     ): void {
         const ctx = 'Epic: ' + (data.epic ?? '') + ' | CC: ' + (data.cc ?? '') + ' | Projeto: ' + (data.proj ?? '');
+        let docSection = '';
+        if (data.doc && data.doc.trim()) {
+            const snippet = data.doc.length > 3000
+                ? data.doc.slice(0, 3000) + '\n...[documento truncado]'
+                : data.doc;
+            docSection = '\n\n---\n📄 Documento de contexto:\n' + snippet;
+        }
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: '@foursys_sdd_po /' + cmd + ' ' + ctx
+            query: '@foursys_sdd_po /' + cmd + ' ' + ctx + docSection
         });
         panel.webview.postMessage({ value: 'FaseIniciada', phase: cmd });
     }

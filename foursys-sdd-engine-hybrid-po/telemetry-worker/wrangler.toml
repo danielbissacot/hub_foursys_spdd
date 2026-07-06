@@ -1,0 +1,11 @@
+name = "foursys-sdd-telemetry"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+GITHUB_REPO = "danielbissacot/sdd-telemetry-data"
+GITHUB_BRANCH = "main"
+
+# GITHUB_TOKEN não vai aqui — é um secret, configurado via:
+#   npx wrangler secret put GITHUB_TOKEN
+# ou no painel Cloudflare: Worker → Settings → Variables and Secrets → Add secret

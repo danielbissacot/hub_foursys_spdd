@@ -2,11 +2,27 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
+import { checkFigmaMcpConfigured } from './utils';
+import { trackEvent } from './telemetry';
 
 const MEND_EXT_ID = 'mend.mend-advise';
 const FIGMA_EXT_ID = 'figma.figma-vscode-extension';
+
+interface UiState {
+    isConnected: boolean;
+    detection: StackDetectionResult;
+    mendInstalled: boolean;
+    mendInstalling: boolean;
+    storyHasContent: boolean;
+    qaScriptsReady: boolean;
+    casosTesteReady: boolean;
+    mockupExists: boolean;
+    activeDesignSystem: string | null;
+    figmaExtInstalled: boolean;
+    figmaMcpConfigured: boolean;
+}
 
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'foursys-sdd-po-view';
@@ -28,20 +44,24 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 ? vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)?.uri.fsPath
                 : undefined;
             const workspaceRoot = activeFolder ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-            const isConnected = this._checkConnection(workspaceRoot);
-            const detection = this._detectStack(workspaceRoot);
             const mendInstalled = !!vscode.extensions.getExtension(MEND_EXT_ID);
             // Limpa estado "instalando" se Mend não está presente (desinstalado ou falhou)
             if (!mendInstalled) { this._context.workspaceState.update('mendInstalling', false); }
-            const mendInstalling = !!this._context.workspaceState.get('mendInstalling');
-            const storyHasContent = this._checkStoryHasContent(workspaceRoot);
-            const qaScriptsReady = this._checkQaScriptsReady(workspaceRoot);
-            const casosTesteReady = this._checkCasosTesteReady(workspaceRoot);
-            const mockupExists = this._checkMockupExists(workspaceRoot);
             const figmaExtInstalled = !!vscode.extensions.getExtension(FIGMA_EXT_ID);
-            const figmaMcpConfigured = figmaExtInstalled && this._checkFigmaMcpConfigured();
-            const activeDesignSystem = this._context.workspaceState.get<string>('activeDesignSystem') || null;
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured);
+            const state: UiState = {
+                isConnected: this._checkConnection(workspaceRoot),
+                detection: this._detectStack(workspaceRoot),
+                mendInstalled,
+                mendInstalling: !!this._context.workspaceState.get('mendInstalling'),
+                storyHasContent: this._checkStoryHasContent(workspaceRoot),
+                qaScriptsReady: this._checkQaScriptsReady(workspaceRoot),
+                casosTesteReady: this._checkCasosTesteReady(workspaceRoot),
+                mockupExists: this._checkMockupExists(workspaceRoot),
+                activeDesignSystem: this._context.workspaceState.get<string>('activeDesignSystem') || null,
+                figmaExtInstalled,
+                figmaMcpConfigured: figmaExtInstalled && this._checkFigmaMcpConfigured(),
+            };
+            webviewView.webview.html = this._getHtmlForWebview(state);
         };
 
         updateWebview();
@@ -50,19 +70,26 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         const initRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         if (initRoot) { this._updateGitignore(initRoot); }
 
+        // Debounce: evita múltiplos re-renders ao salvar arquivos grandes em sequência
+        let _debounceTimer: ReturnType<typeof setTimeout> | undefined;
+        const debouncedUpdate = () => {
+            if (_debounceTimer) { clearTimeout(_debounceTimer); }
+            _debounceTimer = setTimeout(updateWebview, 300);
+        };
+
         // Atualiza sidebar quando o editor ativo muda de projeto
         vscode.window.onDidChangeActiveTextEditor(() => updateWebview(), undefined, this._context.subscriptions);
 
         // Atualiza sidebar quando arquivos em doc_projeto/ são criados ou modificados
         const docWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/**/*.md');
-        docWatcher.onDidCreate(() => updateWebview());
-        docWatcher.onDidChange(() => updateWebview());
+        docWatcher.onDidCreate(() => debouncedUpdate());
+        docWatcher.onDidChange(() => debouncedUpdate());
         this._context.subscriptions.push(docWatcher);
 
         // Atualiza sidebar quando mockup é adicionado ou removido
         const screensWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/screens/**');
-        screensWatcher.onDidCreate(() => updateWebview());
-        screensWatcher.onDidDelete(() => updateWebview());
+        screensWatcher.onDidCreate(() => debouncedUpdate());
+        screensWatcher.onDidDelete(() => debouncedUpdate());
         this._context.subscriptions.push(screensWatcher);
 
         webviewView.webview.onDidReceiveMessage(async data => {
@@ -185,6 +212,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     });
                     if (pickedPb) {
                         const filename = path.basename(pickedPb.filepath);
+                        await trackEvent(this._context, undefined, {
+                            event: 'playbook_clicked',
+                            command: filename,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
                             query: `@foursys_sdd /playbook ${filename} `,
                             isPartialQuery: true
@@ -217,6 +249,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     });
                     if (picked) {
                         const filename = path.basename(picked.filepath);
+                        await trackEvent(this._context, undefined, {
+                            event: 'skill_clicked',
+                            command: filename,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
                             query: `@foursys_sdd /skill ${filename} `,
                             isPartialQuery: true
@@ -262,12 +299,22 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 default: {
                     if (typeof data.value === 'string' && data.value.startsWith('RunSkill:')) {
                         const slug = data.value.replace('RunSkill:', '');
+                        await trackEvent(this._context, undefined, {
+                            event: 'skill_clicked',
+                            command: slug,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
                             query: `@foursys_sdd /skill ${slug} `,
                             isPartialQuery: true
                         });
                     } else if (typeof data.value === 'string' && data.value.startsWith('RunPlaybook:')) {
                         const slug = data.value.replace('RunPlaybook:', '');
+                        await trackEvent(this._context, undefined, {
+                            event: 'playbook_clicked',
+                            command: slug,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
                             query: `@foursys_sdd /playbook ${slug} `,
                             isPartialQuery: true
@@ -340,6 +387,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         return resolveStack(workspaceRoot || undefined, userStoryPath, savedStack);
     }
 
+    /** Stack ativa pra telemetria: usa a mesma detecção (manual ou automática, ex: pom.xml) exibida na sidebar. */
+    private _currentStackId(): string {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        const detection = this._detectStack(workspaceRoot);
+        return detection.stackId === 'unknown' ? 'generic' : detection.stackId;
+    }
+
     private async _openStackPicker() {
         const stacks = getAllStacks();
         const items = stacks.map(s => ({ label: s.displayName, description: s.id, stackId: s.id }));
@@ -350,6 +404,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         if (picked) {
             await this._context.workspaceState.update('activeStack', picked.stackId);
             vscode.window.showInformationMessage(`✅ Stack ativa: ${picked.label}`);
+            await trackEvent(this._context, undefined, { event: 'stack_selected', stack: picked.stackId });
         }
     }
 
@@ -364,19 +419,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     private _checkFigmaMcpConfigured(): boolean {
-        try {
-            let mcpPath: string;
-            if (process.platform === 'win32') {
-                mcpPath = path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
-            } else if (process.platform === 'darwin') {
-                mcpPath = path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
-            } else {
-                mcpPath = path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
-            }
-            if (!fs.existsSync(mcpPath)) { return false; }
-            const cfg = JSON.parse(fs.readFileSync(mcpPath, 'utf-8'));
-            return !!cfg?.servers?.figmaRemoteMcp;
-        } catch { return false; }
+        return checkFigmaMcpConfigured();
     }
 
     private _checkStoryHasContent(workspaceRoot: string): boolean {
@@ -578,36 +621,42 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         const agentsPath = path.join(globalStoragePath, 'hub');
         const exists = fs.existsSync(agentsPath);
 
+        const runGit = (args: string[], cwd: string): Promise<void> =>
+            new Promise((resolve, reject) => {
+                execFile('git', args, { cwd }, (error) => error ? reject(error) : resolve());
+            });
+
         return vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: exists ? 'Atualizando Agentes do Hub...' : 'Baixando Agentes do Hub...',
             cancellable: false
         }, async () => {
-            return new Promise<void>((resolve) => {
-                const cmd = exists
-                    ? 'git fetch origin main && git reset --hard origin/main'
-                    : 'git clone --filter=blob:none --no-checkout --depth 1 --branch main https://github.com/danielbissacot/hub_foursys_spdd.git hub && cd hub && git sparse-checkout init --cone && git sparse-checkout set catalog && git checkout main';
-
-                exec(cmd, { cwd: exists ? agentsPath : globalStoragePath }, (error) => {
-                    if (error) {
-                        vscode.window.showErrorMessage(`Erro na sincronização: ${error.message}`);
-                        resolve();
-                    } else {
-                        const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
-                        this._context.globalState.update('catalogPath', catalogPath);
-                        const detection = this._detectStack(workspaceRoot);
-                        const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
-                        const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
-                        this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
-                        this._cleanupLegacy(workspaceRoot);
-                        this._updateGitignore(workspaceRoot);
-                        vscode.window.showInformationMessage(
-                            exists ? 'Agentes atualizados! (Copilot Skills Injetadas)' : 'Hub conectado com sucesso! (Copilot Skills Injetadas)'
-                        );
-                        resolve();
-                    }
-                });
-            });
+            try {
+                if (exists) {
+                    await runGit(['fetch', 'origin', 'main'], agentsPath);
+                    await runGit(['reset', '--hard', 'origin/main'], agentsPath);
+                } else {
+                    await runGit(['clone', '--filter=blob:none', '--no-checkout', '--depth', '1',
+                        '--branch', 'main', 'https://github.com/danielbissacot/hub_foursys_spdd.git', 'hub'], globalStoragePath);
+                    await runGit(['sparse-checkout', 'init', '--cone'], agentsPath);
+                    await runGit(['sparse-checkout', 'set', 'catalog'], agentsPath);
+                    await runGit(['checkout', 'main'], agentsPath);
+                }
+                const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
+                this._context.globalState.update('catalogPath', catalogPath);
+                const detection = this._detectStack(workspaceRoot);
+                const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
+                const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
+                this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
+                this._cleanupLegacy(workspaceRoot);
+                this._updateGitignore(workspaceRoot);
+                vscode.window.showInformationMessage(
+                    exists ? 'Agentes atualizados! (Copilot Skills Injetadas)' : 'Hub conectado com sucesso! (Copilot Skills Injetadas)'
+                );
+            } catch (error: unknown) {
+                const msg = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Erro na sincronização: ${msg}`);
+            }
         });
     }
 
@@ -732,7 +781,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false, casosTesteReady: boolean = false, mockupExists: boolean = false, activeDesignSystem: string | null = null, figmaExtInstalled: boolean = false, figmaMcpConfigured: boolean = false) {
+    private _getHtmlForWebview({ isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured }: UiState) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const catalogData = this._loadCatalogData(stackId);
         const catalogHtml = this._buildCatalogHtml(catalogData);

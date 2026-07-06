@@ -5,11 +5,15 @@
 > Se faltar informação, escreva `[PENDENTE: descrever o que falta]`.
 > Se algo não se aplicar, escreva `[NÃO SE APLICA]`.
 > Foque no problema, no valor e no escopo. Não detalhe como a entrega será construída.
+> **Caminho de saída:** `<centro-de-custo>-doc-<projeto>/EPIC-<JIRA_KEY>/_intermediarios/discovery.md`
+> **Gerado por:** `po-iniciar-discovery`
 
 ## Identificação rápida
 - Epic / iniciativa: [PENDENTE: informar chave e nome]
 - Produto, jornada ou processo relacionado: [PENDENTE: informar contexto]
 - Responsável pelo discovery: [PENDENTE: informar nome]
+- Status: RASCUNHO | EM REVISÃO | APROVADO
+- Versão: 0.1
 - Data da última atualização: [PENDENTE: informar data]
 
 ## Atividade 1 — Visão da Feature

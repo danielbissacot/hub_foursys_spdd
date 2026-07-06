@@ -1,5 +1,8 @@
 # [US-<NNN>] — [Título da User Story]
 
+> **Caminho de saída:** `<centro-de-custo>-doc-<projeto>/EPIC-<JIRA_KEY>/user-stories/US-<NNN>-<slug>.md`
+> **Gerado por:** `po-gerar-user-story` → capacidade compartilhada `gerar-user-story`
+>
 > Use este template para registrar uma única história em `user-stories/US-<NNN>-<slug>.md`.
 > Cada arquivo deve representar uma história independente, compreensível isoladamente e escrita em linguagem de negócio.
 > Se faltar informação, escreva `[PENDENTE: descrever o que falta]`.

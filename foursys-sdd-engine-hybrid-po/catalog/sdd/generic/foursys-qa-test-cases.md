@@ -53,7 +53,8 @@ Feature: [Nome da funcionalidade]
 
 ### 3. Organização
 - Agrupe cenários por Feature/Funcionalidade.
-- Use tags para classificar: @smoke, @regression, @negative, @edge-case.
+- Use tags para classificar: @smoke, @regression, @negative, @edge-case, @critical.
+- `@critical` — cenário que bloqueia release se falhar (subconjunto do @smoke).
 - Nomeie cenários de forma que sejam autoexplicativos (lidos como documentação viva).
 
 ### 4. Rastreabilidade

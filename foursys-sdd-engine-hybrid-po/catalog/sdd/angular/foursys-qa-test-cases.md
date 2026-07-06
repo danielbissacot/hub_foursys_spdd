@@ -69,11 +69,18 @@ Feature: [Nome da funcionalidade]
 ```
 
 ### 3. Tags Obrigatórias para Angular
+**Base (todas as stacks):**
 - `@smoke` — testes críticos de criação e fluxo principal
 - `@regression` — cobertura completa
 - `@negative` — validações e erros
+- `@edge-case` — casos limite e entradas extremas
+- `@critical` — bloqueia release se falhar (subconjunto do @smoke)
+
+**Extensões Angular:**
 - `@async` — cenários com operações assíncronas (Observables, Promises)
 - `@signals` — cenários envolvendo Angular Signals
+- `@ui` — cenários de interação visual e comportamento DOM
+- `@accessibility` — cenários de acessibilidade WCAG AA
 
 ### 4. Rastreabilidade
 - Referencie o critério de aceite correspondente em cada Feature.

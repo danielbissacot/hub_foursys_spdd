@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { calculateCredits } from './model-pricing';
 
 // Modelos por tipo de fase — evita Claude Opus 4.8 e GPT-5.5 (mais caros/Auto).
 // 'light'     → constitution, plan, tasks (Haiku: leve, contexto grande)
@@ -12,6 +13,13 @@ const PHASE_MODELS: Record<string, string[]> = {
     standard:  ['claude-haiku-4-5', 'gpt-5.3-codex'],
 };
 
+export interface SendPromptResult {
+    text: string;
+    totalTokens: number;
+    /** Estimativa (ver model-pricing.ts) — undefined se o modelo usado não estiver na tabela de preços. */
+    credits?: number;
+}
+
 export class AIClient {
     static async sendPrompt(
         systemPrompt: string,
@@ -20,7 +28,7 @@ export class AIClient {
         token: vscode.CancellationToken,
         onChunk?: (chunk: string) => void,
         phaseType: 'light' | 'mini' | 'implement' | 'standard' = 'standard'
-    ): Promise<string> {
+    ): Promise<SendPromptResult> {
         outputChannel.appendLine(`[IA] Enviando prompt para o modelo de IA...`);
 
         try {
@@ -112,14 +120,16 @@ export class AIClient {
             const maxTokens = model.maxInputTokens ?? 0;
             const pct = maxTokens > 0 ? Math.round((totalTokens / maxTokens) * 100) : 0;
             const modelLabel = `${model.family} (${model.vendor})`;
+            const credits = calculateCredits(model.family, inputTokens, outputTokens);
+            const creditsLabel = credits !== undefined ? ` — ≈${credits.toFixed(3)} créditos (estimado)` : '';
             outputChannel.appendLine(
-                `[IA] ${modelLabel} | Capacidade: ${maxTokens} tokens | Consumiu: ${totalTokens} (${pct}%)`
+                `[IA] ${modelLabel} | Capacidade: ${maxTokens} tokens | Consumiu: ${totalTokens} (${pct}%)${creditsLabel}`
             );
             vscode.window.showInformationMessage(
-                `Foursys SDD | ${modelLabel} | ${maxTokens} tokens disponíveis — consumiu ${pct}%`
+                `Foursys SDD | ${modelLabel} | ${maxTokens} tokens disponíveis — consumiu ${pct}%${creditsLabel}`
             );
 
-            return fullResponse;
+            return { text: fullResponse, totalTokens, credits };
         } catch (error: any) {
             outputChannel.appendLine(`[IA ERRO] ${error.message || error}`);
             vscode.window.showErrorMessage(`❌ Erro na comunicação com a IA: ${error.message}`);

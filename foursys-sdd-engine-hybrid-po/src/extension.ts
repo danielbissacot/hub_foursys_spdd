@@ -7,6 +7,8 @@ import { loadPlaybookForStack, findCatalogPath, detectTechnology } from './catal
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 import { POPanelProvider } from './po-panel-provider';
 import { getStackConfig, getAllStacks, resolveStack } from './stack-registry';
+import { getMcpConfigPath, checkFigmaMcpConfigured } from './utils';
+import { trackEvent, optOutTelemetry, setTelemetryEmail } from './telemetry';
 
 const DOC_FOLDER = 'doc_projeto';
 const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de workspace em 60%
@@ -21,25 +23,6 @@ const MEND_EXTENSION_ID   = 'mend.mend-advise';
 const MEND_LICENSE_SECRET  = 'foursys.mendLicenseKey';
 const MEND_API_TOKEN       = 'eyJ1cmwiOiJodHRwczovL2Rzcy1hcHBzZWMubWVuZC5pby9hcGkiLCJ0b2tlbiI6ImVmMTQ5YTMyLTEwMzgtNDBiMi05OTE3LTQzNmExMjY2ZWQxNyJ9';
 
-// Figma MCP — localiza o mcp.json do VS Code por plataforma e verifica se figmaRemoteMcp está configurado
-function getMcpConfigPath(): string {
-    if (process.platform === 'win32') {
-        return path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
-    }
-    if (process.platform === 'darwin') {
-        return path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
-    }
-    return path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
-}
-
-export function checkFigmaMcpConfigured(): boolean {
-    try {
-        const p = getMcpConfigPath();
-        if (!fs.existsSync(p)) { return false; }
-        const cfg = JSON.parse(fs.readFileSync(p, 'utf-8'));
-        return !!cfg?.servers?.figmaRemoteMcp;
-    } catch { return false; }
-}
 
 async function ensureMendAdvise(
     context: vscode.ExtensionContext,
@@ -166,6 +149,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestPlan',   () => executeSDDPhase('qa-test-plan',   '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestCases',  () => executeSDDPhase('qa-test-cases',  '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaAutomation', () => executeSDDPhase('qa-automation',  '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement',  () => executeSDDPhase('qa-automation',  '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaCoverage',   () => executeSDDPhase('qa-coverage',   '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaReport',     () => executeSDDPhase('qa-report',     '', '', null, commandToken(), context, outputChannel)));
 
@@ -332,6 +316,7 @@ export function activate(context: vscode.ExtensionContext) {
             await context.workspaceState.update('activeStack', picked.stackId);
             vscode.window.showInformationMessage(`✅ Stack ativa: ${picked.label}`);
             vscode.commands.executeCommand('foursys-sdd-po-view.focus');
+            await trackEvent(context, outputChannel, { event: 'stack_selected', stack: picked.stackId });
         }
     }));
 
@@ -493,6 +478,10 @@ Este design é o mockup da User Story em doc_projeto/user_story.md`;
     context.subscriptions.push(vscode.commands.registerCommand('foursys.poDiscovery', () =>
         POPanelProvider._abrirTemplateDiscovery()
     ));
+
+    // Telemetria de uso (opt-in, ver PRIVACY.md)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.optOut', () => optOutTelemetry(context)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.setEmail', () => setTelemetryEmail(context)));
 }
 
 async function executeSDDPhase(
@@ -504,6 +493,12 @@ async function executeSDDPhase(
     context: vscode.ExtensionContext,
     outputChannel: vscode.OutputChannel
 ) {
+    await trackEvent(context, outputChannel, {
+        event: 'command_executed',
+        command,
+        stack: getActiveStackId(context)
+    });
+
     // skill e playbook não precisam de workspace nem de stack
     if (command === 'skill' || command === 'playbook') {
         const globalStoragePath = context.globalStorageUri.fsPath;
@@ -564,13 +559,20 @@ async function executeSDDPhase(
             const skillContent = fs.readFileSync(filePath, 'utf8');
             chatResponse?.markdown(`📄 **Skill:** \`${skillName}\` — aplicando instruções...\n\n`);
             const skillExtra = userInstruction.replace(slug, '').trim();
-            await AIClient.sendPrompt(
+            const skillResult = await AIClient.sendPrompt(
                 skillContent,
                 skillExtra || 'Com base nesta skill, apresente brevemente o que você pode fazer e aguarde a próxima instrução do desenvolvedor.',
                 outputChannel, token,
                 (chunk) => { if (chatResponse) { chatResponse.markdown(chunk); } },
                 'standard'
             );
+            await trackEvent(context, outputChannel, {
+                event: 'skill_completed',
+                command: skillName,
+                stack: getActiveStackId(context),
+                tokens: skillResult.totalTokens,
+                credits: skillResult.credits ?? 0
+            });
         } else {
             const playbookRoot = path.join(globalStoragePath, 'hub', 'catalog', 'playbook');
             if (!fs.existsSync(playbookRoot)) {
@@ -622,13 +624,20 @@ async function executeSDDPhase(
             const pbName = path.basename(filePath, '.md');
             const pbContent = fs.readFileSync(filePath, 'utf8');
             chatResponse?.markdown(`📋 **PlayBook:** \`${pbName}\` — iniciando...\n\n`);
-            await AIClient.sendPrompt(
+            const playbookResult = await AIClient.sendPrompt(
                 pbContent,
                 'Execute o fluxo de trabalho descrito neste playbook. Apresente os próximos passos de forma clara e objetiva.',
                 outputChannel, token,
                 (chunk) => { if (chatResponse) { chatResponse.markdown(chunk); } },
                 'standard'
             );
+            await trackEvent(context, outputChannel, {
+                event: 'playbook_completed',
+                command: pbName,
+                stack: getActiveStackId(context),
+                tokens: playbookResult.totalTokens,
+                credits: playbookResult.credits ?? 0
+            });
         }
         return;
     }
@@ -835,9 +844,17 @@ async function executeSDDPhase(
         };
         const phaseType = PHASE_TYPE[command] ?? 'standard';
 
-        const fullText = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, token, (chunk) => {
+        const { text: fullText, totalTokens, credits } = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, token, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }
         }, phaseType);
+
+        await trackEvent(context, outputChannel, {
+            event: 'phase_completed',
+            command,
+            stack: stackId,
+            tokens: totalTokens,
+            credits: credits ?? 0
+        });
 
         if (outputPath) {
             const outputDir = path.dirname(outputPath);

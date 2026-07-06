@@ -76,12 +76,18 @@ Feature: [Nome da funcionalidade]
 ```
 
 ### 3. Tags Obrigatórias para Spring Boot
+**Base (todas as stacks):**
 - `@smoke` — UseCase principal e fluxo feliz
 - `@regression` — cobertura completa
 - `@negative` — exceções de domínio e validações
+- `@edge-case` — casos limite (BigDecimal zero, lista vazia, timeout)
+- `@critical` — bloqueia release se falhar (subconjunto do @smoke)
+
+**Extensões Spring Boot:**
 - `@domain` — testes de Domain Model
 - `@usecase` — testes de UseCase/Application Service
 - `@adapter` — testes de Adapter/Controller
+- `@integration` — testes de integração com banco/mensageria/API externa
 
 ### 4. Rastreabilidade
 - Referencie o critério de aceite em cada Feature.

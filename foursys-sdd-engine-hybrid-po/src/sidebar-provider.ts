@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { execFile } from 'child_process';
 import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
+import { resolveSkillMdFile } from './catalog-loader';
 import { checkFigmaMcpConfigured } from './utils';
 import { trackEvent } from './telemetry';
 
@@ -690,32 +691,32 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             if (!fs.existsSync(skillsDir)) { fs.mkdirSync(skillsDir, { recursive: true }); }
             for (const f of fs.readdirSync(skillsDir)) { fs.rmSync(path.join(skillsDir, f)); }
 
-            const getMdFiles = (dir: string): string[] => {
-                let result: string[] = [];
-                for (const f of fs.readdirSync(dir)) {
-                    const full = path.join(dir, f);
-                    if (fs.statSync(full).isDirectory()) { result = result.concat(getMdFiles(full)); }
-                    else if (f.endsWith('.md')) { result.push(full); }
+            // Copia cada subpasta de primeiro nível (uma por skill) usando resolveSkillMdFile,
+            // que suporta tanto layout flat (SKILL.md direto) quanto versionado (<skill>/<versao>/SKILL.md).
+            // Nomeia o destino pelo nome da PASTA da skill (não pelo basename do arquivo, que é sempre
+            // "SKILL.md" e antes colidia todas as skills de uma stack em um único skill.md sobrescrito).
+            const copySkillsFrom = (skillsRootPath: string) => {
+                if (!fs.existsSync(skillsRootPath)) { return; }
+                for (const entry of fs.readdirSync(skillsRootPath, { withFileTypes: true })) {
+                    if (!entry.isDirectory()) { continue; }
+                    const skillDir = path.join(skillsRootPath, entry.name);
+                    const md = resolveSkillMdFile(skillDir);
+                    if (!md) { continue; }
+                    const skillName = entry.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                    fs.copyFileSync(md, path.join(skillsDir, `${skillName}.md`));
                 }
-                return result;
             };
 
             const activeSkillsPath = path.join(catalogPath, config.skillsFolder);
-            if (fs.existsSync(activeSkillsPath)) {
-                for (const fullPath of getMdFiles(activeSkillsPath)) {
-                    const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                    fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));
-                }
-            }
+            copySkillsFrom(activeSkillsPath);
 
             // 2b. Skills compartilhadas (agnósticas de stack: playwright, tdd, verificacao, code-review)
             const sharedSkillsPath = path.join(catalogPath, 'agents_skills', 'shared', 'skills');
-            if (fs.existsSync(sharedSkillsPath)) {
-                for (const fullPath of getMdFiles(sharedSkillsPath)) {
-                    const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                    fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));
-                }
-            }
+            copySkillsFrom(sharedSkillsPath);
+
+            // 2c. Skills do Product Owner (business-reviewer, bpmn-generator, apf-rules, etc.)
+            const poSkillsPath = path.join(catalogPath, 'agents_skills', 'product-owner');
+            copySkillsFrom(poSkillsPath);
 
             // 3. Design systems — injetar apenas o selecionado (retrocompatível: todos se nenhum selecionado)
             const dsPath = path.join(catalogPath, 'design-systems');

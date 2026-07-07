@@ -28,6 +28,16 @@ const DISCOVERY_TEMPLATE = `# Discovery — [Nome do Projeto / Epic]
 <!-- Links, documentos, briefings, e-mails relevantes -->
 `;
 
+const SKILL_SLUG_MAP: Record<string, string> = {
+    reviewer: 'business-reviewer',
+    bpmn: 'bpmn-generator',
+    mermaid: 'mermaid-generator',
+    apf: 'apf-rules',
+    jira: 'markdown-to-jira',
+    confluence: 'markdown-to-confluence',
+    facilitator: 'discovery-facilitator'
+};
+
 export class POPanelProvider {
     private static _panel: vscode.WebviewPanel | undefined;
     private static readonly _viewType = 'foursys.poPanel';
@@ -81,9 +91,19 @@ export class POPanelProvider {
                             query: '@foursys_sdd_po /skill ' + (data.skill ?? '')
                         });
                         break;
-                    case 'PODispararFluxo':
-                        POPanelProvider._openChat(panel, data, 'po-discovery');
+                    case 'PODispararFluxo': {
+                        const agente = data.agente || 'discovery';
+                        const skillSlug = SKILL_SLUG_MAP[agente];
+                        if (skillSlug) {
+                            vscode.commands.executeCommand('workbench.action.chat.open', {
+                                query: '@foursys_sdd_po /skill ' + skillSlug
+                            });
+                            panel.webview.postMessage({ value: 'FaseIniciada', phase: agente });
+                        } else {
+                            POPanelProvider._openChat(panel, data, 'po-discovery');
+                        }
                         break;
+                    }
                     case 'PODefinirContexto':
                         vscode.window.showInformationMessage(
                             'PO Contexto: ' + (data.epic ?? '-') + ' | ' + (data.cc ?? '-') + ' | ' + (data.proj ?? '-')

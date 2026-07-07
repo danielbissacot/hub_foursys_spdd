@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { AIClient } from './ai-client';
-import { loadPlaybookForStack, findCatalogPath, detectTechnology } from './catalog-loader';
+import { loadPlaybookForStack, findCatalogPath, detectTechnology, resolveSkillMdFile } from './catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 import { POPanelProvider } from './po-panel-provider';
 import { getStackConfig, getAllStacks, resolveStack } from './stack-registry';
@@ -512,24 +512,33 @@ async function executeSDDPhase(
                     const candidate = path.join(dir, `${slug}.md`);
                     if (fs.existsSync(candidate)) { filePath = candidate; break; }
                 }
-                // Fallback: busca diretamente no hub catalog pelo nome da subpasta (slug = nome do diretório)
+                // Fallback: busca pelo nome da subpasta (slug = nome do diretório), primeiro no hub
+                // sincronizado e depois no catálogo já embutido no pacote (funciona offline, sem
+                // precisar de "CONECTAR AO HUB"). Suporta layout flat (SKILL.md direto) e versionado
+                // (<skill>/<versao>/SKILL.md) via resolveSkillMdFile.
                 if (!filePath) {
-                    const hubAgentsPath = path.join(globalStoragePath, 'hub', 'catalog', 'agents_skills');
                     const searchSkillDir = (dir: string): string => {
                         if (!fs.existsSync(dir)) { return ''; }
                         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
                             if (!e.isDirectory()) { continue; }
                             const full = path.join(dir, e.name);
                             if (e.name === slug) {
-                                const md = fs.readdirSync(full).find(f => f.endsWith('.md') && f !== 'README.md' && !fs.statSync(path.join(full, f)).isDirectory());
-                                if (md) { return path.join(full, md); }
+                                const md = resolveSkillMdFile(full);
+                                if (md) { return md; }
                             }
                             const found = searchSkillDir(full);
                             if (found) { return found; }
                         }
                         return '';
                     };
-                    filePath = searchSkillDir(hubAgentsPath);
+                    const searchRoots = [
+                        path.join(globalStoragePath, 'hub', 'catalog', 'agents_skills'),
+                        path.join(context.extensionUri.fsPath, 'catalog', 'agents_skills')
+                    ];
+                    for (const root of searchRoots) {
+                        filePath = searchSkillDir(root);
+                        if (filePath) { break; }
+                    }
                 }
             }
             if (!filePath) {

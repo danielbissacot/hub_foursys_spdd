@@ -327,6 +327,16 @@ var OPENING = {
   facilitator:'<strong>&#127908; Discovery Facilitator</strong> ativo.<br><br>Blocos: 1. Problema e contexto · 2. Personas · 3. Cenários e regras · 4. Escopo e limites<br><br>Por qual bloco quer começar?'
 };
 
+var SKILL_SLUGS = {
+  reviewer:'business-reviewer',
+  bpmn:'bpmn-generator',
+  mermaid:'mermaid-generator',
+  apf:'apf-rules',
+  jira:'markdown-to-jira',
+  confluence:'markdown-to-confluence',
+  facilitator:'discovery-facilitator'
+};
+
 var FOLLOW = [
   'Entendido. Registrado no discovery.<br><br>Quais são as <strong>personas impactadas</strong>? Quem são os usuários ou áreas afetadas?',
   'Perfeito. Quais <strong>restrições ou premissas</strong> o negócio já definiu? (regulatório, prazo, sistemas intocáveis)',
@@ -393,6 +403,10 @@ function abrirChat(id) {
   document.body.classList.add('chat-on');
   setSt(NAMES[cur] + ' iniciado', NAMES[cur], 'Em execução');
   document.getElementById('st-fase').textContent = cur;
+
+  if (SKILL_SLUGS[cur]) {
+    post('POSkill', { skill: SKILL_SLUGS[cur] });
+  }
 }
 
 function fecharChat() {
@@ -449,7 +463,7 @@ function disparar() {
   var docContent = document.getElementById('docPaste').value.trim();
   var effectiveDoc = selectedFileContent || docContent;
   setSt('⚡ Disparando fluxo...', 'Em execução', 'Fluxo disparado');
-  post('PODispararFluxo', { epic: epic, cc: cc, proj: proj, doc: effectiveDoc, docFileName: selectedFileName });
+  post('PODispararFluxo', { agente: cur, epic: epic, cc: cc, proj: proj, doc: effectiveDoc, docFileName: selectedFileName });
 }
 
 function filtrar(q) {

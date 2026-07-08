@@ -2,7 +2,7 @@
   "name": "foursys-sdd-engine-hybrid-po",
   "displayName": "Foursys SDD Engine Hybrid PO",
   "description": "Motor SDD + Product Owner Agent — Discovery, PRD e User Stories com pipeline business-first.",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "publisher": "foursys",
   "repository": {
     "type": "git",

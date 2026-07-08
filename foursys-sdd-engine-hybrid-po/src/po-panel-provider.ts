@@ -71,10 +71,12 @@ export class POPanelProvider {
 
         POPanelProvider._panel = panel;
         panel.webview.html = POPanelProvider._getHtml(panel.webview, context);
+        POPanelProvider._pushFaseStatus(panel);
 
         // Mesmo padrao da sidebar: switch em data.value
         panel.webview.onDidReceiveMessage(
             async (data) => {
+                POPanelProvider._pushFaseStatus(panel);
                 switch (data.value) {
                     case 'PODiscovery':
                     case 'POSelecionarDoc':
@@ -94,13 +96,14 @@ export class POPanelProvider {
                     case 'PODispararFluxo': {
                         const agente = data.agente || 'discovery';
                         const skillSlug = SKILL_SLUG_MAP[agente];
+                        const PHASE_CMD: Record<string, string> = { discovery: 'po-discovery', prd: 'po-prd', stories: 'po-stories' };
                         if (skillSlug) {
                             vscode.commands.executeCommand('workbench.action.chat.open', {
                                 query: '@foursys_sdd_po /skill ' + skillSlug
                             });
                             panel.webview.postMessage({ value: 'FaseIniciada', phase: agente });
                         } else {
-                            POPanelProvider._openChat(panel, data, 'po-discovery');
+                            POPanelProvider._openChat(panel, data, PHASE_CMD[agente] || 'po-discovery');
                         }
                         break;
                     }
@@ -141,6 +144,20 @@ export class POPanelProvider {
         panel.onDidDispose(() => {
             POPanelProvider._panel = undefined;
         }, null, context.subscriptions);
+    }
+
+    private static _pushFaseStatus(panel: vscode.WebviewPanel): void {
+        const folders = vscode.workspace.workspaceFolders;
+        if (!folders || folders.length === 0) {
+            panel.webview.postMessage({ value: 'FaseStatus', discoveryDone: false, prdDone: false });
+            return;
+        }
+        const docFolder = path.join(folders[0].uri.fsPath, 'doc_projeto');
+        const discoveryPath = path.join(docFolder, 'discovery.md');
+        const prdPath = path.join(docFolder, 'prd.md');
+        const discoveryDone = fs.existsSync(discoveryPath) && fs.statSync(discoveryPath).size > 0;
+        const prdDone = fs.existsSync(prdPath) && fs.statSync(prdPath).size > 0;
+        panel.webview.postMessage({ value: 'FaseStatus', discoveryDone, prdDone });
     }
 
     static async _abrirTemplateDiscovery(panel?: vscode.WebviewPanel): Promise<void> {

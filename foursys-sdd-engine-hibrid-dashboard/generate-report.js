@@ -115,7 +115,7 @@ function renderHtml(events) {
 <div class="topbar py-3 mb-4">
   <div class="container d-flex flex-wrap align-items-center justify-content-between gap-2">
     <div>
-      <h1 class="h4 mb-0">Foursys SDD Hybrid PO — Dashboard de Telemetria</h1>
+      <h1 class="h4 mb-0">Foursys SDD Hybrid — Dashboard de Telemetria</h1>
       <p class="text-muted small mb-0" id="sourceInfo">Snapshot gerado em ${generatedAt} — fonte: repositório - Foursys HUB</p>
     </div>
     <div class="d-flex align-items-center gap-2">

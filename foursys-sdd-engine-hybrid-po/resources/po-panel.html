@@ -115,6 +115,10 @@ body.chat-on .v-chat{display:flex}
   border-bottom:1px solid var(--bdr);flex-wrap:wrap;align-items:center;flex-shrink:0}
 .csel{padding:3px 7px;background:var(--bg3);border:1px solid var(--bdr);
   border-radius:3px;color:var(--t1);font-size:10px;outline:none}
+.preview-banner{padding:7px 12px;background:rgba(255,107,0,.08);
+  border-bottom:1px solid rgba(255,107,0,.25);font-size:10px;color:var(--t2);
+  flex-shrink:0;line-height:1.5}
+.preview-banner strong{color:var(--or)}
 .doc-chip{display:flex;align-items:center;gap:4px;padding:2px 8px;
   background:rgba(255,107,0,.1);border:1px solid rgba(255,107,0,.3);
   border-radius:10px;font-size:9px;color:var(--or);cursor:pointer;white-space:nowrap;
@@ -220,8 +224,8 @@ body.chat-on .v-chat{display:flex}
       <div class="drop-area">
         <div class="drop-sub">&#9729;&#65039; &#193;rea de Execu&#231;&#227;o &#8212; Product Owner</div>
         <div class="dz">
-          <div class="dz-ico">&#128193;</div>
-          <div class="dz-hint">Selecione um agente na esquerda<br>e inicie o fluxo de Discovery</div>
+          <div class="dz-ico" id="dz-ico">&#128193;</div>
+          <div class="dz-hint" id="dz-hint">Selecione um agente na esquerda<br>e Clique para o fluxo de Discovery</div>
         </div>
 
         <!-- DOCUMENT INPUT -->
@@ -274,6 +278,7 @@ body.chat-on .v-chat{display:flex}
           &#128196; <span id="doc-chip-name">sem doc</span>
         </div>
       </div>
+      <div class="preview-banner">&#129514; <strong>Prévia local</strong> — este chat é só um rascunho para organizar ideias. Para conversar com a IA de verdade e gerar os arquivos, use <strong>&#9889; Disparar Fluxo</strong> abaixo.</div>
       <div class="msgs" id="msgs"></div>
       <div class="in-row">
         <input class="in" id="chat-in"
@@ -318,6 +323,8 @@ var NAMES = {
 
 var OPENING = {
   discovery:'<strong>&#128269; Product Owner Agent — Discovery</strong><br><br>Vou conduzir um processo de descoberta conversacional para transformar seu contexto em um <code>discovery.md</code> estruturado e revisável.<br><br><strong>Qual é a demanda ou oportunidade de negócio que motivou este Epic?</strong> Descreva com suas palavras — sem jargão técnico.',
+  prd:'<strong>&#128203; Product Owner Agent — Refinar Negócio / PRD</strong><br><br>Vou consolidar o <code>discovery.md</code> aprovado em um PRD completo (objetivos, escopo, requisitos, regras de negócio e critérios de aceite).<br><br>Clique em <strong>&#9889; Disparar Fluxo</strong> abaixo para começar.',
+  stories:'<strong>&#128221; Product Owner Agent — Gerar User Stories</strong><br><br>Vou quebrar o <code>prd.md</code> aprovado em User Stories granulares, com critérios de aceite em BDD.<br><br>Clique em <strong>&#9889; Disparar Fluxo</strong> abaixo para começar.',
   reviewer:'<strong>&#9989; Business Reviewer</strong> ativo.<br><br>Qual artefato deseja revisar?<br>&#8226; <code>discovery.md</code> → Aprovado para PRD / Revisar / Bloqueado<br>&#8226; <code>prd.md</code> → Aprovado para handoff / Revisar / Bloqueado',
   bpmn:'<strong>&#128256; BPMN Generator</strong> ativo.<br><br>Descreva o processo: atores, passos, gateways de decisão e exceções relevantes.',
   mermaid:'<strong>&#128202; Mermaid Generator</strong> ativo.<br><br>Descreva o fluxo simples que devo representar em diagrama Mermaid.',
@@ -345,6 +352,8 @@ var FOLLOW = [
   'Ótimo. Quais os <strong>critérios de sucesso mensuráveis</strong>? (ex: redução de X%, aumento de Y)'
 ];
 
+var FOLLOW_END = 'Essa prévia local cobriu os principais tópicos do discovery.<br><br>Para continuar de verdade com a IA e gerar o <code>discovery.md</code>, clique em <strong>&#9889; Disparar Fluxo &amp; Gerar Contexto para GitCopilot</strong> abaixo.';
+
 var cur = 'discovery';
 var cnt = 0;
 var vscode = null;
@@ -359,12 +368,24 @@ function post(val, extra) {
   vscode.postMessage(msg);
 }
 
+var DROP_HINT_DEFAULT = { icon: '&#128193;', html: 'Selecione um agente na esquerda<br>e Clique para o fluxo de Discovery' };
+
+function setDropHint(icon, html) {
+  var icoEl = document.getElementById('dz-ico');
+  var hintEl = document.getElementById('dz-hint');
+  if (icoEl) { icoEl.innerHTML = icon; }
+  if (hintEl) { hintEl.innerHTML = html; }
+}
+
 function selItem(id) {
   document.querySelectorAll('.item').forEach(function(el) { el.classList.remove('active'); });
   var el = document.getElementById('i-' + id);
   if (el) { el.classList.add('active'); }
   cur = id;
   setSt(NAMES[id] + ' selecionado', NAMES[id], 'Selecionado');
+  if (id === 'discovery') {
+    setDropHint('&#9989;', 'Iniciar Discovery selecionado<br>Preencha o documento de contexto (opcional) e clique em <strong>&#128269; Iniciar Discovery</strong> abaixo.');
+  }
 }
 
 function bloqueado(id) {
@@ -411,6 +432,8 @@ function abrirChat(id) {
 
 function fecharChat() {
   document.body.classList.remove('chat-on');
+  document.querySelectorAll('.item').forEach(function(el) { el.classList.remove('active'); });
+  setDropHint(DROP_HINT_DEFAULT.icon, DROP_HINT_DEFAULT.html);
   document.getElementById('st-ag').textContent = 'Pronto';
   document.getElementById('st-fase').textContent = '—';
   selectedFileContent = '';
@@ -432,8 +455,12 @@ function enviar() {
   inp.value = '';
   setSt(null, null, 'Você respondeu');
   setTimeout(function() {
-    addMsg('agent', FOLLOW[cnt % FOLLOW.length]);
-    cnt++;
+    if (cnt < FOLLOW.length) {
+      addMsg('agent', FOLLOW[cnt]);
+      cnt++;
+    } else {
+      addMsg('agent', FOLLOW_END);
+    }
     setSt(null, null, 'Agente respondeu');
   }, 700);
 }
@@ -484,6 +511,22 @@ function browseFile() {
   post('POBrowseFile');
 }
 
+function unlockNavItem(id, chatId) {
+  var item = document.getElementById('i-' + id);
+  if (!item || !item.classList.contains('locked')) { return; }
+  item.classList.remove('locked');
+  item.setAttribute('onclick', "abrirChat('" + chatId + "')");
+  var dot = item.querySelector('.dot');
+  if (dot) { dot.className = 'dot d-off'; }
+  var lk = item.querySelector('.lkic');
+  if (lk) { lk.remove(); }
+}
+
+function applyFaseStatus(discoveryDone, prdDone) {
+  if (discoveryDone) { unlockNavItem('prd', 'prd'); }
+  if (prdDone) { unlockNavItem('stories', 'stories'); }
+}
+
 window.addEventListener('message', function(e) {
   var m = e.data;
   if (m && m.value === 'FaseIniciada') {
@@ -493,6 +536,8 @@ window.addEventListener('message', function(e) {
     document.getElementById('docName').title = m.filePath || '';
     selectedFileContent = m.fileContent || '';
     selectedFileName = m.fileName || m.filePath || '';
+  } else if (m && m.value === 'FaseStatus') {
+    applyFaseStatus(!!m.discoveryDone, !!m.prdDone);
   }
 });
 </script>

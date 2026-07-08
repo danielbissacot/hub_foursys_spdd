@@ -484,6 +484,48 @@ Este design é o mockup da User Story em doc_projeto/user_story.md`;
     context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.setEmail', () => setTelemetryEmail(context)));
 }
 
+interface UserStoryBlock {
+    id: string;
+    titulo: string;
+    conteudo: string;
+}
+
+// Divide o user_stories.md (plural, gerado pelo /po-stories) em blocos individuais
+// "## US-XXX: Titulo", parando antes da secao final "## Resumo do Backlog".
+function parseUserStoryBlocks(raw: string): UserStoryBlock[] {
+    const lines = raw.split('\n');
+    const headingRegex = /^##\s+(US-\d+):\s*(.*)$/;
+    const stopRegex = /^##\s+Resumo do Backlog/i;
+    const blocks: UserStoryBlock[] = [];
+    let current: { id: string; titulo: string; startLine: number } | null = null;
+
+    const flush = (endLine: number) => {
+        if (current) {
+            blocks.push({
+                id: current.id,
+                titulo: current.titulo,
+                conteudo: lines.slice(current.startLine, endLine).join('\n').trim()
+            });
+        }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const headingMatch = line.match(headingRegex);
+        if (headingMatch) {
+            flush(i);
+            current = { id: headingMatch[1], titulo: headingMatch[2].trim(), startLine: i };
+            continue;
+        }
+        if (stopRegex.test(line)) {
+            flush(i);
+            current = null;
+        }
+    }
+    flush(lines.length);
+    return blocks;
+}
+
 async function executeSDDPhase(
     command: string,
     userInstruction: string,
@@ -754,6 +796,56 @@ async function executeSDDPhase(
     }
 
     if (command === 'specify' && userInstruction.trim() === '') {
+        // Se o PO Agent já gerou user_stories.md, oferece a opção de importar uma história
+        // de lá em vez de editar o template manual. Só ativa quando o arquivo existe e tem
+        // pelo menos um bloco "## US-XXX" reconhecível; caso contrário, cai no fluxo de sempre.
+        const userStoriesPath = path.join(docPath, 'user_stories.md');
+        if (fs.existsSync(userStoriesPath)) {
+            const rawStories = fs.readFileSync(userStoriesPath, 'utf8');
+            const storyBlocks = rawStories.trim() !== '' ? parseUserStoryBlocks(rawStories) : [];
+            if (storyBlocks.length > 0) {
+                const modo = await vscode.window.showQuickPick(
+                    [
+                        { label: '📋 Usar história gerada pelo PO Agent', value: 'po' },
+                        { label: '✏️ Editar manualmente (fluxo atual)', value: 'manual' }
+                    ],
+                    { placeHolder: 'Como deseja especificar a história?' }
+                );
+                if (modo?.value === 'po') {
+                    const picked = await vscode.window.showQuickPick(
+                        storyBlocks.map(s => ({ label: `${s.id}: ${s.titulo}`, story: s })),
+                        { placeHolder: 'Selecione a história (US) para especificar' }
+                    );
+                    if (picked) {
+                        let proceed = true;
+                        if (fs.existsSync(outputPath)) {
+                            const existing = fs.readFileSync(outputPath, 'utf8').trim();
+                            if (existing.length > 100 && !existing.includes('DESCREVA AQUI')) {
+                                const confirm = await vscode.window.showWarningMessage(
+                                    `⚠️ "user_story.md" já tem conteúdo.\nSobrescrever com "${picked.story.id}"?`,
+                                    { modal: true },
+                                    'Sobrescrever',
+                                    'Cancelar'
+                                );
+                                proceed = confirm === 'Sobrescrever';
+                            }
+                        }
+                        if (!proceed) {
+                            if (chatResponse) { chatResponse.markdown('⛔ Cancelado. `user_story.md` preservado.'); }
+                            return;
+                        }
+                        const outputDir = path.dirname(outputPath);
+                        if (!fs.existsSync(outputDir)) { fs.mkdirSync(outputDir, { recursive: true }); }
+                        const importedContent = `> Origem: user_stories.md (PO Agent) — ${picked.story.id}\n\n${picked.story.conteudo}`;
+                        fs.writeFileSync(outputPath, importedContent);
+                        outputChannel.appendLine(`[SDD] 📋 ${picked.story.id} importada de user_stories.md para user_story.md.`);
+                    }
+                    // Se "picked" ficar undefined (Quick Pick cancelado), cai no fluxo padrão abaixo.
+                }
+                // Se escolher "manual" ou cancelar o primeiro Quick Pick, segue para o fluxo padrão abaixo.
+            }
+        }
+
         const content = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
         if (!content || content.trim() === '' || content.includes('DESCREVA AQUI')) {
             const template = `# User Story\n\n**TECNOLOGIA:** ${stackConfig.displayName}\n\n## Necessidade de Negócio\nDESCREVA AQUI o que você precisa (quem/quer/para).\n\n## Regras de Negócio\n- Regra 1...\n\n## Critérios de Aceite\n- Dado... quando... então...`;

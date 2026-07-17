@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { pickAndReadDocumentFile } from './utils';
 
 const DISCOVERY_TEMPLATE = `# Discovery — [Nome do Projeto / Epic]
 
@@ -35,7 +36,13 @@ const SKILL_SLUG_MAP: Record<string, string> = {
     apf: 'apf-rules',
     jira: 'markdown-to-jira',
     confluence: 'markdown-to-confluence',
-    facilitator: 'discovery-facilitator'
+    facilitator: 'discovery-facilitator',
+    discoveryinit: 'po-iniciar-discovery',
+    refinarneg: 'po-refinar-negocio',
+    gerarstories: 'po-gerar-user-story',
+    quickprd: 'po-quick-prd',
+    techbridge: 'po-technical-bridge',
+    bpmnmd: 'bpmn-markdown'
 };
 
 export class POPanelProvider {
@@ -72,6 +79,25 @@ export class POPanelProvider {
         POPanelProvider._panel = panel;
         panel.webview.html = POPanelProvider._getHtml(panel.webview, context);
         POPanelProvider._pushFaseStatus(panel);
+
+        // Discovery/PRD/Stories são gerados pelo chat participant, fora do ciclo de vida
+        // deste webview — sem este watcher, o painel não saberia nem destravar a próxima
+        // fase, nem avisar que a geração terminou, até o usuário mandar outra mensagem
+        // (ex: clicar em outra skill).
+        const faseWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/{discovery.md,prd.md,user_stories.md}');
+        const PHASE_FILE_TO_CMD: Record<string, string> = {
+            'discovery.md': 'po-discovery',
+            'prd.md': 'po-prd',
+            'user_stories.md': 'po-stories',
+        };
+        const onFaseFileChanged = (uri: vscode.Uri) => {
+            POPanelProvider._pushFaseStatus(panel);
+            const cmd = PHASE_FILE_TO_CMD[path.basename(uri.fsPath)];
+            if (cmd) { panel.webview.postMessage({ value: 'FaseConcluida', phase: cmd }); }
+        };
+        faseWatcher.onDidCreate(onFaseFileChanged);
+        faseWatcher.onDidChange(onFaseFileChanged);
+        context.subscriptions.push(faseWatcher);
 
         // Mesmo padrao da sidebar: switch em data.value
         panel.webview.onDidReceiveMessage(
@@ -113,25 +139,9 @@ export class POPanelProvider {
                         );
                         break;
                     case 'POBrowseFile': {
-                        const uris = await vscode.window.showOpenDialog({
-                            canSelectFiles: true,
-                            canSelectFolders: false,
-                            canSelectMany: false,
-                            openLabel: 'Selecionar documento de contexto',
-                            filters: {
-                                'Documentos': ['md', 'txt', 'docx', 'pdf', 'xlsx', 'csv', 'json'],
-                                'Todos os arquivos': ['*']
-                            }
-                        });
-                        if (uris && uris.length > 0) {
-                            const filePath = uris[0].fsPath;
-                            const fileName = path.basename(filePath);
-                            const textExts = ['.md', '.txt', '.csv', '.json', '.yaml', '.yml'];
-                            let fileContent = '';
-                            if (textExts.includes(path.extname(filePath).toLowerCase())) {
-                                try { fileContent = fs.readFileSync(filePath, 'utf-8'); } catch { /* silencioso */ }
-                            }
-                            panel.webview.postMessage({ value: 'POFileSelected', filePath, fileName, fileContent });
+                        const picked = await pickAndReadDocumentFile('Selecionar documento de contexto');
+                        if (picked) {
+                            panel.webview.postMessage({ value: 'POFileSelected', ...picked });
                         }
                         break;
                     }
@@ -143,6 +153,7 @@ export class POPanelProvider {
 
         panel.onDidDispose(() => {
             POPanelProvider._panel = undefined;
+            faseWatcher.dispose();
         }, null, context.subscriptions);
     }
 
@@ -217,6 +228,7 @@ export class POPanelProvider {
         html = html.replace(/\{\{NONCE\}\}/g, nonce);
         html = html.replace(/\{\{LOGO_URI\}\}/g, logoUri);
         html = html.replace(/\{\{CSP_SOURCE\}\}/g, cspSource);
+        html = html.replace(/\{\{VERSION\}\}/g, context.extension.packageJSON.version);
         return html;
     }
 }

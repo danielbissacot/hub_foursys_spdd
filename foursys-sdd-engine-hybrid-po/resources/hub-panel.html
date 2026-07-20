@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'none'; img-src {{CSP_SOURCE}} data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Foursys Hub</title>
+<style>
+:root{--bg:#1a1a2e;--panel:#252526;--panel2:#2d2d30;--bdr:#3c3c3c;--t1:#cccccc;--t2:#969696;--t3:#6a6a6a;
+  --or:#ff6b00;--or2:rgba(255,107,0,.14);--ok:#4caf50;--err:#f44336}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);
+  color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:12px}
+
+.hdr{background:var(--panel);border-bottom:1px solid var(--bdr);padding:8px 14px;
+  display:flex;align-items:center;gap:10px;flex-shrink:0}
+.hdr img{width:16px;height:16px}
+.hdr b{font-size:13px}
+.hdr .ver{color:var(--t3);font-size:10px;margin-left:auto}
+
+.body{flex:1;display:flex;min-height:0}
+
+.col{border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto}
+.col-nav{width:220px;flex-shrink:0;background:var(--panel)}
+.col-main{flex:1;min-width:0;padding:10px 14px;display:flex;flex-direction:column}
+
+.sec{padding:10px}
+.sec h2{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:6px}
+
+.overview-row{display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:4px;font-size:11px}
+.overview-row .dot{width:7px;height:7px;border-radius:50%;background:var(--t3)}
+.overview-row.done .dot{background:var(--ok)}
+.overview-row.done{color:var(--t1)}
+.overview-row:not(.done){color:var(--t3)}
+
+.session-item{padding:6px 8px;border-radius:5px;cursor:pointer;font-size:11px;margin-bottom:2px}
+.session-item:hover{background:var(--panel2)}
+.session-item.active{background:var(--or2);color:var(--or)}
+.session-item .sub{color:var(--t3);font-size:9.5px}
+
+select,textarea,button{font-family:inherit;font-size:12px}
+select{background:var(--panel2);color:var(--t1);border:1px solid var(--bdr);border-radius:5px;padding:5px 8px;margin-bottom:8px}
+
+.log{flex:1;overflow-y:auto;background:var(--panel);border:1px solid var(--bdr);border-radius:6px;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:11px;white-space:pre-wrap;margin-bottom:8px}
+.log .step{color:var(--t3)}
+.log .user{color:#5fb3a6}
+.log .assistant{color:var(--t1)}
+.log .error{color:var(--err)}
+
+.composer{display:flex;gap:8px}
+.composer textarea{flex:1;resize:none;height:44px;background:var(--panel2);color:var(--t1);border:1px solid var(--bdr);border-radius:6px;padding:8px}
+.composer button{background:var(--or);color:#1a1204;border:none;border-radius:6px;padding:0 16px;cursor:pointer;font-weight:600}
+.composer button:disabled{opacity:.5;cursor:default}
+
+.changes-list{margin-top:8px;font-size:11px}
+.changes-list .f{display:flex;justify-content:space-between;padding:3px 0;color:var(--t2);font-family:ui-monospace,Consolas,monospace}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <img src="{{LOGO_URI}}" alt="Foursys">
+  <b>Foursys Hub</b>
+  <span class="ver">v{{VERSION}} · protótipo do Motor</span>
+</div>
+
+<div class="body">
+  <div class="col col-nav">
+    <div class="sec">
+      <h2>Overview</h2>
+      <div id="overview"></div>
+    </div>
+    <div class="sec">
+      <h2>Sessões <button id="btnNewSession" style="float:right;background:none;border:none;color:var(--or);cursor:pointer;font-size:10px">+ Nova</button></h2>
+      <div id="sessions"></div>
+    </div>
+  </div>
+
+  <div class="col-main">
+    <select id="phaseSelect">
+      <option value="constitution">Constitution</option>
+      <option value="plan" selected>Plan</option>
+      <option value="tasks">Tasks</option>
+      <option value="qa-test-plan">QA Test Plan</option>
+      <option value="qa-test-cases">QA Test Cases</option>
+      <option value="qa-automation">QA Automation</option>
+      <option value="qa-coverage">QA Coverage</option>
+      <option value="qa-report">QA Report</option>
+      <option value="po-discovery">PO Discovery</option>
+      <option value="po-prd">PO PRD</option>
+      <option value="po-stories">PO Stories</option>
+    </select>
+
+    <div class="log" id="log">Selecione uma fase e mande a primeira mensagem, ou clique numa sessão existente à esquerda.</div>
+
+    <div class="composer">
+      <textarea id="input" placeholder="Descreva o que quer gerar ou ajustar nesta fase..."></textarea>
+      <button id="btnSend">Enviar</button>
+    </div>
+
+    <div class="changes-list" id="changes"></div>
+  </div>
+</div>
+
+<script>
+const vscode = acquireVsCodeApi();
+let currentSessionId = null;
+let sending = false;
+
+const PHASE_LABELS = {
+  constitution: 'Constitution', plan: 'Plan', tasks: 'Tasks',
+  'qa-test-plan': 'QA Test Plan', 'qa-test-cases': 'QA Test Cases', 'qa-automation': 'QA Automation',
+  'qa-coverage': 'QA Coverage', 'qa-report': 'QA Report',
+  'po-discovery': 'PO Discovery', 'po-prd': 'PO PRD', 'po-stories': 'PO Stories', specify: 'Specify'
+};
+
+function post(value, extra) { vscode.postMessage(Object.assign({ value }, extra)); }
+function logLine(cls, text) {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = text;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+function renderOverview(phases, activeStorySlug) {
+  const host = document.getElementById('overview');
+  host.innerHTML = '';
+  const label = document.createElement('div');
+  label.style.color = 'var(--t3)'; label.style.fontSize = '10px'; label.style.marginBottom = '4px';
+  label.textContent = activeStorySlug ? ('história: ' + activeStorySlug) : '(sem história ativa)';
+  host.appendChild(label);
+  Object.keys(PHASE_LABELS).forEach(key => {
+    if (!(key in phases)) return;
+    const row = document.createElement('div');
+    row.className = 'overview-row' + (phases[key] ? ' done' : '');
+    row.innerHTML = '<span>' + PHASE_LABELS[key] + '</span><span class="dot"></span>';
+    host.appendChild(row);
+  });
+}
+
+function renderSessions(sessions) {
+  const host = document.getElementById('sessions');
+  host.innerHTML = '';
+  sessions.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'session-item' + (s.id === currentSessionId ? ' active' : '');
+    item.innerHTML = '<div>' + s.title + '</div><div class="sub">' + s.phase + ' · ' + s.messages.length + ' msg</div>';
+    item.addEventListener('click', () => {
+      currentSessionId = s.id;
+      document.getElementById('phaseSelect').value = s.phase;
+      post('HubOpenSession', { sessionId: s.id });
+      post('HubListChanges', { sessionId: s.id });
+    });
+    host.appendChild(item);
+  });
+}
+
+function renderChanges(files) {
+  const host = document.getElementById('changes');
+  host.innerHTML = files.length ? '<div style="color:var(--t3);font-size:10px;margin-bottom:4px">Changes</div>' : '';
+  files.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'f';
+    row.innerHTML = '<span>' + f.path + '</span><span>' + (f.exists ? (f.sizeBytes + ' bytes') : 'não encontrado') + '</span>';
+    host.appendChild(row);
+  });
+}
+
+document.getElementById('btnNewSession').addEventListener('click', () => {
+  currentSessionId = null;
+  clearLog();
+  logLine('step', 'Nova sessão — escolha a fase acima e mande a primeira mensagem.');
+  document.getElementById('changes').innerHTML = '';
+});
+
+document.getElementById('btnSend').addEventListener('click', send);
+document.getElementById('input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+function send() {
+  if (sending) return;
+  const input = document.getElementById('input');
+  const message = input.value.trim();
+  const phase = document.getElementById('phaseSelect').value;
+  sending = true;
+  document.getElementById('btnSend').disabled = true;
+  logLine('user', 'DEV: ' + (message || '(gerar automaticamente)'));
+  post('HubSendMessage', { sessionId: currentSessionId, phase, message });
+  input.value = '';
+}
+
+window.addEventListener('message', (event) => {
+  const m = event.data;
+  switch (m.value) {
+    case 'HubOverviewStatus':
+      renderOverview(m.phases, m.activeStorySlug);
+      break;
+    case 'HubSessionsList':
+      renderSessions(m.sessions);
+      break;
+    case 'HubSessionOpened':
+      clearLog();
+      (m.session.messages || []).forEach(msg => logLine(msg.role, (msg.role === 'user' ? 'DEV: ' : 'AGENTE: ') + msg.content));
+      break;
+    case 'HubTurnStep':
+      currentSessionId = m.sessionId;
+      logLine('step', '… ' + m.step + (m.detail ? (' — ' + m.detail) : ''));
+      break;
+    case 'HubTurnChunk':
+      // streaming simplificado nesta versão mínima: acumula e mostra só ao final (HubTurnComplete)
+      break;
+    case 'HubTurnComplete': {
+      sending = false;
+      document.getElementById('btnSend').disabled = false;
+      currentSessionId = m.sessionId;
+      const last = m.session.messages[m.session.messages.length - 1];
+      if (last) { logLine(last.isError ? 'error' : 'assistant', 'AGENTE: ' + last.content); }
+      post('HubListSessions', {});
+      post('HubListChanges', { sessionId: m.sessionId });
+      break;
+    }
+    case 'HubTurnError':
+      sending = false;
+      document.getElementById('btnSend').disabled = false;
+      logLine('error', 'ERRO: ' + m.message);
+      break;
+    case 'HubChangesList':
+      renderChanges(m.files);
+      break;
+  }
+});
+
+post('HubGetOverview', {});
+post('HubListSessions', {});
+</script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import { AIClient } from './ai-client';
 import { loadPlaybookForStack, findCatalogPath, detectTechnology, resolveSkillMdFile } from './engine/catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 import { POPanelProvider } from './po-panel-provider';
+import { HubPanelProvider } from './hub-panel-provider';
 import { getStackConfig, getAllStacks, resolveStack } from './engine/stack-registry';
 import {
     CONTEXT_FILE_MAX_LINES,
@@ -14,7 +15,8 @@ import {
     getDocPath,
     readWorkspaceContext,
     readProjectStackInfo,
-    extractHtmlBlock
+    extractHtmlBlock,
+    getPhaseType
 } from './engine/prompt-context';
 import { getMcpConfigPath, checkFigmaMcpConfigured, resolveStoryDocPath, ensureNewStorySlug, getActiveStorySlug } from './utils';
 import { trackEvent, optOutTelemetry, setTelemetryEmail } from './telemetry';
@@ -454,6 +456,11 @@ Este design é o mockup da User Story em ${userStoryRelPath}`;
         POPanelProvider.openOrReveal(context)
     ));
 
+    // Comando: Abrir Hub (Motor SDD com sessões persistentes — Milestone 1)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.openHub', () =>
+        HubPanelProvider.openOrReveal(context, outputChannel)
+    ));
+
     // Comando: Iniciar Discovery (abre template .md no editor)
     context.subscriptions.push(vscode.commands.registerCommand('foursys.poDiscovery', () =>
         POPanelProvider._abrirTemplateDiscovery()
@@ -875,15 +882,7 @@ async function executeSDDPhase(
 
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 
-        const PHASE_TYPE: Record<string, 'light' | 'implement' | 'standard' | 'mini'> = {
-            constitution:    'light',
-            specify:         'mini',
-            plan:            'light',
-            tasks:           'light',
-            implement:       'implement',
-            'qa-automation': 'implement',
-        };
-        const phaseType = PHASE_TYPE[command] ?? 'standard';
+        const phaseType = getPhaseType(command);
 
         const { text: fullText, totalTokens, credits } = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, token, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }

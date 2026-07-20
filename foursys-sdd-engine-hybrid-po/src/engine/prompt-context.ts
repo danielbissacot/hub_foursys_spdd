@@ -185,6 +185,22 @@ export interface AssembledPrompt {
     outputPath: string;
 }
 
+const PHASE_TYPE: Record<string, 'light' | 'mini' | 'implement' | 'standard'> = {
+    constitution:    'light',
+    specify:         'mini',
+    plan:            'light',
+    tasks:           'light',
+    implement:       'implement',
+    'qa-automation': 'implement',
+};
+
+/** Categoria de custo/tamanho de contexto usada por AIClient.sendPrompt para escolher o
+ *  modelo da fase (ver PHASE_MODELS em ai-client.ts). Compartilhado entre executeSDDPhase
+ *  (fluxo de um tiro) e o orquestrador de sessões, para os dois nunca divergirem. */
+export function getPhaseType(command: string): 'light' | 'mini' | 'implement' | 'standard' {
+    return PHASE_TYPE[command] ?? 'standard';
+}
+
 /**
  * Monta o prompt completo (system + final) para uma fase, do mesmo jeito que a extensao
  * VS Code faz hoje dentro de executeSDDPhase em extension.ts — reunindo playbook, arquivos
@@ -200,13 +216,18 @@ export function assembleFinalPrompt(params: {
     externalCatalogPath: string | null;
     resourcesPath: string;
     userInstruction?: string;
+    /** Subpasta real da história ativa (ex: doc_projeto/us-014). Quando omitido, mantém o
+     *  comportamento antigo (storyDocPath = docPath) — usado hoje pelo cli.ts do IntelliJ,
+     *  que ainda não tem gestão de história por subpasta. A extensão VS Code deve passar
+     *  o valor de resolveStoryDocPath() (utils.ts) para respeitar a história ativa. */
+    storyDocPath?: string;
 }): AssembledPrompt {
     const { command, stackId, workspaceRoot, builtinCatalogPath, externalCatalogPath, resourcesPath } = params;
     const userInstruction = params.userInstruction ?? '';
 
     const stackConfig = getStackConfig(stackId);
     const docPath = getDocPath(workspaceRoot);
-    const storyDocPath = docPath; // scaffold: sem gestao de subpasta por historia (ver utils.ts na extensao VS Code)
+    const storyDocPath = params.storyDocPath ?? docPath;
 
     const { outputPath, contextFiles } = resolveOutputAndContextFiles(command, docPath, storyDocPath, resourcesPath);
 

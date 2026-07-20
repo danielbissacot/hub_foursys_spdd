@@ -175,6 +175,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'OpenPOPanel':
                     vscode.commands.executeCommand('foursys.openPOPanel');
                     break;
+                case 'OpenHub':
+                    vscode.commands.executeCommand('foursys.openHub');
+                    break;
                 case 'PODiscoveryDirect':
                     vscode.commands.executeCommand('foursys.poDiscovery');
                     break;
@@ -858,7 +861,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     private _updateGitignore(workspaceRoot: string) {
         try {
             const gitignorePath = path.join(workspaceRoot, '.gitignore');
-            const toIgnore = ['.github/copilot-instructions.md', '.github/skills/', 'agentes_foursys/', 'doc_projeto/'];
+            const toIgnore = ['.github/copilot-instructions.md', '.github/skills/', 'agentes_foursys/', 'doc_projeto/', 'foursys-sessions/'];
             let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
             let changed = false;
             for (const entry of toIgnore) {
@@ -1431,6 +1434,16 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             onmouseout="this.style.background='rgba(255,107,0,.12)'"
             title="Abrir painel visual do Product Owner Agent">
             🎯 Abrir Product Owner
+        </button>
+        <button
+            onclick="sendAction('OpenHub')"
+            style="width:100%;padding:7px 10px;background:rgba(255,107,0,.12);border:1px solid rgba(255,107,0,.35);
+                   border-radius:6px;color:#ff6b00;font-size:11px;font-weight:700;cursor:pointer;
+                   display:flex;align-items:center;gap:7px;transition:background .15s"
+            onmouseover="this.style.background='rgba(255,107,0,.22)'"
+            onmouseout="this.style.background='rgba(255,107,0,.12)'"
+            title="Abrir o Hub (Motor com sessões persistentes)">
+            🧩 Abrir Hub
         </button>
     </div>
 </body>

@@ -57,6 +57,7 @@ Cada tarefa deve ser:
 | `src/app/app.config.ts` | Ex: Adicionar provideHttpClient(withFetch()), providers | Descrição da mudança |
 | `src/app/app.routes.ts` | Ex: Registrar rota lazy da feature | Descrição da mudança |
 | `src/index.html` | Ex: Adicionar fonte ou biblioteca externa | Descrição da mudança |
+| `src/environments/environment.ts` | Ex: Adicionar/atualizar `apiUrl` e flag `useMock` (obrigatório sempre que houver chamada HTTP nesta feature) | Descrição da mudança |
 
 ### 🔄 Sessão 1 de Implementação — Domínio (Signals + Services)
 > Execute com `/foursys.implementSession1` após aprovar esta lista.
@@ -84,7 +85,17 @@ Cada tarefa deve ser:
 
 ... (continue com tarefas de infraestrutura)
 
+> **Mock de Desenvolvimento (condicional):** Se na etapa de Plano o usuário confirmou que não há backend real disponível, inclua nesta sessão uma tarefa explícita:
+> - [ ] **Tarefa XX: Mock de Desenvolvimento — [Nome da Feature]**
+>   - Descrição técnica: Criar `environment.ts`/`environment.development.ts` com flag `useMock`, e um interceptor leve (ou MSW) retornando dados fake para as chamadas HTTP desta feature.
+>   - Arquivo impactado: `src/environments/environment.ts`, `src/app/[feature]/infrastructure/[nome]-mock.interceptor.ts`
+>   - Estimativa: XS | S
+>   - Critério de conclusão: App roda com `useMock: true` e exibe dados fake na tela sem erro de rede.
+>   - Depende de: —
+
 ### 🧪 Tarefas de Teste
+
+> **Execução não-interativa (OBRIGATÓRIO):** Gere os arquivos de teste de todas as tarefas desta seção e rode a suíte completa em modo single-run (`ng test --watch=false --code-coverage` ou `vitest run --coverage`) — nunca em modo watch. Reporte o resultado agregado (passou/falhou + % de cobertura) ao final; não pare para pedir confirmação a cada teste individual. Se a cobertura ficar abaixo da meta, leia o relatório, identifique os branches/linhas não cobertos e escreva os testes faltantes em uma única passada adicional — não repita o ciclo teste a teste tentando adivinhar o que falta.
 
 - [ ] **Teste 01: [Título Curto]**
   - Descrição técnica: [O que deve ser testado]

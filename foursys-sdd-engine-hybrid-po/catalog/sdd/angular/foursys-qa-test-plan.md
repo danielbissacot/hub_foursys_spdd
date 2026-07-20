@@ -37,7 +37,7 @@ Execute as seguintes etapas:
 - **Critérios de Saída/Aceite:** cobertura ≥ 90% nos Components e Services impactados, todos os cenários @critical e @smoke passando, todos os cenários @accessibility passando (WCAG AA), zero erros de compilação TypeScript em strict mode.
 
 ### 4. Ambientes e Dados de Teste
-- Especifique os ambientes: local (ng test / vitest watch), CI (headless Chrome no GitHub Actions / Azure Pipelines), staging (Playwright E2E contra ambiente real).
+- Especifique os ambientes: local (`ng test --watch=false` / `vitest run`), CI (headless Chrome no GitHub Actions / Azure Pipelines), staging (Playwright E2E contra ambiente real). Local e CI sempre em modo single-run — nunca deixe o watch mode aberto durante a geração/execução em lote dos testes.
 - Estratégia de dados: fixtures TypeScript tipadas em `src/app/tests/fixtures/` por domínio. Usar funções factory que retornam objetos completos com override por spread. Nunca usar dados reais de produção.
 - Isole estado entre testes: `TestBed.resetTestingModule()` se necessário, limpar Signals via `signal.set(initialValue)` no afterEach, usar `fakeAsync/tick` para timers e debounce.
 - Referência de geração de dados: consultar `catalog/agents_skills/quality-assurance/qa-test-data-generation/0.1.0/SKILL.md`.
@@ -50,7 +50,7 @@ Execute as seguintes etapas:
 
 ### 6. Exclusões e Riscos
 - Liste o que está fora do escopo deste ciclo (ex: testes visuais de regressão, testes de performance, componentes de terceiros não customizados).
-- Documente riscos específicos:
+- Documente os riscos como uma **matriz de risco em tabela Markdown**, com colunas `| Risco | Impacto (Alto/Médio/Baixo) | Probabilidade (Alta/Média/Baixa) | Prioridade | Mitigação |`. Riscos específicos desta stack a considerar:
   - Signal não atualiza view → mitigar sempre chamando fixture.detectChanges() após signal.set()
   - httpResource() não mockado → usar provideHttpClientTesting() no TestBed providers
   - Guard em rota bloqueando TestBed → mockar Guard no configureTestingModule

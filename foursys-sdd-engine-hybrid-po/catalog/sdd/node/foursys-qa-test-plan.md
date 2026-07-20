@@ -40,7 +40,7 @@ Execute as seguintes etapas:
 
 ### 5. Exclusões e Riscos
 - Liste o que está fora do escopo deste ciclo.
-- Documente riscos: testes dependentes de ordem de execução, timeouts em operações assíncronas, portas em conflito no CI.
+- Documente os riscos como uma **matriz de risco em tabela Markdown**, com colunas `| Risco | Impacto (Alto/Médio/Baixo) | Probabilidade (Alta/Média/Baixa) | Prioridade | Mitigação |`. Riscos específicos desta stack a considerar: testes dependentes de ordem de execução, timeouts em operações assíncronas, portas em conflito no CI.
 
 Gere o documento no formato Markdown estruturado, pronto para ser versionado no projeto.
 ```

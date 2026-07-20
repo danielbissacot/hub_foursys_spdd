@@ -54,12 +54,19 @@ A saída deve ser um arquivo Markdown contendo:
 
 4. 🧪 QUALIDADE E TESTES
    - Cobertura mínima de 90%.
-   - Framework preferido: Vitest (projetos v21+). Jasmine permanece suportado para projetos legados.
-   - Uso de Mocks para dependências externas.
+   - Framework preferido: Vitest (projetos v21+). Jasmine permanece suportado para projetos legados — **se o projeto já usa Jasmine/Karma, NÃO proponha migração para Vitest só para alinhar com este documento; migração de framework de teste só deve ser sugerida se o usuário pedir explicitamente.**
+   - Mock de Teste vs Mock de Desenvolvimento (não confundir):
+     - **Mock de Teste**: `HttpTestingController`/`jasmine.createSpyObj`/`vi.fn()`, existe só dentro de `.spec.ts`, obrigatório para dependências externas em testes unitários.
+     - **Mock de Desenvolvimento**: interceptor/flag `useMock` em `environment.ts` (ou MSW), usado para rodar a aplicação localmente sem um backend real. Só deve ser criado se o usuário confirmou na fase de Plano que quer isso — e como tarefa na Task List, nunca como arquivo avulso fora do escopo.
    - Padrão AAA (Arrange, Act, Assert).
    - Testes de signals: use .set()/.update() e valide com fixture.detectChanges().
+   - Execução: sempre em modo single-run (`ng test --watch=false --code-coverage` ou `vitest run --coverage`), nunca em modo watch. Gere e rode os testes de uma tarefa em lote, reportando o resultado agregado — não pause pedindo confirmação a cada teste individual.
 
-5. 📁 ESTRUTURA DE ARQUIVOS (Angular v20+ — Standalone)
+5. 🔍 CALIBRAGEM AO PROJETO REAL
+   - Antes de aplicar as versões/ferramentas "ideais" acima (Angular v20+, Vitest, Signal Forms), verifique a versão real do Angular e o framework de teste já configurado no projeto (informados no contexto do workspace).
+   - Se o projeto já é uma versão anterior (ex: Angular 18) com Jasmine/Karma funcionando, calibre esta Constituição ao que já existe — use as APIs disponíveis nessa versão e não sugira `npm install` de bibliotecas novas (Vitest, etc.) apenas para bater com a receita "ideal" deste documento.
+
+6. 📁 ESTRUTURA DE ARQUIVOS (Angular v20+ — Standalone)
    - `src/app/app.config.ts` — providers globais (provideHttpClient(withFetch()), provideRouter, etc.)
    - `src/app/app.routes.ts` — rotas lazy-loaded da aplicação
    - `src/app/[feature]/` — feature folders com componentes, services, signals locais

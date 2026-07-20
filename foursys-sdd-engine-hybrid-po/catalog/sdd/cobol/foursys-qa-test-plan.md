@@ -41,7 +41,7 @@ Execute as seguintes etapas:
 
 ### 5. Exclusões e Riscos
 - Liste o que está fora do escopo deste ciclo.
-- Documente riscos: instabilidade de ambiente, dependência de subsistemas externos (MQ, CICS region).
+- Documente os riscos como uma **matriz de risco em tabela Markdown**, com colunas `| Risco | Impacto (Alto/Médio/Baixo) | Probabilidade (Alta/Média/Baixa) | Prioridade | Mitigação |`. Riscos específicos desta stack a considerar: instabilidade de ambiente, dependência de subsistemas externos (MQ, CICS region).
 
 Gere o documento no formato Markdown estruturado, pronto para ser versionado no projeto.
 ```

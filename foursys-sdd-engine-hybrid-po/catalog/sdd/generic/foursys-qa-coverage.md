@@ -51,4 +51,7 @@ Gere uma tabela resumo:
 **Meta desejável:** 95% com cobertura de pelo menos um cenário negativo por fluxo crítico.
 
 Finalize com recomendações priorizadas para aumentar a cobertura.
+
+### 6. Versão HTML Executiva
+Além do review em Markdown acima, gere TAMBÉM uma versão HTML autocontida para apresentação executiva, em um único bloco de código de linguagem html (delimitado por três crases seguidas da palavra html, e três crases de fechamento). Use como base o arquivo `qa-coverage-template.html` fornecido no contexto do projeto: copie sua estrutura e CSS exatamente como estão, e substitua **todos** os placeholders `{{...}}` pelos dados reais deste review (nenhum placeholder pode restar no HTML final). Para as seções com comentário "Repita esta linha/item", duplique o elemento uma vez por item real (critério de aceite, edge case, risco, recomendação) e remova o comentário. Se algum dado não estiver disponível no contexto, escreva "não informado" no lugar do placeholder em vez de deixá-lo em branco.
 ```

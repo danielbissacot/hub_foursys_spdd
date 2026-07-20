@@ -95,8 +95,13 @@ const mock[Servico] = {
 - Use `setInput()` para definir signal inputs em testes.
 - Sempre chame `fixture.detectChanges()` após mutações de estado.
 - Use `fakeAsync`/`tick` para debounce e operações temporizadas.
-- Prefira Vitest (`vi.fn()`) ao Jasmine (`jasmine.createSpy()`).
+- Prefira Vitest (`vi.fn()`) ao Jasmine (`jasmine.createSpy()`) **somente se o projeto já usa Vitest**; em projeto legado com Jasmine/Karma já configurado, mantenha Jasmine — não proponha migração de framework de teste.
 - Isole cada teste — nunca compartilhe estado entre `it` blocks.
+
+### 5.1 Execução Não-Interativa (OBRIGATÓRIO)
+- Gere todos os arquivos de teste do lote de uma vez e rode a suíte completa em modo single-run (`ng test --watch=false --code-coverage` ou `vitest run --coverage`) — nunca deixe o test runner em modo watch.
+- Reporte o resultado agregado (quantos passaram/falharam + % de cobertura) ao final da execução; não pause pedindo confirmação a cada teste individual.
+- Se a cobertura ficar abaixo da meta (≥90%), leia o relatório de cobertura, identifique os branches/linhas não cobertos e escreva os testes faltantes em uma única passada adicional — não repita o ciclo teste a teste tentando adivinhar o que falta.
 
 ### 6. OBRIGATÓRIO — Marcação de Arquivo antes de Cada Bloco
 

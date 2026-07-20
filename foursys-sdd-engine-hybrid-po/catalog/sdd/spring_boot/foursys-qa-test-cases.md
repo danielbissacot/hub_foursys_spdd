@@ -22,6 +22,8 @@ Execute as seguintes etapas:
 
 Para cada critério de aceite, crie cenários BDD considerando:
 
+Classifique cada cenário em um dos 4 tipos — **Positivo** (caminho feliz), **Negativo** (erro/validação), **Regressivo** (comportamento crítico existente que não pode quebrar) ou **Edge Case** (limite/extremo) — mapeando diretamente para as tags já usadas: `@smoke`≈Positivo, `@negative`≈Negativo, `@regression`≈Regressivo, `@edge-case`≈Edge Case.
+
 **Domain Models:**
 - Invariantes e regras de validação do domínio
 - Construção de agregados (valid vs. invalid state)
@@ -51,20 +53,24 @@ Feature: [Nome da funcionalidade]
     Given que o sistema está disponível
     And os dados de referência estão configurados
 
-  @smoke
+  @smoke @id:TC-SPR-001
   Scenario: [Caminho feliz — UseCase]
+    # Referência técnica: [Classe].[método] (ex.: PagamentoUseCase.processar())
     Given [estado do domínio]
     When [ação de negócio é executada]
     Then [resultado esperado no domínio]
     And [efeitos colaterais esperados]
 
-  @negative
+  @negative @id:TC-SPR-002
   Scenario: [Violação de regra de negócio]
+    # Referência técnica: [Classe].[método]
     Given [estado inválido]
     When [ação é executada]
     Then [exceção de domínio é lançada com mensagem correta]
 
+  @edge-case @id:TC-SPR-003
   Scenario Outline: [Validação parametrizada]
+    # Referência técnica: [Classe].[método]
     Given [entrada com "<campo>" inválido]
     When a ação é executada
     Then erro de validação "<mensagem>" é retornado
@@ -93,6 +99,8 @@ Feature: [Nome da funcionalidade]
 - Referencie o critério de aceite em cada Feature.
 - Indique a camada hexagonal sendo testada em cada Scenario.
 - Documente as dependências mockadas (Ports) para cada UseCase.
+- **ID único obrigatório por Scenario**, como tag no formato `@id:TC-SPR-<sequencial>` (ex.: `@id:TC-SPR-001`), ao lado das demais tags.
+- **Referência técnica obrigatória por Scenario**, como comentário `# Referência técnica: [Classe].[método]` logo abaixo do título do Scenario, apontando o artefato técnico validado.
 
 Gere os casos de teste completos no formato Markdown com blocos Gherkin e notas técnicas de implementação JUnit 5.
 ```

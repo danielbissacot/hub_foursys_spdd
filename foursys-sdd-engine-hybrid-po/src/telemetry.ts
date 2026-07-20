@@ -6,6 +6,16 @@ const OPTOUT_KEY = 'telemetry.optOut';
 
 const TELEMETRY_ENDPOINT = 'https://foursys-sdd-telemetry.foursys-sdd.workers.dev';
 
+// Freio simples contra escrita trivial no Worker por quem não tem este código-fonte —
+// não é segredo forte (vai embutido no .vsix), só evita abuso casual. Precisa bater
+// com a variável SHARED_SECRET configurada no Worker (telemetry-worker/worker.js).
+const TELEMETRY_SHARED_SECRET = 'foursys-sdd-po-telemetry-2026';
+
+// MANTER EM SINCRONIA com CLICK_ONLY_EVENTS/EVENT_TYPE_LABELS em
+// foursys-sdd-engine-hibrid-dashboard/generate-report.js. Eventos emitidos hoje via
+// trackEvent(): command_executed, phase_completed, skill_clicked, skill_completed,
+// playbook_clicked, playbook_completed, stack_selected, telemetry_opted_out.
+
 const CONSENT_PROMPT =
     'Usamos seu e-mail para medir adoção da extensão Foursys SDD Hybrid PO (quem usa, qual stack) e não compartilhamos com terceiros. ' +
     'Você pode desativar quando quiser com o comando "Foursys: Desativar Telemetria".';
@@ -57,7 +67,8 @@ function sendEvent(payload: string, log: (msg: string) => void): void {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(payload)
+                'Content-Length': Buffer.byteLength(payload),
+                'X-Foursys-Token': TELEMETRY_SHARED_SECRET
             }
         };
         const req = https.request(options, (res) => { res.on('data', () => { /* ignora corpo da resposta */ }); });

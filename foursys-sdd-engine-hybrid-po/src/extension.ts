@@ -3,26 +3,22 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { AIClient } from './ai-client';
-import { loadPlaybookForStack, findCatalogPath, detectTechnology, resolveSkillMdFile } from './catalog-loader';
+import { loadPlaybookForStack, findCatalogPath, detectTechnology, resolveSkillMdFile } from './engine/catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 import { POPanelProvider } from './po-panel-provider';
-import { getStackConfig, getAllStacks, resolveStack } from './stack-registry';
-import { getMcpConfigPath, checkFigmaMcpConfigured } from './utils';
+import { getStackConfig, getAllStacks, resolveStack } from './engine/stack-registry';
+import {
+    CONTEXT_FILE_MAX_LINES,
+    PHASES_NEEDING_WORKSPACE,
+    resolveOutputAndContextFiles,
+    getDocPath,
+    readWorkspaceContext,
+    readProjectStackInfo,
+    extractHtmlBlock
+} from './engine/prompt-context';
+import { getMcpConfigPath, checkFigmaMcpConfigured, resolveStoryDocPath, ensureNewStorySlug, getActiveStorySlug } from './utils';
 import { trackEvent, optOutTelemetry, setTelemetryEmail } from './telemetry';
-
-const DOC_FOLDER = 'doc_projeto';
-const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de workspace em 60%
-const WORKSPACE_CONTEXT_MAX_LINES = 80;  // era 300 — snippet curto de imports + assinaturas
-const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc é suficiente
-const PHASES_NEEDING_WORKSPACE = new Set([
-    'plan', 'qa-test-plan', 'qa-automation'  // removido qa-test-cases (não precisa de código)
-]);
-
-// Mend Advise — ID correto na marketplace VS Code (case-sensitive no getExtension)
-const MEND_EXTENSION_ID   = 'mend.mend-advise';
-const MEND_LICENSE_SECRET  = 'foursys.mendLicenseKey';
-const MEND_API_TOKEN       = 'eyJ1cmwiOiJodHRwczovL2Rzcy1hcHBzZWMubWVuZC5pby9hcGkiLCJ0b2tlbiI6ImVmMTQ5YTMyLTEwMzgtNDBiMi05OTE3LTQzNmExMjY2ZWQxNyJ9';
-
+import { MEND_EXTENSION_ID, MEND_LICENSE_SECRET, MEND_API_TOKEN } from './mend-config';
 
 async function ensureMendAdvise(
     context: vscode.ExtensionContext,
@@ -49,10 +45,18 @@ async function ensureMendAdvise(
     }
 }
 
-function getDocPath(rootPath: string): string {
-    const docPath = path.join(rootPath, DOC_FOLDER);
-    if (!fs.existsSync(docPath)) { fs.mkdirSync(docPath, { recursive: true }); }
-    return docPath;
+/** Monta a lista "a, b, c e d" dos arquivos que o Implement precisa ler: constitution.md fica em
+ *  doc_projeto/ (nível de projeto), os demais na subpasta da história ativa (se houver uma). */
+function buildImplementFileList(rootPath: string, context: vscode.ExtensionContext): string {
+    const storyDocPath = resolveStoryDocPath(rootPath, context);
+    const rel = (p: string) => path.relative(rootPath, p).replace(/\\/g, '/');
+    const files = [
+        rel(path.join(getDocPath(rootPath), 'constitution.md')),
+        rel(path.join(storyDocPath, 'technical_spec.md')),
+        rel(path.join(storyDocPath, 'implementation_plan.md')),
+        rel(path.join(storyDocPath, 'task_list.md')),
+    ];
+    return `${files.slice(0, -1).join(', ')} e ${files[files.length - 1]}`;
 }
 
 async function openFile(filePath: string) {
@@ -62,61 +66,17 @@ async function openFile(filePath: string) {
     }
 }
 
-function readWorkspaceContext(rootPath: string, stackId: string): string {
-    const config = getStackConfig(stackId);
-    const srcPath = path.join(rootPath, 'src');
-    if (!fs.existsSync(srcPath)) { return ''; }
-
-    const collected: { filePath: string; mtime: number }[] = [];
-    const walk = (dir: string, depth: number) => {
-        if (depth > 6 || collected.length >= WORKSPACE_CONTEXT_MAX_FILES * 3) { return; }
-        let entries: fs.Dirent[];
-        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
-        for (const entry of entries) {
-            if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'out') { continue; }
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) { walk(full, depth + 1); }
-            else if (config.fileExtensions.includes(path.extname(entry.name))) {
-                try { collected.push({ filePath: full, mtime: fs.statSync(full).mtimeMs }); } catch { /* ignorar */ }
-            }
-        }
-    };
-    walk(srcPath, 0);
-    collected.sort((a, b) => b.mtime - a.mtime);
-    const selected = collected.slice(0, WORKSPACE_CONTEXT_MAX_FILES);
-    if (selected.length === 0) { return ''; }
-
-    let context = '\n--- CÓDIGO REAL DO WORKSPACE (use como referência para nomes e estrutura) ---\n';
-    for (const { filePath } of selected) {
-        try {
-            const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-            const snippet = lines.slice(0, WORKSPACE_CONTEXT_MAX_LINES).join('\n');
-            context += `\n--- ARQUIVO EXISTENTE: ${path.relative(rootPath, filePath)} ---\n${snippet}\n`;
-        } catch { /* ignorar */ }
-    }
-
-    // Lista apenas os arquivos enviados à IA como zona protegida
-    let protectedList = '\n⚠️ Existentes — não modificar sem Task List:\n';
-    for (const { filePath } of selected) {
-        protectedList += `  - ${path.relative(rootPath, filePath)}\n`;
-    }
-    context += protectedList;
-
-    return context;
-}
-
 function getActiveStackId(context: vscode.ExtensionContext): string {
     const rootPath = getWorkspaceRoot();
     const savedStack = context.workspaceState.get<string>('activeStack');
-    const docPath = rootPath ? getDocPath(rootPath) : undefined;
-    const userStoryPath = docPath ? path.join(docPath, 'user_story.md') : undefined;
+    const userStoryPath = rootPath ? path.join(resolveStoryDocPath(rootPath, context), 'user_story.md') : undefined;
     const result = resolveStack(rootPath ?? undefined, userStoryPath, savedStack);
-    return result.stackId === 'unknown' ? 'generic' : result.stackId;
+    return result.stackId;
 }
 
 export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('Foursys SDD Hybrid');
-    outputChannel.appendLine('[Foursys SDD Hybrid] Motor V1.0.0 Hybrid Online!');
+    outputChannel.appendLine(`[Foursys SDD Hybrid] Motor V${context.extension.packageJSON.version} Hybrid Online!`);
 
     // Garante Mend Advise instalado + licença configurada (fire-and-forget, não bloqueia activate)
     ensureMendAdvise(context, outputChannel).catch(e =>
@@ -149,14 +109,23 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestPlan',   () => executeSDDPhase('qa-test-plan',   '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestCases',  () => executeSDDPhase('qa-test-cases',  '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaAutomation', () => executeSDDPhase('qa-automation',  '', '', null, commandToken(), context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement',  () => executeSDDPhase('qa-automation',  '', '', null, commandToken(), context, outputChannel)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement', async () => {
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
+        const stackId = getActiveStackId(context);
+        const config = getStackConfig(stackId);
+        const roteirosPath = path.relative(rootPath, path.join(resolveStoryDocPath(rootPath, context), 'qa', 'roteiros_teste.md')).replace(/\\/g, '/');
+        vscode.commands.executeCommand('workbench.action.chat.open', {
+            query: `Leia o arquivo ${roteirosPath} deste workspace. Crie cada arquivo de teste marcado com o comentário <!-- file: caminho --> exatamente no caminho indicado, criando diretórios quando necessário, com o conteúdo do bloco de código correspondente. Invoque a Skill: ${config.implementSkillTag}.`
+        });
+    }));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaCoverage',   () => executeSDDPhase('qa-coverage',   '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaReport',     () => executeSDDPhase('qa-report',     '', '', null, commandToken(), context, outputChannel)));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaExportXray', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
-        const casesPath = path.join(rootPath, DOC_FOLDER, 'qa', 'casos_teste.md');
+        const casesPath = path.join(resolveStoryDocPath(rootPath, context), 'qa', 'casos_teste.md');
         if (!fs.existsSync(casesPath)) {
             vscode.window.showWarningMessage('⚠️ Execute "Casos de Teste" primeiro para gerar o arquivo BDD.');
             return;
@@ -237,7 +206,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         } else {
             // Exporta arquivo .feature localmente
-            const exportPath = path.join(rootPath, DOC_FOLDER, 'qa', 'xray_export.feature');
+            const exportPath = path.join(resolveStoryDocPath(rootPath, context), 'qa', 'xray_export.feature');
             const exportDir = path.dirname(exportPath);
             if (!fs.existsSync(exportDir)) { fs.mkdirSync(exportDir, { recursive: true }); }
             fs.writeFileSync(exportPath, featureContent);
@@ -267,20 +236,26 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', async () => {
         const stackId = getActiveStackId(context);
         const config = getStackConfig(stackId);
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${config.implementSkillTag}.`
+            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${config.implementSkillTag}.`
         });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession1', async () => {
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
+            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
         });
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession2', async () => {
+        const rootPath = getWorkspaceRoot();
+        if (!rootPath) { return; }
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos doc_projeto/constitution.md, doc_projeto/technical_spec.md, doc_projeto/implementation_plan.md e doc_projeto/task_list.md deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
+            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
         });
     }));
 
@@ -353,7 +328,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (!files || files.length === 0) { return; }
         const srcFile = files[0].fsPath;
         const ext = path.extname(srcFile);
-        const screensDir = path.join(rootPath, DOC_FOLDER, 'screens');
+        const screensDir = path.join(resolveStoryDocPath(rootPath, context), 'screens');
         if (!fs.existsSync(screensDir)) { fs.mkdirSync(screensDir, { recursive: true }); }
         const destFile = path.join(screensDir, `mockup${ext}`);
         fs.copyFileSync(srcFile, destFile);
@@ -403,10 +378,15 @@ export function activate(context: vscode.ExtensionContext) {
         if (!figmaUrl) { return; }
 
         const rootPath = getWorkspaceRoot();
+        let userStoryRelPath = 'doc_projeto/user_story.md';
+        let figmaRefRelPath = 'doc_projeto/screens/figma_ref.txt';
         if (rootPath) {
-            const screensDir = path.join(rootPath, DOC_FOLDER, 'screens');
+            const storyDocPath = resolveStoryDocPath(rootPath, context);
+            const screensDir = path.join(storyDocPath, 'screens');
             if (!fs.existsSync(screensDir)) { fs.mkdirSync(screensDir, { recursive: true }); }
             fs.writeFileSync(path.join(screensDir, 'figma_ref.txt'), figmaUrl, 'utf-8');
+            userStoryRelPath = path.relative(rootPath, path.join(storyDocPath, 'user_story.md')).replace(/\\/g, '/');
+            figmaRefRelPath = path.relative(rootPath, path.join(screensDir, 'figma_ref.txt')).replace(/\\/g, '/');
         }
 
         const prompt = `Use o servidor MCP do Figma para analisar o design em: ${figmaUrl}
@@ -417,10 +397,10 @@ Por favor:
 3. Liste os estados visíveis na tela (loading, vazio, erro, sucesso, validação)
 4. Gere critérios de aceite visuais para Angular (Angular Material / PrimeNG)
 
-Este design é o mockup da User Story em doc_projeto/user_story.md`;
+Este design é o mockup da User Story em ${userStoryRelPath}`;
 
         await vscode.commands.executeCommand('workbench.action.chat.open', { query: prompt });
-        vscode.window.showInformationMessage('🎨 URL do Figma salva em doc_projeto/screens/figma_ref.txt');
+        vscode.window.showInformationMessage(`🎨 URL do Figma salva em ${figmaRefRelPath}`);
     }));
 
     const sidebarProvider = new FoursysSDDSidebarProvider(context);
@@ -430,13 +410,13 @@ Este design é o mockup da User Story em doc_projeto/user_story.md`;
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(async (doc) => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
-        const storyPath = path.join(rootPath, DOC_FOLDER, 'user_story.md');
+        const storyPath = path.join(resolveStoryDocPath(rootPath, context), 'user_story.md');
         if (doc.uri.fsPath !== storyPath) { return; }
         const content = doc.getText();
         if (!content || content.includes('DESCREVA AQUI') || content.trim().length < 50) { return; }
 
         // Abre technical_spec.md ao lado para o dev preencher o detalhamento técnico
-        const techSpecPath = path.join(rootPath, DOC_FOLDER, 'technical_spec.md');
+        const techSpecPath = path.join(path.dirname(storyPath), 'technical_spec.md');
         if (fs.existsSync(techSpecPath)) {
             const techDoc = await vscode.workspace.openTextDocument(techSpecPath);
             await vscode.window.showTextDocument(techDoc, { viewColumn: vscode.ViewColumn.Two, preview: false });
@@ -698,7 +678,8 @@ async function executeSDDPhase(
 
     const savedStack = context.workspaceState.get<string>('activeStack');
     const docPath = getDocPath(rootPath);
-    const userStoryPath = path.join(docPath, 'user_story.md');
+    const storyDocPath = resolveStoryDocPath(rootPath, context);
+    const userStoryPath = path.join(storyDocPath, 'user_story.md');
     const detection = resolveStack(rootPath, userStoryPath, savedStack);
 
     // Stack desconhecida: força seleção antes de prosseguir
@@ -715,7 +696,7 @@ async function executeSDDPhase(
         detection.confidence = 'manual';
     }
 
-    const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
+    const stackId = detection.stackId;
     const stackConfig = getStackConfig(stackId);
     const builtinSDD = context.extensionUri.fsPath;
     const catalogPath = findCatalogPath(rootPath, context.globalState.get<string>('catalogPath') || '');
@@ -726,74 +707,8 @@ async function executeSDDPhase(
 
     if (chatResponse) { chatResponse.markdown(`🔄 **Foursys SDD Hybrid**: Fase **${command.toUpperCase()}** | Stack: **${stackConfig.displayName}**\n\n`); }
 
-    let outputPath = '';
-    let contextFiles: string[] = [];
-
-    switch (command) {
-        case 'constitution':
-            outputPath = path.join(docPath, 'constitution.md');
-            break;
-        case 'specify':
-            outputPath = path.join(docPath, 'user_story.md');
-            contextFiles = [
-                path.join(docPath, 'constitution.md'),
-                path.join(docPath, 'user_story.md'),
-            ];
-            break;
-        case 'plan':
-            outputPath = path.join(docPath, 'implementation_plan.md');
-            contextFiles = [
-                path.join(docPath, 'constitution.md'),
-                path.join(docPath, 'user_story.md'),
-                path.join(docPath, 'technical_spec.md'),
-            ];
-            break;
-        case 'tasks':
-            outputPath = path.join(docPath, 'task_list.md');
-            contextFiles = [
-                path.join(docPath, 'constitution.md'),
-                path.join(docPath, 'implementation_plan.md'),
-                path.join(docPath, 'technical_spec.md'),
-            ];
-            break;
-        case 'qa-test-plan':
-            outputPath = path.join(docPath, 'qa', 'plano_testes.md');
-            contextFiles = [
-                path.join(docPath, 'constitution.md'),
-                path.join(docPath, 'user_story.md'),
-                path.join(docPath, 'implementation_plan.md'),
-                path.join(docPath, 'technical_spec.md'),
-            ];
-            break;
-        case 'qa-test-cases':
-            outputPath = path.join(docPath, 'qa', 'casos_teste.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'plano_testes.md')];
-            break;
-        case 'qa-automation':
-            outputPath = path.join(docPath, 'qa', 'roteiros_teste.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'casos_teste.md')];
-            break;
-        case 'qa-coverage':
-            outputPath = path.join(docPath, 'qa', 'review_cobertura.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'roteiros_teste.md')];
-            break;
-        case 'qa-report':
-            outputPath = path.join(docPath, 'qa', 'relatorio_qualidade.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(docPath, 'qa', 'review_cobertura.md')];
-            break;
-        case 'po-discovery':
-            outputPath = path.join(docPath, 'discovery.md');
-            contextFiles = [path.join(docPath, 'discovery-draft.md')];
-            break;
-        case 'po-prd':
-            outputPath = path.join(docPath, 'prd.md');
-            contextFiles = [path.join(docPath, 'discovery.md')];
-            break;
-        case 'po-stories':
-            outputPath = path.join(docPath, 'user_stories.md');
-            contextFiles = [path.join(docPath, 'discovery.md'), path.join(docPath, 'prd.md')];
-            break;
-    }
+    const resourcesPath = path.join(context.extensionUri.fsPath, 'resources');
+    let { outputPath, contextFiles } = resolveOutputAndContextFiles(command, docPath, storyDocPath, resourcesPath);
 
     if (command === 'specify' && userInstruction.trim() === '') {
         // Se o PO Agent já gerou user_stories.md, oferece a opção de importar uma história
@@ -817,6 +732,11 @@ async function executeSDDPhase(
                         { placeHolder: 'Selecione a história (US) para especificar' }
                     );
                     if (picked) {
+                        // Cada história do PO Agent vira sua própria subpasta em doc_projeto/,
+                        // nomeada pelo ID da US (ex: doc_projeto/US-001/).
+                        const targetDocPath = await ensureNewStorySlug(rootPath, context, picked.story.id);
+                        outputPath = path.join(targetDocPath, 'user_story.md');
+
                         let proceed = true;
                         if (fs.existsSync(outputPath)) {
                             const existing = fs.readFileSync(outputPath, 'utf8').trim();
@@ -848,26 +768,40 @@ async function executeSDDPhase(
 
         const content = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
         if (!content || content.trim() === '' || content.includes('DESCREVA AQUI')) {
+            // Começando uma história do zero: se ainda não há história ativa, pede um nome curto
+            // pra nomear a subpasta em doc_projeto/. Se já houver uma ativa, continua nela.
+            let targetDocPath = storyDocPath;
+            if (!getActiveStorySlug(context)) {
+                targetDocPath = await ensureNewStorySlug(rootPath, context);
+                outputPath = path.join(targetDocPath, 'user_story.md');
+            }
+
             const template = `# User Story\n\n**TECNOLOGIA:** ${stackConfig.displayName}\n\n## Necessidade de Negócio\nDESCREVA AQUI o que você precisa (quem/quer/para).\n\n## Regras de Negócio\n- Regra 1...\n\n## Critérios de Aceite\n- Dado... quando... então...`;
             fs.writeFileSync(outputPath, template);
 
             // Auto-cria technical_spec.md se ainda não existir
-            const techSpecPath = path.join(docPath, 'technical_spec.md');
+            const techSpecPath = path.join(targetDocPath, 'technical_spec.md');
             if (!fs.existsSync(techSpecPath)) {
                 const techTemplate = `# Technical Specification (opcional)\n\nCole aqui o detalhamento técnico: classes, endpoints, contratos de API,\nexemplos de código, yml, estrutura de pacotes, análise de impacto.\n\nEste arquivo é lido pela fase Plan. Mantenha apenas a história de negócio em user_story.md.\n`;
                 fs.writeFileSync(techSpecPath, techTemplate);
             }
 
+            const techSpecRelPath = path.relative(rootPath, techSpecPath).replace(/\\/g, '/');
             outputChannel.appendLine('[SDD] 📝 user_story.md criado. Preencha com a história de NEGÓCIO.');
-            outputChannel.appendLine('[SDD] 📋 Para detalhamento técnico, use doc_projeto/technical_spec.md (já criado).');
+            outputChannel.appendLine(`[SDD] 📋 Para detalhamento técnico, use ${techSpecRelPath} (já criado).`);
             await openFile(outputPath);
-            if (chatResponse) { chatResponse.markdown('📝 Por favor, descreva sua necessidade no arquivo `user_story.md` e rode o comando novamente.\n\n> 💡 Detalhamento técnico (classes, endpoints, yml)? Use `doc_projeto/technical_spec.md`.'); }
+            if (chatResponse) { chatResponse.markdown(`📝 Por favor, descreva sua necessidade no arquivo \`user_story.md\` e rode o comando novamente.\n\n> 💡 Detalhamento técnico (classes, endpoints, yml)? Use \`${techSpecRelPath}\`.`); }
             return;
         }
     }
 
     if (command === 'specify' && userInstruction.trim() !== '') {
         const pastedContent = userInstruction.trim();
+        // Texto colado sem uma história ativa ainda: pede um nome curto pra nomear a subpasta.
+        if (!getActiveStorySlug(context)) {
+            const targetDocPath = await ensureNewStorySlug(rootPath, context);
+            outputPath = path.join(targetDocPath, 'user_story.md');
+        }
         let shouldWrite = true;
         if (fs.existsSync(outputPath)) {
             const existing = fs.readFileSync(outputPath, 'utf8').trim();
@@ -910,17 +844,23 @@ async function executeSDDPhase(
         if (PHASES_NEEDING_WORKSPACE.has(command)) {
             userContext += readWorkspaceContext(rootPath, stackId);
         }
+        if (command === 'constitution' || command === 'plan' || command === 'tasks') {
+            userContext += readProjectStackInfo(rootPath, stackId);
+        }
 
-        // Nota de mockup de tela (apenas para specify)
+        // Nota de mockup de tela (apenas para specify). Usa path.dirname(outputPath) em vez de
+        // storyDocPath porque o slug da história pode ter acabado de ser criado/trocado acima.
         if (command === 'specify') {
-            const screensDir = path.join(docPath, 'screens');
+            const activeStoryDir = path.dirname(outputPath);
+            const screensDir = path.join(activeStoryDir, 'screens');
+            const screensRelPath = path.relative(rootPath, screensDir).replace(/\\/g, '/');
             if (fs.existsSync(screensDir)) {
                 const mockupFiles = fs.readdirSync(screensDir).filter(f => /\.(png|jpg|jpeg|svg|webp)$/i.test(f));
                 if (mockupFiles.length > 0) {
-                    userContext += `\nATENÇÃO: Existe um mockup de tela em doc_projeto/screens/ (${mockupFiles.join(', ')}). Use-o como referência visual para refinar os critérios de aceite e detalhar a User Story.\n`;
+                    userContext += `\nATENÇÃO: Existe um mockup de tela em ${screensRelPath}/ (${mockupFiles.join(', ')}). Use-o como referência visual para refinar os critérios de aceite e detalhar a User Story.\n`;
                 }
             }
-            const figmaRefPath = path.join(docPath, 'screens', 'figma_ref.txt');
+            const figmaRefPath = path.join(activeStoryDir, 'screens', 'figma_ref.txt');
             if (fs.existsSync(figmaRefPath)) {
                 const figmaUrl = fs.readFileSync(figmaRefPath, 'utf-8').trim();
                 userContext += `\nATENÇÃO: Referência de design no Figma: ${figmaUrl}. Use o MCP do Figma para obter detalhes visuais ao refinar os critérios de aceite.\n`;
@@ -948,6 +888,20 @@ async function executeSDDPhase(
         const { text: fullText, totalTokens, credits } = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, token, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }
         }, phaseType);
+
+        // qa-report/qa-coverage pedem ao playbook uma versão HTML executiva embutida num bloco
+        // ```html``` — extrai esse bloco para um arquivo .html irmão e mantém o .md só com Markdown.
+        let mdToSave = fullText;
+        let htmlReportPath: string | null = null;
+        let htmlReportContent: string | null = null;
+        if (command === 'qa-report' || command === 'qa-coverage') {
+            const { html, rest } = extractHtmlBlock(fullText);
+            if (html) {
+                mdToSave = rest.trim() + '\n';
+                htmlReportPath = outputPath.replace(/\.md$/, '.html');
+                htmlReportContent = html;
+            }
+        }
 
         await trackEvent(context, outputChannel, {
             event: 'phase_completed',
@@ -979,9 +933,23 @@ async function executeSDDPhase(
                     }
                 }
             }
-            fs.writeFileSync(outputPath, fullText);
+            fs.writeFileSync(outputPath, mdToSave);
             await openFile(outputPath);
             if (chatResponse) { chatResponse.markdown(`\n\n✅ **Salvo em**: ${path.basename(outputPath)}`); }
+
+            if (htmlReportPath && htmlReportContent) {
+                fs.writeFileSync(htmlReportPath, htmlReportContent);
+                if (chatResponse) { chatResponse.markdown(`\n\n📊 **Relatório HTML executivo salvo em**: ${path.basename(htmlReportPath)}`); }
+                const htmlPathForClosure = htmlReportPath;
+                vscode.window.showInformationMessage(
+                    `📊 Relatório HTML executivo gerado: ${path.basename(htmlPathForClosure)}`,
+                    'Abrir no Navegador'
+                ).then(choice => {
+                    if (choice === 'Abrir no Navegador') {
+                        vscode.env.openExternal(vscode.Uri.file(htmlPathForClosure));
+                    }
+                });
+            }
         }
 
     } catch (error: any) {

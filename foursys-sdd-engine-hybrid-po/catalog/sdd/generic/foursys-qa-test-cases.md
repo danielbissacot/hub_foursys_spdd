@@ -22,6 +22,7 @@ Execute as seguintes etapas:
 - Para cada critério de aceite do Plano de Testes, crie um ou mais cenários BDD.
 - Cubra obrigatoriamente: caminho feliz (happy path), caminhos de erro, edge cases.
 - Priorize os cenários por criticidade (ALTA / MÉDIA / BAIXA).
+- Classifique cada cenário em um dos 4 tipos — **Positivo** (caminho feliz), **Negativo** (erro/validação), **Regressivo** (comportamento crítico existente que não pode quebrar) ou **Edge Case** (limite/extremo) — mapeando diretamente para as tags já usadas: `@smoke`≈Positivo, `@negative`≈Negativo, `@regression`≈Regressivo, `@edge-case`≈Edge Case.
 
 ### 2. Escrita dos Cenários em Gherkin
 Siga o formato:
@@ -34,13 +35,17 @@ Feature: [Nome da funcionalidade]
   Background:
     Given [pré-condição compartilhada]
 
+  @smoke @id:TC-GEN-001
   Scenario: [Descrição do cenário — caminho feliz]
+    # Referência técnica: [arquivo/módulo].[função]
     Given [contexto inicial]
     When [ação executada]
     Then [resultado esperado]
     And [resultado complementar]
 
+  @regression @id:TC-GEN-002
   Scenario Outline: [Cenário parametrizado]
+    # Referência técnica: [arquivo/módulo].[função]
     Given [contexto]
     When [ação com "<param>"]
     Then [resultado com "<resultado>"]
@@ -59,6 +64,8 @@ Feature: [Nome da funcionalidade]
 
 ### 4. Rastreabilidade
 - Adicione referência ao critério de aceite correspondente em cada Feature.
+- **ID único obrigatório por Scenario**, como tag no formato `@id:TC-GEN-<sequencial>` (ex.: `@id:TC-GEN-001`), ao lado das demais tags.
+- **Referência técnica obrigatória por Scenario**, como comentário `# Referência técnica: [arquivo/módulo].[função]` logo abaixo do título do Scenario, apontando o artefato técnico validado.
 
 Gere os casos de teste completos no formato Markdown com blocos Gherkin, prontos para implementação.
 ```

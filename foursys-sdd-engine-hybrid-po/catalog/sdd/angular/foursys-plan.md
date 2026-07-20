@@ -46,6 +46,7 @@ Gere a especificação técnica em Markdown, contendo:
      - linkedSignal() para estado dependente com reset automático ao mudar a fonte
      - effect() para side effects com observação de signals
    - HTTP/Dados: httpResource() ou resource() como PRIMEIRA opção para carregamento reativo de dados; HttpClient apenas para mutações (POST/PUT/DELETE) ou quando operadores RxJS são necessários
+   - **Disponibilidade de Backend (OBRIGATÓRIO):** Antes de detalhar as chamadas HTTP, pergunte ao usuário: "Existe uma API real disponível para esta feature? Deseja que eu gere um mock de dados de desenvolvimento para você visualizar a tela funcionando enquanto o backend real não está pronto?". Se a resposta for sim (ou se o usuário já indicou que não há backend), registre na Tabela de Decisão Arquitetural (item 4) a escolha do mock de desenvolvimento (`environment.ts`/`environment.development.ts` com flag `useMock`, interceptor leve, ou MSW) — isso é diferente de mock de teste unitário (ver Constituição) e deve virar tarefa explícita na Task List, nunca algo criado depois, fora do escopo.
    - Routing: Mudanças em app.routes.ts, lazy loading, Guards, Resolvers com signal inputs
    - Config: Mudanças em app.config.ts (provideHttpClient(withFetch()), provideRouter, etc.)
    - Forms: Signal Forms (experimental v21+) para projetos novos; Reactive Forms para produção estável

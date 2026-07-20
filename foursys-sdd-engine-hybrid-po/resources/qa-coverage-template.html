@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Review de Cobertura — {{PROJETO}}</title>
+<style>
+  :root{--bg:#1e1e1e;--bg2:#252526;--bg3:#2d2d30;--bdr:#3c3c3c;--t1:#cccccc;--t2:#969696;--t3:#6a6a6a;
+    --or:#ff6b00;--or2:rgba(255,107,0,.12);--or3:#ff8533;
+    --ok:#4ec9b0;--ok-bg:rgba(78,201,176,.12);--warn:#e2c08d;--warn-bg:rgba(226,192,141,.12);
+    --err:#f14c4c;--err-bg:rgba(241,76,76,.12)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t1);
+    line-height:1.55;padding:32px 24px 64px}
+  .wrap{max-width:880px;margin:0 auto}
+  header{border-bottom:1px solid var(--bdr);padding-bottom:20px;margin-bottom:28px}
+  .brand .badge{background:#001d6e;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px}
+  h1{font-size:22px;font-weight:600;margin-top:8px}
+  .meta{color:var(--t2);font-size:12px;margin-top:4px}
+  section{margin-bottom:32px}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--or);margin-bottom:12px;
+    padding-bottom:6px;border-bottom:1px solid var(--bdr)}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .kpi{background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:14px}
+  .kpi .label{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.03em}
+  .kpi .value{font-size:22px;font-weight:700;margin-top:4px}
+  .kpi .meta-line{font-size:11px;color:var(--t3);margin-top:2px}
+  .kpi.ok .value{color:var(--ok)}.kpi.warn .value{color:var(--warn)}.kpi.err .value{color:var(--err)}
+  table{width:100%;border-collapse:collapse;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;overflow:hidden}
+  th,td{padding:9px 12px;text-align:left;font-size:12.5px;border-bottom:1px solid var(--bdr)}
+  th{background:var(--bg3);color:var(--t2);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.03em}
+  tr:last-child td{border-bottom:none}
+  .status-ok{color:var(--ok)}.status-warn{color:var(--warn)}.status-err{color:var(--err)}
+  ul{padding-left:18px}
+  li{margin-bottom:6px;font-size:13px}
+  footer{color:var(--t3);font-size:11px;margin-top:40px;border-top:1px solid var(--bdr);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="badge">FOURSYS SDD</span></div>
+    <h1>Review de Cobertura — {{PROJETO}}</h1>
+    <div class="meta">História: {{HISTORIA}} · Gerado em {{DATA}}</div>
+  </header>
+
+  <section>
+    <h2>Indicadores de Cobertura</h2>
+    <div class="kpi-grid">
+      <div class="kpi {{KPI_COBERTURA_CLASSE}}"><div class="label">Critérios cobertos</div><div class="value">{{KPI_COBERTURA}}</div><div class="meta-line">Meta mínima 80%</div></div>
+      <div class="kpi"><div class="label">Cobertura desejável</div><div class="value">{{KPI_COBERTURA_DESEJAVEL}}</div><div class="meta-line">Meta 95% c/ negativo por fluxo crítico</div></div>
+      <div class="kpi {{KPI_LACUNAS_CLASSE}}"><div class="label">Lacunas críticas</div><div class="value">{{KPI_LACUNAS}}</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Mapeamento de Cobertura</h2>
+    <table>
+      <thead><tr><th>Critério de Aceite</th><th>Status</th><th>Testes Cobrindo</th><th>Observações</th></tr></thead>
+      <tbody>
+        <!-- Repita esta linha para cada critério de aceite -->
+        <tr><td>{{CRITERIO}}</td><td class="{{CRITERIO_STATUS_CLASSE}}">{{CRITERIO_STATUS}}</td><td>{{CRITERIO_TESTES}}</td><td>{{CRITERIO_OBS}}</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Análise de Qualidade dos Testes</h2>
+    <ul>
+      <li><strong>Independência:</strong> {{QUALIDADE_INDEPENDENCIA}}</li>
+      <li><strong>Determinismo:</strong> {{QUALIDADE_DETERMINISMO}}</li>
+      <li><strong>Foco:</strong> {{QUALIDADE_FOCO}}</li>
+      <li><strong>Nomenclatura:</strong> {{QUALIDADE_NOMENCLATURA}}</li>
+      <li><strong>Assertions:</strong> {{QUALIDADE_ASSERTIONS}}</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Edge Cases Não Cobertos</h2>
+    <ul>
+      <!-- Repita este item para cada edge case -->
+      <li>{{EDGE_CASE}}</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Riscos de Qualidade</h2>
+    <ul>
+      <!-- Repita este item para cada risco -->
+      <li>{{RISCO_DESCRICAO}}</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Recomendações Priorizadas</h2>
+    <ul>
+      <!-- Repita este item para cada recomendação -->
+      <li>{{RECOMENDACAO}}</li>
+    </ul>
+  </section>
+
+  <footer>Gerado automaticamente pelo Foursys SDD Hybrid — fase qa-coverage.</footer>
+</div>
+</body>
+</html>

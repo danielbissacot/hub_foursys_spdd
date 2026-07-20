@@ -6,6 +6,8 @@ compatibility_date = "2024-01-01"
 GITHUB_REPO = "danielbissacot/sdd-telemetry-data"
 GITHUB_BRANCH = "main"
 
-# GITHUB_TOKEN não vai aqui — é um secret, configurado via:
+# GITHUB_TOKEN e SHARED_SECRET não vão aqui — são secrets, configurados via:
 #   npx wrangler secret put GITHUB_TOKEN
+#   npx wrangler secret put SHARED_SECRET
 # ou no painel Cloudflare: Worker → Settings → Variables and Secrets → Add secret
+# SHARED_SECRET precisa ter o mesmo valor de TELEMETRY_SHARED_SECRET em src/telemetry.ts.

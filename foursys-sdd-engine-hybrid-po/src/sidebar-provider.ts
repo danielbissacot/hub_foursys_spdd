@@ -3,12 +3,15 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { execFile } from 'child_process';
-import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
-import { resolveSkillMdFile } from './catalog-loader';
-import { checkFigmaMcpConfigured } from './utils';
+import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './engine/stack-registry';
+import { resolveSkillMdFile } from './engine/catalog-loader';
+import {
+    checkFigmaMcpConfigured, pickAndReadDocumentFile, resolveStoryDocPath, ensureNewStorySlug,
+    getActiveStorySlug, setActiveStorySlug, listStoryFolders
+} from './utils';
 import { trackEvent } from './telemetry';
+import { MEND_EXTENSION_ID as MEND_EXT_ID, MEND_LICENSE_KEY } from './mend-config';
 
-const MEND_EXT_ID = 'mend.mend-advise';
 const FIGMA_EXT_ID = 'figma.figma-vscode-extension';
 
 interface UiState {
@@ -17,6 +20,7 @@ interface UiState {
     mendInstalled: boolean;
     mendInstalling: boolean;
     storyHasContent: boolean;
+    activeStorySlug: string | undefined;
     qaScriptsReady: boolean;
     casosTesteReady: boolean;
     mockupExists: boolean;
@@ -55,6 +59,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 mendInstalled,
                 mendInstalling: !!this._context.workspaceState.get('mendInstalling'),
                 storyHasContent: this._checkStoryHasContent(workspaceRoot),
+                activeStorySlug: getActiveStorySlug(this._context),
                 qaScriptsReady: this._checkQaScriptsReady(workspaceRoot),
                 casosTesteReady: this._checkCasosTesteReady(workspaceRoot),
                 mockupExists: this._checkMockupExists(workspaceRoot),
@@ -87,8 +92,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         docWatcher.onDidChange(() => debouncedUpdate());
         this._context.subscriptions.push(docWatcher);
 
-        // Atualiza sidebar quando mockup é adicionado ou removido
-        const screensWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/screens/**');
+        // Atualiza sidebar quando mockup é adicionado ou removido (screens/ pode estar direto em
+        // doc_projeto/ em projetos antigos, ou dentro da subpasta da história ativa)
+        const screensWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/**/screens/**');
         screensWatcher.onDidCreate(() => debouncedUpdate());
         screensWatcher.onDidDelete(() => debouncedUpdate());
         this._context.subscriptions.push(screensWatcher);
@@ -108,6 +114,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'Specify':
                     vscode.commands.executeCommand('foursys.specify');
+                    break;
+                case 'SelectStoryFile':
+                    await this._selectStoryFile();
+                    updateWebview();
+                    break;
+                case 'SwitchStory':
+                    await this._switchStory();
+                    updateWebview();
                     break;
                 case 'Plan':
                     vscode.commands.executeCommand('foursys.plan');
@@ -366,7 +380,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             if (choice === 'Recarregar Agora') {
                 vscode.commands.executeCommand('workbench.action.reloadWindow');
             } else if (choice === 'Copiar Chave de Licença') {
-                await vscode.env.clipboard.writeText('ef149a32-1038-40b2-9917-436a1266ed17');
+                await vscode.env.clipboard.writeText(MEND_LICENSE_KEY);
                 vscode.window.showInformationMessage('🔑 Chave copiada! Cole no wizard de ativação do Mend.');
             }
         } catch {
@@ -383,8 +397,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
     private _detectStack(workspaceRoot: string): StackDetectionResult {
         const savedStack = this._context.workspaceState.get<string>('activeStack');
-        const docPath = workspaceRoot ? path.join(workspaceRoot, 'doc_projeto') : undefined;
-        const userStoryPath = docPath ? path.join(docPath, 'user_story.md') : undefined;
+        const userStoryPath = workspaceRoot
+            ? path.join(resolveStoryDocPath(workspaceRoot, this._context), 'user_story.md')
+            : undefined;
         return resolveStack(workspaceRoot || undefined, userStoryPath, savedStack);
     }
 
@@ -392,7 +407,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     private _currentStackId(): string {
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
         const detection = this._detectStack(workspaceRoot);
-        return detection.stackId === 'unknown' ? 'generic' : detection.stackId;
+        return detection.stackId;
     }
 
     private async _openStackPicker() {
@@ -411,12 +426,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
     private _checkQaScriptsReady(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'scripts_automacao.md'));
+        return fs.existsSync(path.join(resolveStoryDocPath(workspaceRoot, this._context), 'qa', 'roteiros_teste.md'));
     }
 
     private _checkCasosTesteReady(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'casos_teste.md'));
+        return fs.existsSync(path.join(resolveStoryDocPath(workspaceRoot, this._context), 'qa', 'casos_teste.md'));
     }
 
     private _checkFigmaMcpConfigured(): boolean {
@@ -425,15 +440,77 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
     private _checkStoryHasContent(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        const storyPath = path.join(workspaceRoot, 'doc_projeto', 'user_story.md');
+        const storyPath = path.join(resolveStoryDocPath(workspaceRoot, this._context), 'user_story.md');
         if (!fs.existsSync(storyPath)) { return false; }
         const content = fs.readFileSync(storyPath, 'utf8');
         return content.trim().length > 50 && !content.includes('DESCREVA AQUI');
     }
 
+    private async _selectStoryFile(): Promise<void> {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        if (!workspaceRoot) {
+            vscode.window.showWarningMessage('Abra uma pasta no VS Code primeiro (File → Open Folder).');
+            return;
+        }
+        const picked = await pickAndReadDocumentFile('Selecionar história de usuário');
+        if (!picked) { return; }
+        if (!picked.fileContent.trim()) {
+            vscode.window.showWarningMessage(
+                `⚠️ Não foi possível ler o texto de "${picked.fileName}". Use um arquivo .md, .txt, .csv ou .json, ou cole o texto manualmente no Specify.`
+            );
+            return;
+        }
+        // O arquivo escolhido vira uma história nova, nomeada a partir do próprio nome do arquivo.
+        const suggestedName = picked.fileName.replace(/\.[^.]+$/, '');
+        const docFolder = await ensureNewStorySlug(workspaceRoot, this._context, suggestedName);
+        const outputPath = path.join(docFolder, 'user_story.md');
+        if (fs.existsSync(outputPath)) {
+            const existing = fs.readFileSync(outputPath, 'utf8').trim();
+            if (existing.length > 50 && !existing.includes('DESCREVA AQUI')) {
+                const confirm = await vscode.window.showWarningMessage(
+                    `⚠️ "user_story.md" já tem conteúdo.\nSobrescrever com "${picked.fileName}"?`,
+                    { modal: true },
+                    'Sobrescrever',
+                    'Cancelar'
+                );
+                if (confirm !== 'Sobrescrever') { return; }
+            }
+        }
+        fs.writeFileSync(outputPath, `> Origem: ${picked.fileName} (arquivo importado)\n\n${picked.fileContent}`);
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(outputPath));
+        await vscode.window.showTextDocument(doc);
+        vscode.window.showInformationMessage('📁 História importada. Clique em "Specify" para analisar.');
+    }
+
+    private async _switchStory(): Promise<void> {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        if (!workspaceRoot) {
+            vscode.window.showWarningMessage('Abra uma pasta no VS Code primeiro (File → Open Folder).');
+            return;
+        }
+        const currentSlug = getActiveStorySlug(this._context);
+        const folders = listStoryFolders(workspaceRoot);
+        const items = [
+            ...folders.map(slug => ({ label: `${slug === currentSlug ? '✅' : '📖'} ${slug}`, slug })),
+            { label: '➕ Nova história', slug: undefined }
+        ];
+        const picked = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Selecione a história ativa',
+            title: 'Foursys SDD Hybrid — Trocar História'
+        });
+        if (!picked) { return; }
+        if (picked.slug) {
+            await setActiveStorySlug(this._context, picked.slug);
+            vscode.window.showInformationMessage(`📖 História ativa: ${picked.slug}`);
+        } else {
+            await setActiveStorySlug(this._context, undefined);
+            vscode.window.showInformationMessage('➕ Próxima história (Specify ou Selecionar Arquivo) vai pedir um nome novo.');
+        }
+    }
+
     private _checkMockupExists(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        const screensDir = path.join(workspaceRoot, 'doc_projeto', 'screens');
+        const screensDir = path.join(resolveStoryDocPath(workspaceRoot, this._context), 'screens');
         if (!fs.existsSync(screensDir)) { return false; }
         return fs.readdirSync(screensDir).some(f => /\.(png|jpg|jpeg|svg|webp)$/i.test(f));
     }
@@ -507,9 +584,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }));
 
         const shared = getSkillSlugs(path.join(catalogPath, 'agents_skills', 'shared', 'skills'));
+        // Sem sufixo /skills — mesmo caminho usado por _syncHub() pra copiar as skills de PO (ver _injectCopilotCustomizations)
+        const productOwner = getSkillSlugs(path.join(catalogPath, 'agents_skills', 'product-owner'));
         const custom = getMd(path.join(globalStoragePath, 'custom-skills'));
 
-        return { playbooks, stacks, shared, custom };
+        return { playbooks, stacks, shared, productOwner, custom };
     }
 
     private _buildCatalogHtml(data: ReturnType<FoursysSDDSidebarProvider['_loadCatalogData']>): string {
@@ -582,6 +661,18 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             html += `</div></div>`;
         }
 
+        // ── Product Owner ──
+        if (data.productOwner.length > 0) {
+            html += `<div class="catalog-section" id="sec-po">`;
+            html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-po')">`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ff8a65"></span>🎯 Product Owner</span>`;
+            html += `<span class="catalog-chevron">▶</span></div>`;
+            html += `<div class="catalog-section-body">`;
+            html += skillSearch('sec-po', 'Buscar skill...');
+            for (const s of data.productOwner) { html += skillItem(s, 'skill'); }
+            html += `</div></div>`;
+        }
+
         // ── Custom Skills ──
         html += `<div class="catalog-section" id="sec-custom">`;
         html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-custom')">`;
@@ -646,7 +737,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
                 this._context.globalState.update('catalogPath', catalogPath);
                 const detection = this._detectStack(workspaceRoot);
-                const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
+                const stackId = detection.stackId;
                 const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
                 this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
                 this._cleanupLegacy(workspaceRoot);
@@ -782,7 +873,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview({ isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured }: UiState) {
+    private _getHtmlForWebview({ isConnected, detection, mendInstalled, mendInstalling, storyHasContent, activeStorySlug, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured }: UiState) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const catalogData = this._loadCatalogData(stackId);
         const catalogHtml = this._buildCatalogHtml(catalogData);
@@ -868,6 +959,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             font-size: 11px;
             background: rgba(33,150,243,0.12);
             border: 1px solid rgba(33,150,243,0.3);
+        }
+        .story-badge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.18);
         }
         .btn-mockup {
             background: rgba(255,255,255,0.03);
@@ -1022,6 +1124,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
         .btn-skill:hover { opacity: 1; background: rgba(255,255,255,0.1); }
 
+        .specify-row { display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px; }
+        .specify-row .btn { width: auto; flex: 1.4; margin-bottom: 0; }
+        .specify-row .btn-mockup-sm { flex: 1; margin-bottom: 0; }
         .figma-row { display: flex; gap: 6px; margin-bottom: 4px; }
         .mockup-row {
             display: flex;
@@ -1095,7 +1200,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 <body>
     <div class="header">
         <h3 class="title">🚀 Foursys SDD Hybrid</h3>
-        <span class="version">v1.1.3 — Product Owner Agent</span>
+        <span class="version">v${this._context.extension.packageJSON.version} — Product Owner Agent</span>
     </div>
 
     <div class="stack-badge">
@@ -1124,6 +1229,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     <!-- TAB DEV -->
     <div id="tab-dev" class="tab-content active">
         <div class="section-label">Workflow SDD</div>
+        <div class="story-badge">
+            <div class="stack-info">
+                <span class="stack-name">📖 ${activeStorySlug ?? 'nenhuma história ativa'}</span>
+                <span class="stack-source">história ativa</span>
+            </div>
+            <button class="btn-trocar" onclick="sendAction('SwitchStory')">🔄 Trocar</button>
+        </div>
         <div class="${isConnected ? '' : 'disabled'}">
             ${stackId === 'angular' || isMobile ? `
             <div class="figma-row">
@@ -1147,13 +1259,19 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 <span class="step-number">0</span>
                 <span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança & padrões</span></span>
             </button>
-            <button class="btn ${stackUnknown ? 'btn-alert' : storyHasContent ? 'btn-ready' : ''}" onclick="sendAction('Specify')">
-                <span class="step-number">1</span>
-                <span class="step-label">
-                    <span class="step-title">${storyHasContent ? '🔍 Specify (analisar)' : '📝 Specify (criar)'}</span>
-                    <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
-                </span>
-            </button>
+            <div class="specify-row">
+                <button class="btn ${stackUnknown ? 'btn-alert' : storyHasContent ? 'btn-ready' : ''}" onclick="sendAction('Specify')">
+                    <span class="step-number">1</span>
+                    <span class="step-label">
+                        <span class="step-title">${storyHasContent ? '🔍 Specify (analisar)' : '📝 Specify (criar)'}</span>
+                        <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
+                    </span>
+                </button>
+                <button class="btn-mockup-sm" onclick="sendAction('SelectStoryFile')"
+                    title="Selecionar um arquivo com história pronta (de qualquer origem) para usar no Specify">
+                    📁 Selecionar Arquivo
+                </button>
+            </div>
             ${stackId === 'angular' ? `
             <div class="mockup-row">
                 <button class="btn-mockup-sm ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')"

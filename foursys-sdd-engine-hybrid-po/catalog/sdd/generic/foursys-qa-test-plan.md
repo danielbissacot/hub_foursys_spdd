@@ -38,7 +38,7 @@ Execute as seguintes etapas:
 
 ### 5. Exclusões e Riscos
 - Liste explicitamente o que está fora do escopo deste ciclo de testes.
-- Documente riscos e plano de mitigação.
+- Documente os riscos como uma **matriz de risco em tabela Markdown**, com colunas `| Risco | Impacto (Alto/Médio/Baixo) | Probabilidade (Alta/Média/Baixa) | Prioridade | Mitigação |`.
 
 Gere o documento no formato Markdown estruturado com as seções acima, pronto para ser versionado no projeto.
 ```

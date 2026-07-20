@@ -48,7 +48,7 @@ Execute as seguintes etapas:
 
 ### 6. Exclusões e Riscos
 - Liste o que está fora do escopo deste ciclo (ex: testes de carga, testes de segurança, outros endpoints não impactados).
-- Documente riscos específicos:
+- Documente os riscos como uma **matriz de risco em tabela Markdown**, com colunas `| Risco | Impacto (Alto/Médio/Baixo) | Probabilidade (Alta/Média/Baixa) | Prioridade | Mitigação |`. Riscos específicos desta stack a considerar:
   - Mocks de OutputPort divergindo da implementação real → mitigar com testes @integration periódicos
   - Testcontainers lento no CI → usar cache de imagens Docker no pipeline
   - Contexto Spring não sobe → verificar @Configuration com @Bean dos UseCases

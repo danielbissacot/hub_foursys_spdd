@@ -1,8 +1,8 @@
 ---
 name: 'qa-test-data-generation'
-description: "Orienta geração de dados de teste realistas e seguros para cada stack tecnológica. Cobre padrões por stack: Java (ObjectMother + Builder), Angular (TypeScript fixtures), Node/NestJS (Faker.js factories) e COBOL (datasets JCL sintéticos). Garante dados sem PII real, cobertura de casos felizes e negativos e consistência entre testes."
+description: "Orienta geração de dados de teste realistas e seguros para cada stack tecnológica. Cobre padrões por stack: Java (ObjectMother + Builder), Angular (TypeScript fixtures), Node/NestJS (Faker.js factories) e COBOL (datasets JCL sintéticos). Garante dados sem PII real, cobertura de casos felizes e negativos, consistência entre testes e validade documental brasileira (CPF/CNPJ/CEP/DDD)."
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # Skill: qa-test-data-generation
@@ -228,6 +228,40 @@ Posição 033-042: Conta destino (10 dígitos)
 
 ---
 
+## Guardrails de Dados Brasileiros Realistas
+
+Dados de teste "brasileiros" só são úteis se forem estruturalmente válidos — um CPF com dígito verificador errado ou um CEP incoerente com a UF derruba a credibilidade da massa de teste tanto quanto um valor `null` inesperado.
+
+1. **CPF/CNPJ com dígito verificador matematicamente válido** — nunca gere os 11/14 dígitos aleatoriamente. Calcule os dígitos verificadores pelo algoritmo oficial (módulo 11) a partir da base gerada, para todo CPF/CNPJ fake:
+
+```typescript
+// FILEPATH: test/fixtures/cpf.util.ts
+export function gerarCpfFake(): string {
+  const gerarBase = () => Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));
+  const calcularDigito = (nums: number[]): number => {
+    let soma = 0;
+    let peso = nums.length + 1;
+    for (const n of nums) { soma += n * peso--; }
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  const base = gerarBase();
+  const d1 = calcularDigito(base);
+  const d2 = calcularDigito([...base, d1]);
+  return [...base, d1, d2].join('');
+}
+```
+
+2. **CEP coerente com UF/cidade** — nunca combine um CEP de faixa de São Paulo (`01000-000`–`19999-999`) com um endereço de outra UF nos mesmos dados de teste. Use uma tabela de faixas de CEP por UF ao gerar endereços fake.
+3. **Telefone com DDD válido** — use apenas DDDs oficiais (11–19 SP, 21/22/24 RJ, 31 MG, 41 PR, 51 RS, etc.), nunca sequências como `00` ou `99`.
+4. **Formatos monetário e de data BR** — moeda como `1.234,56` (não `1,234.56`), data como `dd/MM/yyyy` (não `MM/dd/yyyy`) em qualquer fixture que simule entrada/exibição de UI brasileira.
+5. **Proibições explícitas:**
+   - Sequências óbvias (`111.111.111-11`, `123.456.789-00`) — mesmo com dígito verificador válido, não usar sequências reconhecíveis como "de teste" por padrão.
+   - Dígitos todos repetidos (`000.000.000-00`, `111.111.111-11`) — o algoritmo do CPF os aceita matematicamente, mas devem ser rejeitados como dado de teste.
+   - Dados genéricos sem contexto de negócio (`CEP: 00000-000` sem UF associada).
+
+---
+
 ## Checklist de Dados de Teste
 
 - [ ] Nenhum CPF, conta ou email real de produção nos fixtures
@@ -237,3 +271,7 @@ Posição 033-042: Conta destino (10 dígitos)
 - [ ] Faker.js com semente fixa (`faker.seed()`) para testes determinísticos
 - [ ] ObjectMother/Factory em arquivo separado de `/test/fixtures/` ou `/test/factories/`
 - [ ] Dataset COBOL com pelo menos 3 registros (feliz, alternativo, exceção)
+- [ ] CPF/CNPJ gerados com dígito verificador calculado (módulo 11), não aleatório
+- [ ] CEP coerente com a UF do endereço fake associado
+- [ ] Telefone com DDD válido para a UF simulada
+- [ ] Moeda em formato BR (`1.234,56`) e data em `dd/MM/yyyy` nos fixtures de UI

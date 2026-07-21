@@ -63,7 +63,6 @@ Remove-Item -Path agentes_foursys -Recurse -Force -ErrorAction SilentlyContinue;
 
 * **Pasta `agentes_foursys/`**: Contém todos os prompts. A pasta sendo um clone direto garante que a IA indexe os arquivos, mesmo que você a inclua no `.gitignore`.
 * **Uso no Chat**: Agora você pode usar o **`#`** e começar a digitar o nome de qualquer prompt (ex: `#HEXAGONAL-JAVA`).
-* **Mapa de Ativos (`MAPA_DO_HUB.txt`)**: Um arquivo gerado automaticamente com o índice de todos os prompts disponíveis para facilitar a sua navegação.
 * **Segurança**: A trava de segurança contra commits da `agentes_foursys` é garantida automaticamente pelo GitHub Actions. Você pode (e deve) ignorá-la no `.gitignore`.
 
 ---

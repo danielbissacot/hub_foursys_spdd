@@ -12,6 +12,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const https = require('https');
+const { execSync } = require('child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const CATALOG = path.join(REPO_ROOT, 'catalog');
@@ -21,6 +23,15 @@ const SKILLS_DIR = path.join(COPILOT_HOME, 'skills');
 const AGENTS_DIR = path.join(COPILOT_HOME, 'agents');
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const NO_TELEMETRY = process.argv.includes('--no-telemetry');
+
+// Mesmo Worker/endpoint e mesmo freio simples ja usados por
+// foursys-sdd-engine-hybrid-po/src/telemetry.ts (nao e segredo forte, ja vai
+// embutido no .vsix da extensao atual). Reaproveita a mesma infraestrutura,
+// so muda o campo "version" pra diferenciar Hub (extensao) de via nativa.
+const TELEMETRY_ENDPOINT = 'https://foursys-sdd-telemetry.foursys-sdd.workers.dev';
+const TELEMETRY_SHARED_SECRET = 'foursys-sdd-po-telemetry-2026';
+const TELEMETRY_VERSION_LABEL = 'personal-copilot-sync';
 
 // Mesma configuracao de foursys-sdd-engine-hybrid-po/src/engine/stack-registry.ts
 const STACKS = {
@@ -270,6 +281,53 @@ Use a Skill \`foursys-<fase>-<stack>\` correspondente (ex.: \`foursys-specify-an
     log('  agent: foursys-sdd-orchestrator');
 }
 
+// ---------- telemetria (mesmo formato/Worker do Hub, so muda "version") ----------
+
+function getGitEmail() {
+    try {
+        return execSync('git config --global user.email', { encoding: 'utf8' }).trim() || null;
+    } catch {
+        return null;
+    }
+}
+
+function sendTelemetry() {
+    if (NO_TELEMETRY || DRY_RUN) { return; }
+    const email = getGitEmail();
+    if (!email) { return; }
+
+    const payload = JSON.stringify({
+        email,
+        event: 'sync_executed',
+        command: 'sync',
+        stack: '',
+        tokens: 0,
+        credits: 0,
+        version: TELEMETRY_VERSION_LABEL,
+        ts: new Date().toISOString()
+    });
+
+    try {
+        const endpoint = new URL(TELEMETRY_ENDPOINT);
+        const req = https.request({
+            hostname: endpoint.hostname,
+            port: endpoint.port || 443,
+            path: endpoint.pathname,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                'X-Foursys-Token': TELEMETRY_SHARED_SECRET
+            }
+        }, (res) => { res.on('data', () => { /* ignora corpo da resposta */ }); });
+        req.on('error', () => { /* telemetria e best-effort, nunca quebra o sync */ });
+        req.write(payload);
+        req.end();
+    } catch {
+        // best-effort, nunca quebra o sync
+    }
+}
+
 // ---------- main ----------
 
 function main() {
@@ -281,6 +339,7 @@ function main() {
     syncSddSkills();
     syncPersonaAgents();
     syncOrchestratorAgent();
+    sendTelemetry();
 
     log('\nConcluído.');
 }

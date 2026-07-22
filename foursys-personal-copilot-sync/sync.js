@@ -254,14 +254,16 @@ Verifique o que já existe em \`doc_projeto/\` (ou pasta equivalente de artefato
 4. Plano existe, sem task list → próxima fase é **tasks**.
 5. Task list existe → fase de **implementação** (siga a task list diretamente, uma tarefa por vez).
 
-## Passo 3 — Invocar a Skill certa
+## Passo 3 — Anunciar e invocar a Skill certa
 
-Use a Skill \`foursys-<fase>-<stack>\` correspondente (ex.: \`foursys-specify-angular\`, \`foursys-plan-spring_boot\`). Não invente conteúdo de fase — sempre delegue pra Skill.
+Anuncie de forma direta e proativa, não apenas descritiva. Diga algo como "Vamos para a Fase **Specify** — vou usar a skill \`foursys-specify-angular\`" antes de agir, em vez de só relatar o status neutro ("a próxima fase seria..."). Você está guiando o usuário pela próxima ação, não só reportando um diagnóstico.
+
+Use a Skill \`foursys-<fase>-<stack>\` correspondente (ex.: \`foursys-specify-angular\`, \`foursys-plan-spring_boot\`). Não invente conteúdo de fase — sempre delegue pra Skill. Se a fase exigir um insumo que falta (ex.: rascunho de história pra Specify), peça esse insumo especificamente, dentro do mesmo anúncio — não pare numa descrição genérica sem indicar o próximo passo concreto.
 
 ## Regras gerais
 
 - Nunca pule fases sem o artefato anterior existir, a menos que o usuário peça explicitamente.
-- Sempre informe ao usuário em qual fase e stack você está atuando antes de prosseguir.
+- Sempre anuncie proativamente em qual fase, stack e Skill você está atuando antes de prosseguir — não apenas descreva o estado, direcione a ação.
 - Se o usuário pedir uma fase fora de ordem, confirme que ele está ciente antes de prosseguir.`;
 
     writeAgentFile('foursys-sdd-orchestrator', 'Orquestra o fluxo SDD da Foursys: detecta a stack, identifica a fase atual do projeto e invoca a Skill de fase correta (constitution/specify/plan/tasks).', body);

@@ -16,7 +16,10 @@ import {
     readProjectStackInfo,
     extractHtmlBlock
 } from './engine/prompt-context';
-import { getMcpConfigPath, checkFigmaMcpConfigured, resolveStoryDocPath, ensureNewStorySlug, getActiveStorySlug } from './utils';
+import {
+    getMcpConfigPath, checkFigmaMcpConfigured, resolveStoryDocPath, ensureNewStorySlug, getActiveStorySlug,
+    parseUserStoryBlocks, importPoStory, createBlankUserStory
+} from './utils';
 import { trackEvent, optOutTelemetry, setTelemetryEmail } from './telemetry';
 import { MEND_EXTENSION_ID, MEND_LICENSE_SECRET, MEND_API_TOKEN } from './mend-config';
 
@@ -464,48 +467,6 @@ Este design é o mockup da User Story em ${userStoryRelPath}`;
     context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.setEmail', () => setTelemetryEmail(context)));
 }
 
-interface UserStoryBlock {
-    id: string;
-    titulo: string;
-    conteudo: string;
-}
-
-// Divide o user_stories.md (plural, gerado pelo /po-stories) em blocos individuais
-// "## US-XXX: Titulo", parando antes da secao final "## Resumo do Backlog".
-function parseUserStoryBlocks(raw: string): UserStoryBlock[] {
-    const lines = raw.split('\n');
-    const headingRegex = /^##\s+(US-\d+):\s*(.*)$/;
-    const stopRegex = /^##\s+Resumo do Backlog/i;
-    const blocks: UserStoryBlock[] = [];
-    let current: { id: string; titulo: string; startLine: number } | null = null;
-
-    const flush = (endLine: number) => {
-        if (current) {
-            blocks.push({
-                id: current.id,
-                titulo: current.titulo,
-                conteudo: lines.slice(current.startLine, endLine).join('\n').trim()
-            });
-        }
-    };
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const headingMatch = line.match(headingRegex);
-        if (headingMatch) {
-            flush(i);
-            current = { id: headingMatch[1], titulo: headingMatch[2].trim(), startLine: i };
-            continue;
-        }
-        if (stopRegex.test(line)) {
-            flush(i);
-            current = null;
-        }
-    }
-    flush(lines.length);
-    return blocks;
-}
-
 async function executeSDDPhase(
     command: string,
     userInstruction: string,
@@ -734,30 +695,12 @@ async function executeSDDPhase(
                     if (picked) {
                         // Cada história do PO Agent vira sua própria subpasta em doc_projeto/,
                         // nomeada pelo ID da US (ex: doc_projeto/US-001/).
-                        const targetDocPath = await ensureNewStorySlug(rootPath, context, picked.story.id);
-                        outputPath = path.join(targetDocPath, 'user_story.md');
-
-                        let proceed = true;
-                        if (fs.existsSync(outputPath)) {
-                            const existing = fs.readFileSync(outputPath, 'utf8').trim();
-                            if (existing.length > 100 && !existing.includes('DESCREVA AQUI')) {
-                                const confirm = await vscode.window.showWarningMessage(
-                                    `⚠️ "user_story.md" já tem conteúdo.\nSobrescrever com "${picked.story.id}"?`,
-                                    { modal: true },
-                                    'Sobrescrever',
-                                    'Cancelar'
-                                );
-                                proceed = confirm === 'Sobrescrever';
-                            }
-                        }
-                        if (!proceed) {
+                        const targetDocPath = await importPoStory(rootPath, context, picked.story);
+                        if (!targetDocPath) {
                             if (chatResponse) { chatResponse.markdown('⛔ Cancelado. `user_story.md` preservado.'); }
                             return;
                         }
-                        const outputDir = path.dirname(outputPath);
-                        if (!fs.existsSync(outputDir)) { fs.mkdirSync(outputDir, { recursive: true }); }
-                        const importedContent = `> Origem: user_stories.md (PO Agent) — ${picked.story.id}\n\n${picked.story.conteudo}`;
-                        fs.writeFileSync(outputPath, importedContent);
+                        outputPath = path.join(targetDocPath, 'user_story.md');
                         outputChannel.appendLine(`[SDD] 📋 ${picked.story.id} importada de user_stories.md para user_story.md.`);
                     }
                     // Se "picked" ficar undefined (Quick Pick cancelado), cai no fluxo padrão abaixo.
@@ -770,22 +713,9 @@ async function executeSDDPhase(
         if (!content || content.trim() === '' || content.includes('DESCREVA AQUI')) {
             // Começando uma história do zero: se ainda não há história ativa, pede um nome curto
             // pra nomear a subpasta em doc_projeto/. Se já houver uma ativa, continua nela.
-            let targetDocPath = storyDocPath;
-            if (!getActiveStorySlug(context)) {
-                targetDocPath = await ensureNewStorySlug(rootPath, context);
-                outputPath = path.join(targetDocPath, 'user_story.md');
-            }
-
-            const template = `# User Story\n\n**TECNOLOGIA:** ${stackConfig.displayName}\n\n## Necessidade de Negócio\nDESCREVA AQUI o que você precisa (quem/quer/para).\n\n## Regras de Negócio\n- Regra 1...\n\n## Critérios de Aceite\n- Dado... quando... então...`;
-            fs.writeFileSync(outputPath, template);
-
-            // Auto-cria technical_spec.md se ainda não existir
+            const targetDocPath = await createBlankUserStory(rootPath, context, stackConfig.displayName);
+            outputPath = path.join(targetDocPath, 'user_story.md');
             const techSpecPath = path.join(targetDocPath, 'technical_spec.md');
-            if (!fs.existsSync(techSpecPath)) {
-                const techTemplate = `# Technical Specification (opcional)\n\nCole aqui o detalhamento técnico: classes, endpoints, contratos de API,\nexemplos de código, yml, estrutura de pacotes, análise de impacto.\n\nEste arquivo é lido pela fase Plan. Mantenha apenas a história de negócio em user_story.md.\n`;
-                fs.writeFileSync(techSpecPath, techTemplate);
-            }
-
             const techSpecRelPath = path.relative(rootPath, techSpecPath).replace(/\\/g, '/');
             outputChannel.appendLine('[SDD] 📝 user_story.md criado. Preencha com a história de NEGÓCIO.');
             outputChannel.appendLine(`[SDD] 📋 Para detalhamento técnico, use ${techSpecRelPath} (já criado).`);

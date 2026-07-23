@@ -7,7 +7,8 @@ import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from
 import { resolveSkillMdFile } from './engine/catalog-loader';
 import {
     checkFigmaMcpConfigured, pickAndReadDocumentFile, resolveStoryDocPath, ensureNewStorySlug,
-    getActiveStorySlug, setActiveStorySlug, listStoryFolders
+    getActiveStorySlug, setActiveStorySlug, listStoryFolders,
+    UserStoryBlock, listPendingPoStories, importPoStory, createBlankUserStory
 } from './utils';
 import { trackEvent } from './telemetry';
 import { MEND_EXTENSION_ID as MEND_EXT_ID, MEND_LICENSE_KEY } from './mend-config';
@@ -496,22 +497,47 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
         const currentSlug = getActiveStorySlug(this._context);
         const folders = listStoryFolders(workspaceRoot);
-        const items = [
-            ...folders.map(slug => ({ label: `${slug === currentSlug ? '✅' : '📖'} ${slug}`, slug })),
-            { label: '➕ Nova história', slug: undefined }
+        // Historias que o PO Agent ja gerou em user_stories.md mas que ainda nao viraram pasta
+        // propria — sem isso, ficam invisiveis aqui mesmo depois de "salvas" pelo painel PO.
+        const pendingPoStories = listPendingPoStories(workspaceRoot, folders);
+
+        const items: { label: string; description?: string; slug?: string; story?: UserStoryBlock; isNew?: boolean }[] = [
+            ...folders.map(slug => ({ label: `${slug === currentSlug ? '✅' : '📖'} ${slug}` as string, slug })),
+            ...pendingPoStories.map(story => ({
+                label: `📋 ${story.id}: ${story.titulo}`,
+                description: 'gerada pelo PO Agent — ainda não especificada',
+                story
+            })),
+            { label: '➕ Nova história', isNew: true }
         ];
         const picked = await vscode.window.showQuickPick(items, {
             placeHolder: 'Selecione a história ativa',
             title: 'Foursys SDD Hybrid — Trocar História'
         });
         if (!picked) { return; }
+
         if (picked.slug) {
             await setActiveStorySlug(this._context, picked.slug);
             vscode.window.showInformationMessage(`📖 História ativa: ${picked.slug}`);
-        } else {
-            await setActiveStorySlug(this._context, undefined);
-            vscode.window.showInformationMessage('➕ Próxima história (Specify ou Selecionar Arquivo) vai pedir um nome novo.');
+            return;
         }
+
+        if (picked.story) {
+            const targetDocPath = await importPoStory(workspaceRoot, this._context, picked.story);
+            if (!targetDocPath) { return; } // cancelado na confirmação de sobrescrita
+            vscode.window.showInformationMessage(`📋 ${picked.story.id} importada e ativa.`);
+            const doc = await vscode.workspace.openTextDocument(path.join(targetDocPath, 'user_story.md'));
+            await vscode.window.showTextDocument(doc, { preview: false });
+            return;
+        }
+
+        // "Nova história": pergunta o nome ali mesmo e já cria a pasta + template — antes só
+        // avisava pra ir clicar em outro botão, sem fazer nada de fato.
+        const stackDisplayName = getStackConfig(this._currentStackId()).displayName;
+        const targetDocPath = await createBlankUserStory(workspaceRoot, this._context, stackDisplayName);
+        vscode.window.showInformationMessage(`📖 Nova história criada: ${getActiveStorySlug(this._context)}`);
+        const doc = await vscode.workspace.openTextDocument(path.join(targetDocPath, 'user_story.md'));
+        await vscode.window.showTextDocument(doc, { preview: false });
     }
 
     private _checkMockupExists(workspaceRoot: string): boolean {

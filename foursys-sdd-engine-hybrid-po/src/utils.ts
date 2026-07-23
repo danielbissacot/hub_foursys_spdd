@@ -112,3 +112,106 @@ export async function ensureNewStorySlug(
     if (!fs.existsSync(docPath)) { fs.mkdirSync(docPath, { recursive: true }); }
     return docPath;
 }
+
+export interface UserStoryBlock {
+    id: string;
+    titulo: string;
+    conteudo: string;
+}
+
+// Divide o user_stories.md (plural, gerado pelo /po-stories) em blocos individuais
+// "## US-XXX: Titulo", parando antes da secao final "## Resumo do Backlog".
+export function parseUserStoryBlocks(raw: string): UserStoryBlock[] {
+    const lines = raw.split('\n');
+    const headingRegex = /^##\s+(US-\d+):\s*(.*)$/;
+    const stopRegex = /^##\s+Resumo do Backlog/i;
+    const blocks: UserStoryBlock[] = [];
+    let current: { id: string; titulo: string; startLine: number } | null = null;
+
+    const flush = (endLine: number) => {
+        if (current) {
+            blocks.push({
+                id: current.id,
+                titulo: current.titulo,
+                conteudo: lines.slice(current.startLine, endLine).join('\n').trim()
+            });
+        }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const headingMatch = line.match(headingRegex);
+        if (headingMatch) {
+            flush(i);
+            current = { id: headingMatch[1], titulo: headingMatch[2].trim(), startLine: i };
+            continue;
+        }
+        if (stopRegex.test(line)) {
+            flush(i);
+            current = null;
+        }
+    }
+    flush(lines.length);
+    return blocks;
+}
+
+/** Le doc_projeto/user_stories.md (se existir) e retorna os blocos ainda NAO individualizados
+ *  (sem subpasta propria em doc_projeto/<ID>/) — usado pelo "Trocar Historia" pra oferecer as
+ *  historias geradas pelo PO Agent que ainda nao viraram uma pasta de trabalho. */
+export function listPendingPoStories(rootPath: string, existingFolders: string[]): UserStoryBlock[] {
+    const userStoriesPath = path.join(rootPath, DOC_FOLDER, 'user_stories.md');
+    if (!fs.existsSync(userStoriesPath)) { return []; }
+    const raw = fs.readFileSync(userStoriesPath, 'utf8');
+    if (raw.trim() === '') { return []; }
+    return parseUserStoryBlocks(raw).filter(b => !existingFolders.includes(b.id));
+}
+
+/** Importa uma historia do PO Agent (bloco de user_stories.md) pra sua propria subpasta em
+ *  doc_projeto/<ID>/user_story.md, pedindo confirmacao se ja houver conteudo real la.
+ *  Retorna o caminho da subpasta, ou undefined se o usuario cancelar a sobrescrita. */
+export async function importPoStory(
+    rootPath: string,
+    context: vscode.ExtensionContext,
+    story: UserStoryBlock
+): Promise<string | undefined> {
+    const targetDocPath = await ensureNewStorySlug(rootPath, context, story.id);
+    const outputPath = path.join(targetDocPath, 'user_story.md');
+    if (fs.existsSync(outputPath)) {
+        const existing = fs.readFileSync(outputPath, 'utf8').trim();
+        if (existing.length > 100 && !existing.includes('DESCREVA AQUI')) {
+            const confirm = await vscode.window.showWarningMessage(
+                `⚠️ "user_story.md" já tem conteúdo.\nSobrescrever com "${story.id}"?`,
+                { modal: true },
+                'Sobrescrever',
+                'Cancelar'
+            );
+            if (confirm !== 'Sobrescrever') { return undefined; }
+        }
+    }
+    const importedContent = `> Origem: user_stories.md (PO Agent) — ${story.id}\n\n${story.conteudo}`;
+    fs.writeFileSync(outputPath, importedContent);
+    return targetDocPath;
+}
+
+/** Cria uma historia em branco (template padrao) numa subpasta de doc_projeto/, pedindo o nome
+ *  ali mesmo (via ensureNewStorySlug) se ainda nao houver historia ativa — ou reaproveitando a
+ *  pasta ja ativa. Usado pelo botao "Nova historia" e pelo Specify quando comeca do zero. */
+export async function createBlankUserStory(
+    rootPath: string,
+    context: vscode.ExtensionContext,
+    stackDisplayName: string
+): Promise<string> {
+    const targetDocPath = getActiveStorySlug(context)
+        ? resolveStoryDocPath(rootPath, context)
+        : await ensureNewStorySlug(rootPath, context);
+    const outputPath = path.join(targetDocPath, 'user_story.md');
+    const template = `# User Story\n\n**TECNOLOGIA:** ${stackDisplayName}\n\n## Necessidade de Negócio\nDESCREVA AQUI o que você precisa (quem/quer/para).\n\n## Regras de Negócio\n- Regra 1...\n\n## Critérios de Aceite\n- Dado... quando... então...`;
+    fs.writeFileSync(outputPath, template);
+
+    const techSpecPath = path.join(targetDocPath, 'technical_spec.md');
+    if (!fs.existsSync(techSpecPath)) {
+        const techTemplate = `# Technical Specification (opcional)\n\nCole aqui o detalhamento técnico: classes, endpoints, contratos de API,\nexemplos de código, yml, estrutura de pacotes, análise de impacto.\n\nEste arquivo é lido pela fase Plan. Mantenha apenas a história de negócio em user_story.md.\n`;
+        fs.writeFileSync(techSpecPath, techTemplate);
+    }
+    return targetDocPath;
+}

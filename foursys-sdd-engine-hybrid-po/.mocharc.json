@@ -1,0 +1,9 @@
+{
+    "require": [
+        "test/env-setup.js",
+        "ts-node/register",
+        "test/register-vscode-mock.js"
+    ],
+    "spec": "test/**/*.spec.ts",
+    "timeout": 10000
+}

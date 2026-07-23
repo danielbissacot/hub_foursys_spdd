@@ -33,6 +33,19 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         implementSkillTag: '#agente-angular-foursys',
         globalFilesExample: '| `app.config.ts` | Adicionar providers (provideHttpClient, provideRouter) | Descrição da mudança |\n| `app.routes.ts` | Registrar rota da feature | Descrição da mudança |\n| `index.html` | Adicionar fonte/biblioteca global | Descrição da mudança |'
     },
+    // Android ANTES do spring_boot: usa marker exclusivo (AndroidManifest.xml), sem conflito com build.gradle
+    android: {
+        id: 'android',
+        displayName: 'Android — Kotlin / Gradle',
+        fileExtensions: ['.kt', '.kts', '.java', '.xml', '.gradle'],
+        workspaceMarkers: ['app/src/main/AndroidManifest.xml'],
+        detectionKeywords: ['android', 'kotlin', 'gradle', 'androidmanifest', 'activity', 'fragment', 'jetpack', 'compose', 'viewmodel', 'room'],
+        playbookFolder: 'android',
+        skillsFolder: 'agents_skills/android',
+        agentFileName: 'AGENTE_ANDROID_FOURSYS.md',
+        implementSkillTag: '#agente-android-foursys',
+        globalFilesExample: '| `app/build.gradle.kts` | Adicionar dependência (Retrofit, Room, Hilt, etc.) | Descrição da mudança |\n| `app/src/main/AndroidManifest.xml` | Declarar permissão ou Activity/Service | Descrição da mudança |\n| `app/src/main/res/values/strings.xml` | Adicionar string de recurso | Descrição da mudança |'
+    },
     spring_boot: {
         id: 'spring_boot',
         displayName: 'Java 21 + Spring Boot',
@@ -69,18 +82,37 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         implementSkillTag: '#agente-cobol-foursys',
         globalFilesExample: '| `JCL/[NOME].jcl` | Adicionar step de execução do programa | Descrição da mudança |\n| `COPY/[NOME].cpy` | Definir estrutura de dados compartilhada (copybook) | Descrição da mudança |\n| `PROC/[NOME].prc` | Procedure de execução batch | Descrição da mudança |'
     },
-    generic: {
-        id: 'generic',
-        displayName: 'Genérica (outra)',
-        fileExtensions: ['.ts', '.js', '.py', '.java', '.cs', '.go', '.rs'],
-        workspaceMarkers: [],
-        detectionKeywords: [],
-        playbookFolder: 'generic',
-        skillsFolder: 'agents_skills/generic',
-        agentFileName: 'AGENTE_GENERIC_FOURSYS.md',
-        implementSkillTag: '#agente-generic-foursys',
-        globalFilesExample: '| `[arquivo de configuração]` | Registrar nova dependência ou configuração | Descrição da mudança |\n| `[ponto de entrada principal]` | Inicializar módulo/feature | Descrição da mudança |'
-    }
+    ios: {
+        id: 'ios',
+        displayName: 'iOS — Swift / Xcode',
+        fileExtensions: ['.swift', '.m', '.h', '.storyboard', '.xib', '.plist'],
+        workspaceMarkers: ['Podfile', 'Package.swift'],
+        detectionKeywords: ['ios', 'swift', 'xcode', 'cocoapods', 'swiftui', 'uikit', 'appdelegate', 'viewcontroller', 'xcodeproj'],
+        playbookFolder: 'ios',
+        skillsFolder: 'agents_skills/ios',
+        agentFileName: 'AGENTE_IOS_FOURSYS.md',
+        implementSkillTag: '#agente-ios-foursys',
+        globalFilesExample: '| `[Projeto].xcodeproj` | Adicionar target / dependência Swift Package | Descrição da mudança |\n| `Info.plist` | Declarar permissão (câmera, notificações, localização) | Descrição da mudança |\n| `Podfile` | Adicionar pod de terceiro (pod install após) | Descrição da mudança |'
+    },
+};
+
+// Fallback interno para stack não detectada/não reconhecida — de propósito NÃO faz parte
+// de STACK_REGISTRY, então nunca aparece como opção nos QuickPicks (getAllStacks() só
+// devolve stacks reais, com conteúdo de fato). playbookFolder aponta pra 'generic' porque
+// catalog/sdd/generic/ é o pool de playbooks compartilhado usado como fallback por TODAS
+// as stacks (ver loadPlaybookForStack em catalog-loader.ts) — isso é uma pasta de fallback,
+// não uma stack em si, e continua existindo normalmente.
+const UNKNOWN_STACK_CONFIG: StackConfig = {
+    id: 'unknown',
+    displayName: 'Não detectada',
+    fileExtensions: [],
+    workspaceMarkers: [],
+    detectionKeywords: [],
+    playbookFolder: 'generic',
+    skillsFolder: 'agents_skills/unknown',
+    agentFileName: 'AGENTE_UNKNOWN.md',
+    implementSkillTag: '#agente-nao-definido',
+    globalFilesExample: '| `[arquivo de configuração]` | Registrar nova dependência ou configuração | Descrição da mudança |\n| `[ponto de entrada principal]` | Inicializar módulo/feature | Descrição da mudança |'
 };
 
 export function getAllStacks(): StackConfig[] {
@@ -88,7 +120,7 @@ export function getAllStacks(): StackConfig[] {
 }
 
 export function getStackConfig(stackId: string): StackConfig {
-    return STACK_REGISTRY[stackId] ?? STACK_REGISTRY['generic'];
+    return STACK_REGISTRY[stackId] ?? UNKNOWN_STACK_CONFIG;
 }
 
 export function resolveStack(
@@ -103,7 +135,7 @@ export function resolveStack(
         if (match) {
             const declared = match[1].trim().toLowerCase();
             const resolved = _matchKeywordToStack(declared);
-            if (resolved !== 'generic') {
+            if (resolved !== 'unknown') {
                 return { stackId: resolved, confidence: 'declared', source: 'user_story.md' };
             }
         }
@@ -117,7 +149,7 @@ export function resolveStack(
     // Nível 3: workspace markers (arquivos que identificam a stack)
     if (workspaceRoot) {
         for (const [stackId, config] of Object.entries(STACK_REGISTRY)) {
-            if (stackId === 'generic' || stackId === 'node') { continue; }
+            if (stackId === 'node') { continue; }
             for (const marker of config.workspaceMarkers) {
                 if (fs.existsSync(path.join(workspaceRoot, marker))) {
                     return { stackId, confidence: 'workspace', source: marker };
@@ -144,6 +176,11 @@ export function resolveStack(
         if (files.some(f => f.endsWith('.cbl') || f.endsWith('.cobol') || f.endsWith('.cob'))) {
             return { stackId: 'cobol', confidence: 'workspace', source: 'arquivo .cbl detectado' };
         }
+
+        // iOS: .xcodeproj e .xcworkspace têm nome dinâmico — varredura de diretórios na raiz
+        if (files.some(f => f.endsWith('.xcodeproj') || f.endsWith('.xcworkspace'))) {
+            return { stackId: 'ios', confidence: 'workspace', source: 'diretório .xcodeproj/.xcworkspace detectado' };
+        }
     }
 
     // Nível 4: heurística por keywords no user_story.md
@@ -152,7 +189,6 @@ export function resolveStack(
         let bestMatch = '';
         let bestScore = 0;
         for (const [stackId, config] of Object.entries(STACK_REGISTRY)) {
-            if (stackId === 'generic') { continue; }
             const score = config.detectionKeywords.filter(kw => content.includes(kw)).length;
             if (score > bestScore) { bestScore = score; bestMatch = stackId; }
         }
@@ -169,5 +205,7 @@ function _matchKeywordToStack(text: string): string {
     if (text.includes('spring') || text.includes('java')) { return 'spring_boot'; }
     if (text.includes('node') || text.includes('nestjs') || text.includes('express')) { return 'node'; }
     if (text.includes('cobol')) { return 'cobol'; }
-    return 'generic';
+    if (text.includes('ios') || text.includes('swift') || text.includes('xcode') || text.includes('swiftui')) { return 'ios'; }
+    if (text.includes('android') || text.includes('kotlin') || text.includes('jetpack') || text.includes('compose')) { return 'android'; }
+    return 'unknown';
 }

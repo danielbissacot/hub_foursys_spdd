@@ -131,3 +131,40 @@ export function findSkillPlaybook(catalogPath: string, skillName: string): strin
     walk(skillsRoot);
     return found;
 }
+
+/**
+ * Resolve o arquivo .md de uma skill, suportando os dois layouts do catalogo:
+ * - flat: <skillDir>/SKILL.md (ou qualquer .md que nao seja README.md)
+ * - versionado: <skillDir>/<versao>/SKILL.md — usa a versao mais alta (comparacao semver simples)
+ */
+export function resolveSkillMdFile(skillDir: string): string | null {
+    if (!fs.existsSync(skillDir)) { return null; }
+
+    const entries = fs.readdirSync(skillDir, { withFileTypes: true });
+
+    const directMd = entries.find(e => !e.isDirectory() && e.name.endsWith('.md') && e.name.toUpperCase() !== 'README.MD');
+    if (directMd) { return path.join(skillDir, directMd.name); }
+
+    const versionDirs = entries
+        .filter(e => e.isDirectory() && /^\d+(\.\d+)*$/.test(e.name))
+        .map(e => e.name);
+
+    if (versionDirs.length === 0) { return null; }
+
+    const compareVersions = (a: string, b: string): number => {
+        const pa = a.split('.').map(Number);
+        const pb = b.split('.').map(Number);
+        for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+            const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+            if (diff !== 0) { return diff; }
+        }
+        return 0;
+    };
+
+    const latestVersion = versionDirs.sort(compareVersions).pop()!;
+    const versionPath = path.join(skillDir, latestVersion);
+    const md = fs.readdirSync(versionPath, { withFileTypes: true })
+        .find(e => !e.isDirectory() && e.name.endsWith('.md') && e.name.toUpperCase() !== 'README.MD');
+
+    return md ? path.join(versionPath, md.name) : null;
+}

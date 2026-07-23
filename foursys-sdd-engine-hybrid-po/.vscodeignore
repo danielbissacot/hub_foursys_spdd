@@ -4,3 +4,7 @@ tsconfig.json
 node_modules/
 .vscode-test/
 *.vsix
+telemetry-worker/
+test/
+.mocharc.json
+out-test/

@@ -2,11 +2,33 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { exec } from 'child_process';
-import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './stack-registry';
+import { execFile } from 'child_process';
+import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './engine/stack-registry';
+import { resolveSkillMdFile } from './engine/catalog-loader';
+import {
+    checkFigmaMcpConfigured, pickAndReadDocumentFile, resolveStoryDocPath, ensureNewStorySlug,
+    getActiveStorySlug, setActiveStorySlug, listStoryFolders,
+    UserStoryBlock, listPendingPoStories, importPoStory, createBlankUserStory
+} from './utils';
+import { trackEvent } from './telemetry';
+import { MEND_EXTENSION_ID as MEND_EXT_ID, MEND_LICENSE_KEY } from './mend-config';
 
-const MEND_EXT_ID = 'mend.mend-advise';
 const FIGMA_EXT_ID = 'figma.figma-vscode-extension';
+
+interface UiState {
+    isConnected: boolean;
+    detection: StackDetectionResult;
+    mendInstalled: boolean;
+    mendInstalling: boolean;
+    storyHasContent: boolean;
+    activeStorySlug: string | undefined;
+    qaScriptsReady: boolean;
+    casosTesteReady: boolean;
+    mockupExists: boolean;
+    activeDesignSystem: string | null;
+    figmaExtInstalled: boolean;
+    figmaMcpConfigured: boolean;
+}
 
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'foursys-sdd-po-view';
@@ -28,20 +50,25 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 ? vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)?.uri.fsPath
                 : undefined;
             const workspaceRoot = activeFolder ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
-            const isConnected = this._checkConnection(workspaceRoot);
-            const detection = this._detectStack(workspaceRoot);
             const mendInstalled = !!vscode.extensions.getExtension(MEND_EXT_ID);
             // Limpa estado "instalando" se Mend não está presente (desinstalado ou falhou)
             if (!mendInstalled) { this._context.workspaceState.update('mendInstalling', false); }
-            const mendInstalling = !!this._context.workspaceState.get('mendInstalling');
-            const storyHasContent = this._checkStoryHasContent(workspaceRoot);
-            const qaScriptsReady = this._checkQaScriptsReady(workspaceRoot);
-            const casosTesteReady = this._checkCasosTesteReady(workspaceRoot);
-            const mockupExists = this._checkMockupExists(workspaceRoot);
             const figmaExtInstalled = !!vscode.extensions.getExtension(FIGMA_EXT_ID);
-            const figmaMcpConfigured = figmaExtInstalled && this._checkFigmaMcpConfigured();
-            const activeDesignSystem = this._context.workspaceState.get<string>('activeDesignSystem') || null;
-            webviewView.webview.html = this._getHtmlForWebview(isConnected, detection, mendInstalled, mendInstalling, storyHasContent, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured);
+            const state: UiState = {
+                isConnected: this._checkConnection(workspaceRoot),
+                detection: this._detectStack(workspaceRoot),
+                mendInstalled,
+                mendInstalling: !!this._context.workspaceState.get('mendInstalling'),
+                storyHasContent: this._checkStoryHasContent(workspaceRoot),
+                activeStorySlug: getActiveStorySlug(this._context),
+                qaScriptsReady: this._checkQaScriptsReady(workspaceRoot),
+                casosTesteReady: this._checkCasosTesteReady(workspaceRoot),
+                mockupExists: this._checkMockupExists(workspaceRoot),
+                activeDesignSystem: this._context.workspaceState.get<string>('activeDesignSystem') || null,
+                figmaExtInstalled,
+                figmaMcpConfigured: figmaExtInstalled && this._checkFigmaMcpConfigured(),
+            };
+            webviewView.webview.html = this._getHtmlForWebview(state);
         };
 
         updateWebview();
@@ -50,19 +77,27 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         const initRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         if (initRoot) { this._updateGitignore(initRoot); }
 
+        // Debounce: evita múltiplos re-renders ao salvar arquivos grandes em sequência
+        let _debounceTimer: ReturnType<typeof setTimeout> | undefined;
+        const debouncedUpdate = () => {
+            if (_debounceTimer) { clearTimeout(_debounceTimer); }
+            _debounceTimer = setTimeout(updateWebview, 300);
+        };
+
         // Atualiza sidebar quando o editor ativo muda de projeto
         vscode.window.onDidChangeActiveTextEditor(() => updateWebview(), undefined, this._context.subscriptions);
 
         // Atualiza sidebar quando arquivos em doc_projeto/ são criados ou modificados
         const docWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/**/*.md');
-        docWatcher.onDidCreate(() => updateWebview());
-        docWatcher.onDidChange(() => updateWebview());
+        docWatcher.onDidCreate(() => debouncedUpdate());
+        docWatcher.onDidChange(() => debouncedUpdate());
         this._context.subscriptions.push(docWatcher);
 
-        // Atualiza sidebar quando mockup é adicionado ou removido
-        const screensWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/screens/**');
-        screensWatcher.onDidCreate(() => updateWebview());
-        screensWatcher.onDidDelete(() => updateWebview());
+        // Atualiza sidebar quando mockup é adicionado ou removido (screens/ pode estar direto em
+        // doc_projeto/ em projetos antigos, ou dentro da subpasta da história ativa)
+        const screensWatcher = vscode.workspace.createFileSystemWatcher('**/doc_projeto/**/screens/**');
+        screensWatcher.onDidCreate(() => debouncedUpdate());
+        screensWatcher.onDidDelete(() => debouncedUpdate());
         this._context.subscriptions.push(screensWatcher);
 
         webviewView.webview.onDidReceiveMessage(async data => {
@@ -80,6 +115,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'Specify':
                     vscode.commands.executeCommand('foursys.specify');
+                    break;
+                case 'SelectStoryFile':
+                    await this._selectStoryFile();
+                    updateWebview();
+                    break;
+                case 'SwitchStory':
+                    await this._switchStory();
+                    updateWebview();
                     break;
                 case 'Plan':
                     vscode.commands.executeCommand('foursys.plan');
@@ -185,9 +228,16 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     });
                     if (pickedPb) {
                         const filename = path.basename(pickedPb.filepath);
+                        await trackEvent(this._context, undefined, {
+                            event: 'playbook_clicked',
+                            command: filename,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /playbook ${filename} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /playbook ${filename} `,
+                            // false = envia direto (acceptInput), sem isso o texto so fica no
+                            // campo aguardando Enter manual e parece que nada aconteceu.
+                            isPartialQuery: false
                         });
                     }
                     break;
@@ -217,9 +267,16 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     });
                     if (picked) {
                         const filename = path.basename(picked.filepath);
+                        await trackEvent(this._context, undefined, {
+                            event: 'skill_clicked',
+                            command: filename,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /skill ${filename} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /skill ${filename} `,
+                            // false = envia direto (acceptInput), sem isso o texto so fica no
+                            // campo aguardando Enter manual e parece que nada aconteceu.
+                            isPartialQuery: false
                         });
                     }
                     break;
@@ -262,15 +319,27 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 default: {
                     if (typeof data.value === 'string' && data.value.startsWith('RunSkill:')) {
                         const slug = data.value.replace('RunSkill:', '');
+                        await trackEvent(this._context, undefined, {
+                            event: 'skill_clicked',
+                            command: slug,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /skill ${slug} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /skill ${slug} `,
+                            // false = envia direto (acceptInput), sem isso o texto so fica no
+                            // campo aguardando Enter manual e parece que nada aconteceu.
+                            isPartialQuery: false
                         });
                     } else if (typeof data.value === 'string' && data.value.startsWith('RunPlaybook:')) {
                         const slug = data.value.replace('RunPlaybook:', '');
+                        await trackEvent(this._context, undefined, {
+                            event: 'playbook_clicked',
+                            command: slug,
+                            stack: this._currentStackId()
+                        });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /playbook ${slug} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /playbook ${slug} `,
+                            isPartialQuery: false
                         });
                     }
                     break;
@@ -318,7 +387,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             if (choice === 'Recarregar Agora') {
                 vscode.commands.executeCommand('workbench.action.reloadWindow');
             } else if (choice === 'Copiar Chave de Licença') {
-                await vscode.env.clipboard.writeText('ef149a32-1038-40b2-9917-436a1266ed17');
+                await vscode.env.clipboard.writeText(MEND_LICENSE_KEY);
                 vscode.window.showInformationMessage('🔑 Chave copiada! Cole no wizard de ativação do Mend.');
             }
         } catch {
@@ -335,9 +404,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
     private _detectStack(workspaceRoot: string): StackDetectionResult {
         const savedStack = this._context.workspaceState.get<string>('activeStack');
-        const docPath = workspaceRoot ? path.join(workspaceRoot, 'doc_projeto') : undefined;
-        const userStoryPath = docPath ? path.join(docPath, 'user_story.md') : undefined;
+        const userStoryPath = workspaceRoot
+            ? path.join(resolveStoryDocPath(workspaceRoot, this._context), 'user_story.md')
+            : undefined;
         return resolveStack(workspaceRoot || undefined, userStoryPath, savedStack);
+    }
+
+    /** Stack ativa pra telemetria: usa a mesma detecção (manual ou automática, ex: pom.xml) exibida na sidebar. */
+    private _currentStackId(): string {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        const detection = this._detectStack(workspaceRoot);
+        return detection.stackId;
     }
 
     private async _openStackPicker() {
@@ -350,46 +427,122 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         if (picked) {
             await this._context.workspaceState.update('activeStack', picked.stackId);
             vscode.window.showInformationMessage(`✅ Stack ativa: ${picked.label}`);
+            await trackEvent(this._context, undefined, { event: 'stack_selected', stack: picked.stackId });
         }
     }
 
     private _checkQaScriptsReady(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'scripts_automacao.md'));
+        return fs.existsSync(path.join(resolveStoryDocPath(workspaceRoot, this._context), 'qa', 'roteiros_teste.md'));
     }
 
     private _checkCasosTesteReady(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        return fs.existsSync(path.join(workspaceRoot, 'doc_projeto', 'qa', 'casos_teste.md'));
+        return fs.existsSync(path.join(resolveStoryDocPath(workspaceRoot, this._context), 'qa', 'casos_teste.md'));
     }
 
     private _checkFigmaMcpConfigured(): boolean {
-        try {
-            let mcpPath: string;
-            if (process.platform === 'win32') {
-                mcpPath = path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
-            } else if (process.platform === 'darwin') {
-                mcpPath = path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'mcp.json');
-            } else {
-                mcpPath = path.join(os.homedir(), '.config', 'Code', 'User', 'mcp.json');
-            }
-            if (!fs.existsSync(mcpPath)) { return false; }
-            const cfg = JSON.parse(fs.readFileSync(mcpPath, 'utf-8'));
-            return !!cfg?.servers?.figmaRemoteMcp;
-        } catch { return false; }
+        return checkFigmaMcpConfigured();
     }
 
     private _checkStoryHasContent(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        const storyPath = path.join(workspaceRoot, 'doc_projeto', 'user_story.md');
+        const storyPath = path.join(resolveStoryDocPath(workspaceRoot, this._context), 'user_story.md');
         if (!fs.existsSync(storyPath)) { return false; }
         const content = fs.readFileSync(storyPath, 'utf8');
         return content.trim().length > 50 && !content.includes('DESCREVA AQUI');
     }
 
+    private async _selectStoryFile(): Promise<void> {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        if (!workspaceRoot) {
+            vscode.window.showWarningMessage('Abra uma pasta no VS Code primeiro (File → Open Folder).');
+            return;
+        }
+        const picked = await pickAndReadDocumentFile('Selecionar história de usuário');
+        if (!picked) { return; }
+        if (!picked.fileContent.trim()) {
+            vscode.window.showWarningMessage(
+                `⚠️ Não foi possível ler o texto de "${picked.fileName}". Use um arquivo .md, .txt, .csv ou .json, ou cole o texto manualmente no Specify.`
+            );
+            return;
+        }
+        // O arquivo escolhido vira uma história nova, nomeada a partir do próprio nome do arquivo.
+        const suggestedName = picked.fileName.replace(/\.[^.]+$/, '');
+        const docFolder = await ensureNewStorySlug(workspaceRoot, this._context, suggestedName);
+        const outputPath = path.join(docFolder, 'user_story.md');
+        if (fs.existsSync(outputPath)) {
+            const existing = fs.readFileSync(outputPath, 'utf8').trim();
+            if (existing.length > 50 && !existing.includes('DESCREVA AQUI')) {
+                const confirm = await vscode.window.showWarningMessage(
+                    `⚠️ "user_story.md" já tem conteúdo.\nSobrescrever com "${picked.fileName}"?`,
+                    { modal: true },
+                    'Sobrescrever',
+                    'Cancelar'
+                );
+                if (confirm !== 'Sobrescrever') { return; }
+            }
+        }
+        fs.writeFileSync(outputPath, `> Origem: ${picked.fileName} (arquivo importado)\n\n${picked.fileContent}`);
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(outputPath));
+        await vscode.window.showTextDocument(doc);
+        vscode.window.showInformationMessage('📁 História importada. Clique em "Specify" para analisar.');
+    }
+
+    private async _switchStory(): Promise<void> {
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        if (!workspaceRoot) {
+            vscode.window.showWarningMessage('Abra uma pasta no VS Code primeiro (File → Open Folder).');
+            return;
+        }
+        const currentSlug = getActiveStorySlug(this._context);
+        const folders = listStoryFolders(workspaceRoot);
+        // Historias que o PO Agent ja gerou em user_stories.md mas que ainda nao viraram pasta
+        // propria — sem isso, ficam invisiveis aqui mesmo depois de "salvas" pelo painel PO.
+        const pendingPoStories = listPendingPoStories(workspaceRoot, folders);
+
+        const items: { label: string; description?: string; slug?: string; story?: UserStoryBlock; isNew?: boolean }[] = [
+            ...folders.map(slug => ({ label: `${slug === currentSlug ? '✅' : '📖'} ${slug}` as string, slug })),
+            ...pendingPoStories.map(story => ({
+                label: `📋 ${story.id}: ${story.titulo}`,
+                description: 'gerada pelo PO Agent — ainda não especificada',
+                story
+            })),
+            { label: '➕ Nova história', isNew: true }
+        ];
+        const picked = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Selecione a história ativa',
+            title: 'Foursys SDD Hybrid — Trocar História'
+        });
+        if (!picked) { return; }
+
+        if (picked.slug) {
+            await setActiveStorySlug(this._context, picked.slug);
+            vscode.window.showInformationMessage(`📖 História ativa: ${picked.slug}`);
+            return;
+        }
+
+        if (picked.story) {
+            const targetDocPath = await importPoStory(workspaceRoot, this._context, picked.story);
+            if (!targetDocPath) { return; } // cancelado na confirmação de sobrescrita
+            vscode.window.showInformationMessage(`📋 ${picked.story.id} importada e ativa.`);
+            const doc = await vscode.workspace.openTextDocument(path.join(targetDocPath, 'user_story.md'));
+            await vscode.window.showTextDocument(doc, { preview: false });
+            return;
+        }
+
+        // "Nova história": pergunta o nome ali mesmo e já cria a pasta + template — antes só
+        // avisava pra ir clicar em outro botão, sem fazer nada de fato.
+        const stackDisplayName = getStackConfig(this._currentStackId()).displayName;
+        const targetDocPath = await createBlankUserStory(workspaceRoot, this._context, stackDisplayName);
+        vscode.window.showInformationMessage(`📖 Nova história criada: ${getActiveStorySlug(this._context)}`);
+        const doc = await vscode.workspace.openTextDocument(path.join(targetDocPath, 'user_story.md'));
+        await vscode.window.showTextDocument(doc, { preview: false });
+    }
+
     private _checkMockupExists(workspaceRoot: string): boolean {
         if (!workspaceRoot) { return false; }
-        const screensDir = path.join(workspaceRoot, 'doc_projeto', 'screens');
+        const screensDir = path.join(resolveStoryDocPath(workspaceRoot, this._context), 'screens');
         if (!fs.existsSync(screensDir)) { return false; }
         return fs.readdirSync(screensDir).some(f => /\.(png|jpg|jpeg|svg|webp)$/i.test(f));
     }
@@ -452,6 +605,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             { id: 'cobol',       label: 'COBOL',                   color: '#80cbc4', folder: 'agents_skills/cobol/skills' },
             { id: 'ios',         label: 'iOS — Swift / Xcode',     color: '#a0c4ff', folder: 'agents_skills/ios/skills' },
             { id: 'android',     label: 'Android — Kotlin',        color: '#b5ead7', folder: 'agents_skills/android/skills' },
+            // Sem entrada correspondente em STACK_REGISTRY/stack-registry.ts de proposito:
+            // so exibe a secao no catalogo, nao participa da deteccao automatica de stack.
+            { id: 'java-legado', label: 'Java Legado',             color: '#a1887f', folder: 'agents_skills/java-legado/skills' },
         ];
 
         const stacks = STACKS.map(s => ({
@@ -463,9 +619,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }));
 
         const shared = getSkillSlugs(path.join(catalogPath, 'agents_skills', 'shared', 'skills'));
+        // Sem sufixo /skills — mesmo caminho usado por _syncHub() pra copiar as skills de PO (ver _injectCopilotCustomizations)
+        const productOwner = getSkillSlugs(path.join(catalogPath, 'agents_skills', 'product-owner'));
         const custom = getMd(path.join(globalStoragePath, 'custom-skills'));
 
-        return { playbooks, stacks, shared, custom };
+        return { playbooks, stacks, shared, productOwner, custom };
     }
 
     private _buildCatalogHtml(data: ReturnType<FoursysSDDSidebarProvider['_loadCatalogData']>): string {
@@ -538,6 +696,18 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             html += `</div></div>`;
         }
 
+        // ── Product Owner ──
+        if (data.productOwner.length > 0) {
+            html += `<div class="catalog-section" id="sec-po">`;
+            html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-po')">`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ff8a65"></span>🎯 Product Owner</span>`;
+            html += `<span class="catalog-chevron">▶</span></div>`;
+            html += `<div class="catalog-section-body">`;
+            html += skillSearch('sec-po', 'Buscar skill...');
+            for (const s of data.productOwner) { html += skillItem(s, 'skill'); }
+            html += `</div></div>`;
+        }
+
         // ── Custom Skills ──
         html += `<div class="catalog-section" id="sec-custom">`;
         html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-custom')">`;
@@ -578,36 +748,42 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         const agentsPath = path.join(globalStoragePath, 'hub');
         const exists = fs.existsSync(agentsPath);
 
+        const runGit = (args: string[], cwd: string): Promise<void> =>
+            new Promise((resolve, reject) => {
+                execFile('git', args, { cwd }, (error) => error ? reject(error) : resolve());
+            });
+
         return vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: exists ? 'Atualizando Agentes do Hub...' : 'Baixando Agentes do Hub...',
             cancellable: false
         }, async () => {
-            return new Promise<void>((resolve) => {
-                const cmd = exists
-                    ? 'git fetch origin main && git reset --hard origin/main'
-                    : 'git clone --filter=blob:none --no-checkout --depth 1 --branch main https://github.com/danielbissacot/hub_foursys_spdd.git hub && cd hub && git sparse-checkout init --cone && git sparse-checkout set catalog && git checkout main';
-
-                exec(cmd, { cwd: exists ? agentsPath : globalStoragePath }, (error) => {
-                    if (error) {
-                        vscode.window.showErrorMessage(`Erro na sincronização: ${error.message}`);
-                        resolve();
-                    } else {
-                        const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
-                        this._context.globalState.update('catalogPath', catalogPath);
-                        const detection = this._detectStack(workspaceRoot);
-                        const stackId = detection.stackId === 'unknown' ? 'generic' : detection.stackId;
-                        const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
-                        this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
-                        this._cleanupLegacy(workspaceRoot);
-                        this._updateGitignore(workspaceRoot);
-                        vscode.window.showInformationMessage(
-                            exists ? 'Agentes atualizados! (Copilot Skills Injetadas)' : 'Hub conectado com sucesso! (Copilot Skills Injetadas)'
-                        );
-                        resolve();
-                    }
-                });
-            });
+            try {
+                if (exists) {
+                    await runGit(['fetch', 'origin', 'main'], agentsPath);
+                    await runGit(['reset', '--hard', 'origin/main'], agentsPath);
+                } else {
+                    await runGit(['clone', '--filter=blob:none', '--no-checkout', '--depth', '1',
+                        '--branch', 'main', 'https://github.com/danielbissacot/hub_foursys_spdd.git', 'hub'], globalStoragePath);
+                    await runGit(['sparse-checkout', 'init', '--cone'], agentsPath);
+                    await runGit(['sparse-checkout', 'set', 'catalog'], agentsPath);
+                    await runGit(['checkout', 'main'], agentsPath);
+                }
+                const catalogPath = path.join(globalStoragePath, 'hub', 'catalog');
+                this._context.globalState.update('catalogPath', catalogPath);
+                const detection = this._detectStack(workspaceRoot);
+                const stackId = detection.stackId;
+                const activeDs = this._context.workspaceState.get<string>('activeDesignSystem') || undefined;
+                this._injectCopilotCustomizations(workspaceRoot, catalogPath, stackId, activeDs);
+                this._cleanupLegacy(workspaceRoot);
+                this._updateGitignore(workspaceRoot);
+                vscode.window.showInformationMessage(
+                    exists ? 'Agentes atualizados! (Copilot Skills Injetadas)' : 'Hub conectado com sucesso! (Copilot Skills Injetadas)'
+                );
+            } catch (error: unknown) {
+                const msg = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Erro na sincronização: ${msg}`);
+            }
         });
     }
 
@@ -633,7 +809,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             if (!fs.existsSync(githubDir)) { fs.mkdirSync(githubDir, { recursive: true }); }
             fs.writeFileSync(
                 path.join(githubDir, 'copilot-instructions.md'),
-                `# Foursys SDD — ${stackId}\nUse @foursys_sdd para geração guiada. Stack: ${stackId}.\n`
+                `# Foursys SDD — ${stackId}\nUse @foursys_sdd_po para geração guiada. Stack: ${stackId}.\n`
             );
 
             // 2. Skills → global storage — isola o contexto do Copilot, fora do projeto
@@ -641,32 +817,32 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             if (!fs.existsSync(skillsDir)) { fs.mkdirSync(skillsDir, { recursive: true }); }
             for (const f of fs.readdirSync(skillsDir)) { fs.rmSync(path.join(skillsDir, f)); }
 
-            const getMdFiles = (dir: string): string[] => {
-                let result: string[] = [];
-                for (const f of fs.readdirSync(dir)) {
-                    const full = path.join(dir, f);
-                    if (fs.statSync(full).isDirectory()) { result = result.concat(getMdFiles(full)); }
-                    else if (f.endsWith('.md')) { result.push(full); }
+            // Copia cada subpasta de primeiro nível (uma por skill) usando resolveSkillMdFile,
+            // que suporta tanto layout flat (SKILL.md direto) quanto versionado (<skill>/<versao>/SKILL.md).
+            // Nomeia o destino pelo nome da PASTA da skill (não pelo basename do arquivo, que é sempre
+            // "SKILL.md" e antes colidia todas as skills de uma stack em um único skill.md sobrescrito).
+            const copySkillsFrom = (skillsRootPath: string) => {
+                if (!fs.existsSync(skillsRootPath)) { return; }
+                for (const entry of fs.readdirSync(skillsRootPath, { withFileTypes: true })) {
+                    if (!entry.isDirectory()) { continue; }
+                    const skillDir = path.join(skillsRootPath, entry.name);
+                    const md = resolveSkillMdFile(skillDir);
+                    if (!md) { continue; }
+                    const skillName = entry.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                    fs.copyFileSync(md, path.join(skillsDir, `${skillName}.md`));
                 }
-                return result;
             };
 
             const activeSkillsPath = path.join(catalogPath, config.skillsFolder);
-            if (fs.existsSync(activeSkillsPath)) {
-                for (const fullPath of getMdFiles(activeSkillsPath)) {
-                    const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                    fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));
-                }
-            }
+            copySkillsFrom(activeSkillsPath);
 
             // 2b. Skills compartilhadas (agnósticas de stack: playwright, tdd, verificacao, code-review)
             const sharedSkillsPath = path.join(catalogPath, 'agents_skills', 'shared', 'skills');
-            if (fs.existsSync(sharedSkillsPath)) {
-                for (const fullPath of getMdFiles(sharedSkillsPath)) {
-                    const skillName = path.basename(fullPath, '.md').toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                    fs.copyFileSync(fullPath, path.join(skillsDir, `${skillName}.md`));
-                }
-            }
+            copySkillsFrom(sharedSkillsPath);
+
+            // 2c. Skills do Product Owner (business-reviewer, bpmn-generator, apf-rules, etc.)
+            const poSkillsPath = path.join(catalogPath, 'agents_skills', 'product-owner');
+            copySkillsFrom(poSkillsPath);
 
             // 3. Design systems — injetar apenas o selecionado (retrocompatível: todos se nenhum selecionado)
             const dsPath = path.join(catalogPath, 'design-systems');
@@ -732,7 +908,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview(isConnected: boolean, detection: StackDetectionResult, mendInstalled: boolean, mendInstalling: boolean = false, storyHasContent: boolean = false, qaScriptsReady: boolean = false, casosTesteReady: boolean = false, mockupExists: boolean = false, activeDesignSystem: string | null = null, figmaExtInstalled: boolean = false, figmaMcpConfigured: boolean = false) {
+    private _getHtmlForWebview({ isConnected, detection, mendInstalled, mendInstalling, storyHasContent, activeStorySlug, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured }: UiState) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const catalogData = this._loadCatalogData(stackId);
         const catalogHtml = this._buildCatalogHtml(catalogData);
@@ -818,6 +994,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             font-size: 11px;
             background: rgba(33,150,243,0.12);
             border: 1px solid rgba(33,150,243,0.3);
+        }
+        .story-badge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.18);
         }
         .btn-mockup {
             background: rgba(255,255,255,0.03);
@@ -972,6 +1159,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
         .btn-skill:hover { opacity: 1; background: rgba(255,255,255,0.1); }
 
+        .specify-row { display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px; }
+        .specify-row .btn { width: auto; flex: 1.4; margin-bottom: 0; }
+        .specify-row .btn-mockup-sm { flex: 1; margin-bottom: 0; }
         .figma-row { display: flex; gap: 6px; margin-bottom: 4px; }
         .mockup-row {
             display: flex;
@@ -1045,7 +1235,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 <body>
     <div class="header">
         <h3 class="title">🚀 Foursys SDD Hybrid</h3>
-        <span class="version">v1.1.3 — Product Owner Agent</span>
+        <span class="version">v${this._context.extension.packageJSON.version} — Product Owner Agent</span>
     </div>
 
     <div class="stack-badge">
@@ -1074,6 +1264,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     <!-- TAB DEV -->
     <div id="tab-dev" class="tab-content active">
         <div class="section-label">Workflow SDD</div>
+        <div class="story-badge">
+            <div class="stack-info">
+                <span class="stack-name">📖 ${activeStorySlug ?? 'nenhuma história ativa'}</span>
+                <span class="stack-source">história ativa</span>
+            </div>
+            <button class="btn-trocar" onclick="sendAction('SwitchStory')">🔄 Trocar</button>
+        </div>
         <div class="${isConnected ? '' : 'disabled'}">
             ${stackId === 'angular' || isMobile ? `
             <div class="figma-row">
@@ -1097,13 +1294,19 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 <span class="step-number">0</span>
                 <span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança & padrões</span></span>
             </button>
-            <button class="btn ${stackUnknown ? 'btn-alert' : storyHasContent ? 'btn-ready' : ''}" onclick="sendAction('Specify')">
-                <span class="step-number">1</span>
-                <span class="step-label">
-                    <span class="step-title">${storyHasContent ? '🔍 Specify (analisar)' : '📝 Specify (criar)'}</span>
-                    <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
-                </span>
-            </button>
+            <div class="specify-row">
+                <button class="btn ${stackUnknown ? 'btn-alert' : storyHasContent ? 'btn-ready' : ''}" onclick="sendAction('Specify')">
+                    <span class="step-number">1</span>
+                    <span class="step-label">
+                        <span class="step-title">${storyHasContent ? '🔍 Specify (analisar)' : '📝 Specify (criar)'}</span>
+                        <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
+                    </span>
+                </button>
+                <button class="btn-mockup-sm" onclick="sendAction('SelectStoryFile')"
+                    title="Selecionar um arquivo com história pronta (de qualquer origem) para usar no Specify">
+                    📁 Selecionar Arquivo
+                </button>
+            </div>
             ${stackId === 'angular' ? `
             <div class="mockup-row">
                 <button class="btn-mockup-sm ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')"

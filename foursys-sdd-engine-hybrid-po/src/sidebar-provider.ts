@@ -579,6 +579,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             { id: 'cobol',       label: 'COBOL',                   color: '#80cbc4', folder: 'agents_skills/cobol/skills' },
             { id: 'ios',         label: 'iOS — Swift / Xcode',     color: '#a0c4ff', folder: 'agents_skills/ios/skills' },
             { id: 'android',     label: 'Android — Kotlin',        color: '#b5ead7', folder: 'agents_skills/android/skills' },
+            // Sem entrada correspondente em STACK_REGISTRY/stack-registry.ts de proposito:
+            // so exibe a secao no catalogo, nao participa da deteccao automatica de stack.
+            { id: 'java-legado', label: 'Java Legado',             color: '#a1887f', folder: 'agents_skills/java-legado/skills' },
         ];
 
         const stacks = STACKS.map(s => ({

@@ -233,8 +233,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                             stack: this._currentStackId()
                         });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /playbook ${filename} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /playbook ${filename} `,
+                            // false = envia direto (acceptInput), sem isso o texto so fica no
+                            // campo aguardando Enter manual e parece que nada aconteceu.
+                            isPartialQuery: false
                         });
                     }
                     break;
@@ -270,8 +272,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                             stack: this._currentStackId()
                         });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /skill ${filename} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /skill ${filename} `,
+                            // false = envia direto (acceptInput), sem isso o texto so fica no
+                            // campo aguardando Enter manual e parece que nada aconteceu.
+                            isPartialQuery: false
                         });
                     }
                     break;
@@ -320,8 +324,10 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                             stack: this._currentStackId()
                         });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /skill ${slug} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /skill ${slug} `,
+                            // false = envia direto (acceptInput), sem isso o texto so fica no
+                            // campo aguardando Enter manual e parece que nada aconteceu.
+                            isPartialQuery: false
                         });
                     } else if (typeof data.value === 'string' && data.value.startsWith('RunPlaybook:')) {
                         const slug = data.value.replace('RunPlaybook:', '');
@@ -331,8 +337,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                             stack: this._currentStackId()
                         });
                         await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd /playbook ${slug} `,
-                            isPartialQuery: true
+                            query: `@foursys_sdd_po /playbook ${slug} `,
+                            isPartialQuery: false
                         });
                     }
                     break;
@@ -774,7 +780,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             if (!fs.existsSync(githubDir)) { fs.mkdirSync(githubDir, { recursive: true }); }
             fs.writeFileSync(
                 path.join(githubDir, 'copilot-instructions.md'),
-                `# Foursys SDD — ${stackId}\nUse @foursys_sdd para geração guiada. Stack: ${stackId}.\n`
+                `# Foursys SDD — ${stackId}\nUse @foursys_sdd_po para geração guiada. Stack: ${stackId}.\n`
             );
 
             // 2. Skills → global storage — isola o contexto do Copilot, fora do projeto

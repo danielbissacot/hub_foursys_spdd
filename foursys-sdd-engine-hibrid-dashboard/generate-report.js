@@ -7,12 +7,12 @@ const path = require('path');
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPO || 'danielbissacot/sdd-telemetry-data';
-
-if (!GITHUB_TOKEN) {
-    console.error('Erro: defina a variável de ambiente GITHUB_TOKEN antes de rodar.');
-    console.error('Exemplo (PowerShell): $env:GITHUB_TOKEN="seu_token"; node generate-report.js');
-    process.exit(1);
-}
+const WORKER_URL = process.env.TELEMETRY_WORKER_URL || 'https://foursys-sdd-telemetry.foursys-sdd.workers.dev';
+// Opcional: valor de DASHBOARD_READ_SECRET configurado no Worker (ver telemetry-worker/worker.js).
+// Só é usado para o botão "Atualizar dados" no navegador — NUNCA é o GITHUB_TOKEN, então mesmo se
+// esse valor vazar, quem tiver não ganha acesso de escrita nem consegue navegar o repositório: só
+// consegue reler o mesmo snapshot que este script já embute no report.html.
+const DASHBOARD_READ_SECRET = process.env.DASHBOARD_READ_SECRET || '';
 
 function githubRequest(apiPath) {
     return new Promise((resolve, reject) => {
@@ -66,6 +66,7 @@ async function fetchAllEvents() {
 function renderHtml(events) {
     const embeddedEvents = JSON.stringify(events);
     const generatedAt = new Date().toLocaleString('pt-BR');
+    const hasLiveRefresh = !!DASHBOARD_READ_SECRET;
 
     return `<!doctype html>
 <html lang="pt-BR">
@@ -119,14 +120,41 @@ function renderHtml(events) {
       <p class="text-muted small mb-0" id="sourceInfo">Snapshot gerado em ${generatedAt} — fonte: repositório - Foursys HUB</p>
     </div>
     <div class="d-flex align-items-center gap-2">
+      ${hasLiveRefresh ? `
       <span id="refreshStatus" class="text-muted small"></span>
       <button id="refreshBtn" class="btn btn-primary btn-sm">🔄 Atualizar dados</button>
+      ` : `
+      <span class="text-muted small">Rode <code>node generate-report.js</code> novamente para atualizar o snapshot.</span>
+      `}
     </div>
   </div>
 </div>
 
 <div class="container pb-5">
-    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3 mb-4" id="summaryCards"></div>
+    <div class="card mb-4"><div class="card-body">
+        <div class="d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label small text-muted mb-1" for="filterStack">Stack</label>
+                <select id="filterStack" class="form-select form-select-sm" style="min-width:160px"><option value="">Todas as stacks</option></select>
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1" for="filterEventType">Tipo de evento</label>
+                <select id="filterEventType" class="form-select form-select-sm" style="min-width:200px"><option value="">Todos os tipos</option></select>
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1" for="filterFrom">De</label>
+                <input type="date" id="filterFrom" class="form-control form-control-sm">
+            </div>
+            <div>
+                <label class="form-label small text-muted mb-1" for="filterTo">Até</label>
+                <input type="date" id="filterTo" class="form-control form-control-sm">
+            </div>
+            <button id="clearFiltersBtn" class="btn btn-outline-secondary btn-sm">Limpar filtros</button>
+            <button id="exportCsvBtn" class="btn btn-primary btn-sm ms-auto">⬇️ Exportar CSV</button>
+        </div>
+    </div></div>
+
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3 mb-4" id="summaryCards"></div>
 
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
@@ -162,8 +190,9 @@ function renderHtml(events) {
         </div>
         <div class="col-lg-6">
             <div class="card h-100"><div class="card-body">
-                <h2 class="card-title mb-2">Top Comandos / Skills</h2>
-                <canvas id="chartTopCommands" height="220"></canvas>
+                <h2 class="card-title mb-1">Top Comandos / Skills</h2>
+                <p class="text-muted small mb-2">Pra skills/playbooks, mostra se a execução veio de um clique na sidebar/Painel PO ou de <code>/skill</code> digitado direto no chat (inferido por correlação de tempo — pode errar em casos raros). Fases SDD (constitution, specify...) não têm essa distinção hoje.</p>
+                <canvas id="chartTopCommands" height="240"></canvas>
             </div></div>
         </div>
     </div>
@@ -177,16 +206,26 @@ function renderHtml(events) {
         </div>
     </div>
 
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card"><div class="card-body">
+                <h2 class="card-title mb-2">Eventos por Versão da Extensão</h2>
+                <canvas id="chartVersionEvents" height="120"></canvas>
+            </div></div>
+        </div>
+    </div>
+
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-              <h2 class="card-title mb-0">Uso por Pessoa</h2>
+              <h2 class="card-title mb-0">Uso por Dia</h2>
               <input type="search" id="personFilter" class="form-control form-control-sm" style="max-width:220px" placeholder="Filtrar por e-mail...">
             </div>
+            <p class="text-muted small mb-2">A coluna "Pessoas" conta quem usou em cada dia — quem aparece em mais de um dia soma mais de uma vez aqui, então o total das linhas pode passar o card "Pessoas desde {data}" no topo (que conta cada pessoa só 1x no período todo).</p>
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-sm">
-                    <thead><tr><th>E-mail</th><th>Eventos</th><th>Tokens</th><th>Créditos (estimado)</th><th>Último uso</th><th>Opt-out</th></tr></thead>
-                    <tbody id="personRows"></tbody>
+                    <thead><tr><th>Dia</th><th>Pessoas</th><th>Eventos</th><th>Tokens</th><th>Créditos (estimado)</th><th>Opt-out</th></tr></thead>
+                    <tbody id="dayRows"></tbody>
                 </table>
             </div>
         </div>
@@ -197,8 +236,19 @@ function renderHtml(events) {
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
 const REPO = ${JSON.stringify(REPO)};
-const embeddedToken = ${JSON.stringify(GITHUB_TOKEN)};
-const embeddedEvents = ${embeddedEvents};
+const WORKER_URL = ${JSON.stringify(WORKER_URL)};
+const embeddedReadToken = ${JSON.stringify(DASHBOARD_READ_SECRET)};
+
+// Período de testes internos antes do lançamento oficial (sem uso real de ninguém
+// ainda) — excluído do relatório em vez de apagado na fonte, pra não perder o dado
+// bruto no repositório caso precise auditar depois. Aplicado aqui (não só no embed
+// inicial) pra também valer quando "Atualizar dados" busca eventos frescos do Worker.
+const TEST_PERIOD_END = '2026-07-16';
+function excludeTestPeriod(events) {
+    return events.filter(ev => (ev.ts || '').slice(0, 10) > TEST_PERIOD_END);
+}
+
+let embeddedEvents = excludeTestPeriod(${embeddedEvents});
 let charts = {};
 
 const root = getComputedStyle(document.documentElement);
@@ -216,6 +266,10 @@ function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// MANTER EM SINCRONIA com os nomes de evento emitidos em
+// foursys-sdd-engine-hybrid-po/src/telemetry.ts (grep -rn "event: '" src/*.ts nessa pasta
+// para conferir a lista atual). Um evento novo adicionado lá e não refletido aqui é
+// contado incorretamente (nem rotulado, nem classificado como clique-vs-conclusão).
 const EVENT_TYPE_LABELS = {
     command_executed: 'Fase SDD executada (clique)',
     phase_completed: 'Fase SDD concluída',
@@ -234,12 +288,64 @@ const EVENT_TYPE_LABELS = {
 // por stack, por pessoa, por dia, top comandos) usam só os eventos "definitivos"
 // abaixo. "Eventos por Tipo" continua mostrando todos, propositalmente (é o único
 // lugar que compara clique vs. conclusão).
+// MANTER EM SINCRONIA com EVENT_TYPE_LABELS acima e com telemetry.ts (ver nota acima).
 const CLICK_ONLY_EVENTS = new Set(['command_executed', 'skill_clicked', 'playbook_clicked']);
+
+// skill_clicked/playbook_clicked só existem quando a ação começou por um clique na UI
+// (sidebar/Painel PO) — quando alguém digita "/skill <slug>" direto no chat do Copilot,
+// esse evento de clique nunca é disparado, só o skill_completed/playbook_completed no
+// final. Correlacionando cada conclusão com o clique mais próximo do mesmo e-mail+comando
+// (até ORIGIN_WINDOW_MS antes), dá pra inferir a origem sem precisar de nenhum campo novo
+// no payload de telemetria nem mudança na extensão — é só uma heurística por proximidade
+// de tempo, então pode errar em casos raros (ex: dois cliques do mesmo comando muito
+// próximos), mas na prática deve acertar a grande maioria.
+const ORIGIN_WINDOW_MS = 15 * 60 * 1000;
+
+function annotateOrigins(events) {
+    const clicksByKey = new Map();
+    for (const ev of events) {
+        if (ev.event !== 'skill_clicked' && ev.event !== 'playbook_clicked') { continue; }
+        const key = (ev.email || '') + '|' + (ev.command || '');
+        if (!clicksByKey.has(key)) { clicksByKey.set(key, []); }
+        clicksByKey.get(key).push({ ts: Date.parse(ev.ts || ''), used: false });
+    }
+    for (const list of clicksByKey.values()) { list.sort((a, b) => a.ts - b.ts); }
+
+    for (const ev of events) {
+        if (ev.event !== 'skill_completed' && ev.event !== 'playbook_completed') { continue; }
+        const key = (ev.email || '') + '|' + (ev.command || '');
+        const list = clicksByKey.get(key);
+        const evTime = Date.parse(ev.ts || '');
+        let origin = 'chat';
+        if (list && !isNaN(evTime)) {
+            let bestIdx = -1;
+            let bestDelta = Infinity;
+            for (let i = 0; i < list.length; i++) {
+                const c = list[i];
+                if (c.used || isNaN(c.ts)) { continue; }
+                const delta = evTime - c.ts;
+                if (delta >= 0 && delta <= ORIGIN_WINDOW_MS && delta < bestDelta) {
+                    bestDelta = delta;
+                    bestIdx = i;
+                }
+            }
+            if (bestIdx >= 0) {
+                list[bestIdx].used = true;
+                origin = 'ui';
+            }
+        }
+        ev.__origin = origin;
+    }
+}
+
+annotateOrigins(embeddedEvents);
 
 function aggregate(events) {
     const byStack = new Map();
+    const byVersion = new Map();
     const byPerson = new Map();
     const byDay = new Map();
+    const byDayPerson = new Map();
     const byEventType = new Map();
     const byCommand = new Map();
     const uniqueEmails = new Set();
@@ -255,8 +361,6 @@ function aggregate(events) {
         const day = (ev.ts || '').slice(0, 10);
         const isVolumeEvent = !CLICK_ONLY_EVENTS.has(ev.event);
 
-        uniqueEmails.add(email);
-
         if (!byPerson.has(email)) byPerson.set(email, { events: 0, tokens: 0, credits: 0, lastSeen: '', optedOut: false });
         const p = byPerson.get(email);
         if (ev.ts && ev.ts > p.lastSeen) p.lastSeen = ev.ts;
@@ -265,8 +369,13 @@ function aggregate(events) {
         const typeLabel = EVENT_TYPE_LABELS[ev.event] || ev.event || 'desconhecido';
         byEventType.set(typeLabel, (byEventType.get(typeLabel) || 0) + 1);
 
+        // uniqueEmails só conta quem teve pelo menos 1 evento "volume" (não-clique) —
+        // mesmo critério do byDayPerson abaixo. Se contasse cliques sem conclusão
+        // (command_executed/skill_clicked/playbook_clicked isolados), "Pessoas únicas"
+        // podia mostrar gente que nunca aparece em nenhuma linha de "Uso por Dia".
         if (!isVolumeEvent) { continue; }
 
+        uniqueEmails.add(email);
         volumeEventCount += 1;
         totalTokens += tokens;
         totalCredits += credits;
@@ -280,10 +389,41 @@ function aggregate(events) {
         s.tokens += tokens;
         s.credits += credits;
 
-        if (day) byDay.set(day, (byDay.get(day) || 0) + 1);
+        const version = ev.version || 'desconhecida';
+        byVersion.set(version, (byVersion.get(version) || 0) + 1);
 
-        if (ev.command) { byCommand.set(ev.command, (byCommand.get(ev.command) || 0) + 1); }
+        if (day) {
+            byDay.set(day, (byDay.get(day) || 0) + 1);
+
+            if (!byDayPerson.has(day)) byDayPerson.set(day, new Map());
+            const dayPeople = byDayPerson.get(day);
+            if (!dayPeople.has(email)) dayPeople.set(email, { events: 0, tokens: 0, credits: 0, optedOut: false });
+            const dp = dayPeople.get(email);
+            dp.events += 1;
+            dp.tokens += tokens;
+            dp.credits += credits;
+            dp.optedOut = p.optedOut;
+        }
+
+        if (ev.command) {
+            if (!byCommand.has(ev.command)) { byCommand.set(ev.command, { total: 0, ui: 0, chat: 0, na: 0 }); }
+            const c = byCommand.get(ev.command);
+            c.total += 1;
+            if (ev.__origin === 'ui') { c.ui += 1; }
+            else if (ev.__origin === 'chat') { c.chat += 1; }
+            else { c.na += 1; }
+        }
     }
+
+    const byDayDetail = [...byDayPerson.entries()]
+        .map(([day, people]) => ({
+            day,
+            events: [...people.values()].reduce((s, v) => s + v.events, 0),
+            tokens: [...people.values()].reduce((s, v) => s + v.tokens, 0),
+            credits: [...people.values()].reduce((s, v) => s + v.credits, 0),
+            people: [...people.entries()].sort((a, b) => b[1].events - a[1].events)
+        }))
+        .sort((a, b) => b.day.localeCompare(a.day));
 
     return {
         totalEvents: volumeEventCount,
@@ -292,10 +432,12 @@ function aggregate(events) {
         totalCredits,
         optedOutCount: [...byPerson.values()].filter(p => p.optedOut).length,
         byStack: [...byStack.entries()].sort((a, b) => b[1].events - a[1].events),
+        byVersion: [...byVersion.entries()].sort((a, b) => a[0].localeCompare(b[0])),
         byPerson: [...byPerson.entries()].sort((a, b) => b[1].events - a[1].events),
         byDay: [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])),
+        byDayDetail,
         byEventType: [...byEventType.entries()].sort((a, b) => b[1] - a[1]),
-        topCommands: [...byCommand.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)
+        topCommands: [...byCommand.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8)
     };
 }
 
@@ -324,6 +466,19 @@ const HBAR_OPTS_BASE = {
     }
 };
 
+const STACKED_HBAR_OPTS = {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: TEXT_MUTED, boxWidth: 12, font: { size: 10 } } },
+        datalabels: { display: false }
+    },
+    scales: {
+        x: { stacked: true, beginAtZero: true, grid: { color: GRIDLINE }, ticks: { color: TEXT_MUTED, precision: 0 } },
+        y: { stacked: true, grid: { display: false }, ticks: { color: TEXT_MUTED } }
+    }
+};
+
 function upsertChart(key, canvasId, config) {
     if (charts[key]) {
         charts[key].data = config.data;
@@ -336,12 +491,26 @@ function upsertChart(key, canvasId, config) {
 function renderDashboard(events) {
     const stats = aggregate(events);
 
+    // "Pessoas únicas" = total do período filtrado (equivalente a "usuários únicos" em
+    // qualquer analytics). O card de "ativos no dia mais recente" existe à parte porque
+    // esse total NÃO é comparável com a coluna "Pessoas" da tabela "Uso por Dia" (que é
+    // por dia, tipo DAU) — ver nota acima da tabela. Mostrar a data no rótulo deixa
+    // explícito que é um recorte de 1 dia, evitando a pergunta "por que os números não batem".
+    const latestDay = stats.byDayDetail[0];
+    const latestDayLabel = latestDay ? latestDay.day.split('-').reverse().join('/') : '—';
+    const latestDayPeople = latestDay ? latestDay.people.length : 0;
+    const firstDay = stats.byDay[0];
+    const firstDayLabel = firstDay ? firstDay[0].split('-').reverse().join('/') : '—';
+
     document.getElementById('summaryCards').innerHTML = \`
         <div class="col"><div class="card stat-tile h-100"><div class="card-body d-flex align-items-center gap-3">
             <div class="icon">📊</div><div><div class="value">\${stats.totalEvents}</div><div class="label">Ações concluídas</div></div>
         </div></div></div>
         <div class="col"><div class="card stat-tile h-100"><div class="card-body d-flex align-items-center gap-3">
-            <div class="icon">👥</div><div><div class="value">\${stats.uniqueEmails}</div><div class="label">Pessoas únicas</div></div>
+            <div class="icon">👥</div><div><div class="value">\${stats.uniqueEmails}</div><div class="label">Pessoas desde \${firstDayLabel}</div></div>
+        </div></div></div>
+        <div class="col"><div class="card stat-tile h-100"><div class="card-body d-flex align-items-center gap-3">
+            <div class="icon">📅</div><div><div class="value">\${latestDayPeople}</div><div class="label">Ativos em \${latestDayLabel}</div></div>
         </div></div></div>
         <div class="col"><div class="card stat-tile h-100"><div class="card-body d-flex align-items-center gap-3">
             <div class="icon">🔤</div><div><div class="value">\${stats.totalTokens.toLocaleString('pt-BR')}</div><div class="label">Tokens (estimado)</div></div>
@@ -353,15 +522,45 @@ function renderDashboard(events) {
             <div class="icon">🚫</div><div><div class="value">\${stats.optedOutCount}</div><div class="label">Desativaram telemetria</div></div>
         </div></div></div>\`;
 
-    document.getElementById('personRows').innerHTML = stats.byPerson.map(([email, p]) => \`
-        <tr data-email="\${escapeHtml(email.toLowerCase())}">
-            <td>\${escapeHtml(email)}</td>
-            <td>\${p.events}</td>
-            <td>\${p.tokens}</td>
-            <td>\${p.credits.toFixed(3)}</td>
-            <td>\${escapeHtml(p.lastSeen ? p.lastSeen.replace('T', ' ').slice(0, 16) : '-')}</td>
-            <td>\${p.optedOut ? '<span class="badge bg-secondary">Sim</span>' : '<span class="badge" style="background:var(--status-good)">Não</span>'}</td>
-        </tr>\`).join('');
+    const optedOutBadge = (optedOut) => optedOut
+        ? '<span class="badge bg-secondary">Sim</span>'
+        : '<span class="badge" style="background:var(--status-good)">Não</span>';
+
+    document.getElementById('dayRows').innerHTML = stats.byDayDetail.map(({ day, events, tokens, credits, people }, i) => {
+        const groupId = 'day-group-' + i;
+        const optedOutCount = people.filter(([, p]) => p.optedOut).length;
+        const dayRow = \`
+            <tr class="day-header-row" data-day-toggle="\${groupId}" style="cursor:pointer">
+                <td><span class="toggle-icon">▸</span> \${escapeHtml(day)}</td>
+                <td>\${people.length}</td>
+                <td>\${events}</td>
+                <td>\${tokens}</td>
+                <td>\${credits.toFixed(3)}</td>
+                <td>\${optedOutCount > 0 ? optedOutCount : '-'}</td>
+            </tr>\`;
+        const personRows = people.map(([email, p]) => \`
+            <tr class="day-person-row hidden-table" data-day-group="\${groupId}" data-email="\${escapeHtml(email.toLowerCase())}">
+                <td class="ps-4 text-muted">\${escapeHtml(email)}</td>
+                <td></td>
+                <td>\${p.events}</td>
+                <td>\${p.tokens}</td>
+                <td>\${p.credits.toFixed(3)}</td>
+                <td>\${optedOutBadge(p.optedOut)}</td>
+            </tr>\`).join('');
+        return dayRow + personRows;
+    }).join('');
+
+    document.querySelectorAll('[data-day-toggle]').forEach(row => {
+        row.addEventListener('click', () => {
+            const groupId = row.dataset.dayToggle;
+            const icon = row.querySelector('.toggle-icon');
+            const expanding = icon.textContent === '▸';
+            icon.textContent = expanding ? '▾' : '▸';
+            document.querySelectorAll(\`[data-day-group="\${groupId}"]\`).forEach(personRow => {
+                personRow.style.display = expanding ? 'table-row' : 'none';
+            });
+        });
+    });
 
     document.getElementById('stackRows').innerHTML = stats.byStack.map(([stack, v]) => \`
         <tr><td>\${escapeHtml(stack)}</td><td>\${v.events}</td><td>\${v.tokens}</td><td>\${v.credits.toFixed(3)}</td></tr>\`).join('');
@@ -372,11 +571,16 @@ function renderDashboard(events) {
     const stackTokenCounts = stats.byStack.map(([, v]) => v.tokens);
     const dayLabels = stats.byDay.map(([k]) => k);
     const dayCounts = stats.byDay.map(([, v]) => v);
+    const versionLabels = stats.byVersion.map(([k]) => k);
+    const versionColors = versionLabels.map((_, i) => colorFor(i));
+    const versionCounts = stats.byVersion.map(([, v]) => v);
     const eventTypeLabels = stats.byEventType.map(([k]) => k);
     const eventTypeCounts = stats.byEventType.map(([, v]) => v);
     const eventTypeColors = eventTypeLabels.map((_, i) => colorFor(i));
     const commandLabels = stats.topCommands.map(([k]) => k);
-    const commandCounts = stats.topCommands.map(([, v]) => v);
+    const commandUi = stats.topCommands.map(([, v]) => v.ui);
+    const commandChat = stats.topCommands.map(([, v]) => v.chat);
+    const commandNa = stats.topCommands.map(([, v]) => v.na);
 
     upsertChart('stackEvents', 'chartStackEvents', {
         type: 'bar',
@@ -398,8 +602,21 @@ function renderDashboard(events) {
 
     upsertChart('topCommands', 'chartTopCommands', {
         type: 'bar',
-        data: { labels: commandLabels, datasets: [{ label: 'Usos', data: commandCounts, backgroundColor: cssVar('--s-blue'), borderRadius: 4, maxBarThickness: 22 }] },
-        options: HBAR_OPTS_BASE
+        data: {
+            labels: commandLabels,
+            datasets: [
+                { label: 'Via UI (clique)', data: commandUi, backgroundColor: cssVar('--s-orange'), borderRadius: 4, maxBarThickness: 22 },
+                { label: 'Via chat direto', data: commandChat, backgroundColor: cssVar('--s-teal'), borderRadius: 4, maxBarThickness: 22 },
+                { label: 'Fases SDD (sem distinção)', data: commandNa, backgroundColor: TEXT_MUTED, borderRadius: 4, maxBarThickness: 22 }
+            ]
+        },
+        options: STACKED_HBAR_OPTS
+    });
+
+    upsertChart('versionEvents', 'chartVersionEvents', {
+        type: 'bar',
+        data: { labels: versionLabels, datasets: [{ label: 'Eventos', data: versionCounts, backgroundColor: versionColors, borderRadius: 4, maxBarThickness: 36 }] },
+        options: BAR_OPTS_BASE
     });
 
     upsertChart('timeline', 'chartTimeline', {
@@ -431,58 +648,155 @@ document.querySelectorAll('[data-toggle-table]').forEach(btn => {
 
 document.getElementById('personFilter').addEventListener('input', (e) => {
     const term = e.target.value.trim().toLowerCase();
-    document.querySelectorAll('#personRows tr').forEach(tr => {
-        tr.style.display = tr.dataset.email.includes(term) ? '' : 'none';
+    document.querySelectorAll('.day-header-row').forEach(headerRow => {
+        const groupId = headerRow.dataset.dayToggle;
+        const personRows = [...document.querySelectorAll(\`[data-day-group="\${groupId}"]\`)];
+        const icon = headerRow.querySelector('.toggle-icon');
+        if (!term) {
+            headerRow.style.display = '';
+            personRows.forEach(pr => { pr.style.display = 'none'; });
+            icon.textContent = '▸';
+            return;
+        }
+        const matches = personRows.filter(pr => pr.dataset.email.includes(term));
+        headerRow.style.display = matches.length > 0 ? '' : 'none';
+        personRows.forEach(pr => {
+            pr.style.display = pr.dataset.email.includes(term) ? 'table-row' : 'none';
+        });
+        icon.textContent = matches.length > 0 ? '▾' : '▸';
     });
 });
 
-async function fetchFreshEvents(token) {
-    const headers = { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' };
-    const listRes = await fetch('https://api.github.com/repos/' + REPO + '/contents/', { headers });
-    if (!listRes.ok) throw new Error('Falha ao listar arquivos (' + listRes.status + '). Verifique o token.');
-    const entries = await listRes.json();
-    const eventFiles = entries.filter(e => /^events-\\d{4}-\\d{2}\\.jsonl$/.test(e.name));
-
-    const events = [];
-    for (const file of eventFiles) {
-        const fileRes = await fetch('https://api.github.com/repos/' + REPO + '/contents/' + file.name, { headers });
-        if (!fileRes.ok) throw new Error('Falha ao ler ' + file.name + ' (' + fileRes.status + ')');
-        const fileData = await fileRes.json();
-        const content = decodeURIComponent(escape(atob(fileData.content)));
-        for (const line of content.split('\\n')) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-            try { events.push(JSON.parse(trimmed)); } catch { /* linha inválida ignorada */ }
-        }
-    }
-    return events;
+function uniqueSorted(values) {
+    return [...new Set(values)].filter(Boolean).sort();
 }
 
-document.getElementById('refreshBtn').addEventListener('click', async () => {
-    const status = document.getElementById('refreshStatus');
+// Repopula os selects de filtro a partir dos eventos atuais, preservando a seleção
+// corrente quando o valor ainda existe. Chamada no load e depois de um refresh ao vivo
+// (que pode trazer stacks/tipos de evento novos desde a última geração do snapshot).
+function populateFilterOptions(events) {
+    const stackSel = document.getElementById('filterStack');
+    const typeSel = document.getElementById('filterEventType');
+    const prevStack = stackSel.value;
+    const prevType = typeSel.value;
 
-    status.textContent = 'Buscando dados...';
-    document.getElementById('refreshBtn').disabled = true;
-    try {
-        const events = await fetchFreshEvents(embeddedToken);
-        renderDashboard(events);
-        document.getElementById('sourceInfo').textContent =
-            'Atualizado agora (' + new Date().toLocaleString('pt-BR') + ') — fonte: repositório - Foursys HUB — ' + events.length + ' evento(s)';
-        status.textContent = 'Atualizado com sucesso.';
-    } catch (err) {
-        status.textContent = 'Erro: ' + err.message;
-    } finally {
-        document.getElementById('refreshBtn').disabled = false;
-    }
+    const allStacks = uniqueSorted(events.map(ev => ev.stack || 'unknown'));
+    const allTypes = uniqueSorted(events.map(ev => ev.event));
+
+    stackSel.innerHTML = '<option value="">Todas as stacks</option>' +
+        allStacks.map(s => \`<option value="\${escapeHtml(s)}">\${escapeHtml(s)}</option>\`).join('');
+    typeSel.innerHTML = '<option value="">Todos os tipos</option>' +
+        allTypes.map(t => \`<option value="\${escapeHtml(t)}">\${escapeHtml(EVENT_TYPE_LABELS[t] || t)}</option>\`).join('');
+
+    if (allStacks.includes(prevStack)) { stackSel.value = prevStack; }
+    if (allTypes.includes(prevType)) { typeSel.value = prevType; }
+}
+
+populateFilterOptions(embeddedEvents);
+
+function applyFilters(events) {
+    const stack = document.getElementById('filterStack').value;
+    const eventType = document.getElementById('filterEventType').value;
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    return events.filter(ev => {
+        if (stack && (ev.stack || 'unknown') !== stack) { return false; }
+        if (eventType && ev.event !== eventType) { return false; }
+        const day = (ev.ts || '').slice(0, 10);
+        if (from && day && day < from) { return false; }
+        if (to && day && day > to) { return false; }
+        return true;
+    });
+}
+
+function refresh() {
+    renderDashboard(applyFilters(embeddedEvents));
+}
+
+['filterStack', 'filterEventType', 'filterFrom', 'filterTo'].forEach(id => {
+    document.getElementById(id).addEventListener('change', refresh);
 });
 
-renderDashboard(embeddedEvents);
+document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+    document.getElementById('filterStack').value = '';
+    document.getElementById('filterEventType').value = '';
+    document.getElementById('filterFrom').value = '';
+    document.getElementById('filterTo').value = '';
+    refresh();
+});
+
+function toCsv(events) {
+    const headers = ['email', 'event', 'command', 'stack', 'tokens', 'credits', 'version', 'ts'];
+    const escapeCsv = (v) => {
+        const s = String(v == null ? '' : v);
+        return /[",\\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const lines = [headers.join(',')];
+    for (const ev of events) {
+        lines.push(headers.map(h => escapeCsv(ev[h])).join(','));
+    }
+    return lines.join('\\n');
+}
+
+document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const csv = toCsv(applyFilters(embeddedEvents));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'foursys-sdd-telemetria-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+});
+
+async function fetchFreshEvents() {
+    const res = await fetch(WORKER_URL, { headers: { 'X-Foursys-Token': embeddedReadToken } });
+    if (!res.ok) {
+        throw new Error('Falha ao buscar eventos (' + res.status + '). Verifique o DASHBOARD_READ_SECRET.');
+    }
+    return res.json();
+}
+
+const refreshBtn = document.getElementById('refreshBtn');
+if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+        const status = document.getElementById('refreshStatus');
+        status.textContent = 'Buscando dados...';
+        refreshBtn.disabled = true;
+        try {
+            embeddedEvents = excludeTestPeriod(await fetchFreshEvents());
+            annotateOrigins(embeddedEvents);
+            populateFilterOptions(embeddedEvents);
+            refresh();
+            document.getElementById('sourceInfo').textContent =
+                'Atualizado agora (' + new Date().toLocaleString('pt-BR') + ') — fonte: repositório - Foursys HUB — ' + embeddedEvents.length + ' evento(s)';
+            status.textContent = 'Atualizado com sucesso.';
+        } catch (err) {
+            status.textContent = 'Erro: ' + err.message;
+        } finally {
+            refreshBtn.disabled = false;
+        }
+    });
+}
+
+refresh();
 </script>
 </body>
 </html>`;
 }
 
 async function main() {
+    if (!GITHUB_TOKEN) {
+        console.error('Erro: defina a variável de ambiente GITHUB_TOKEN antes de rodar.');
+        console.error('Exemplo (PowerShell): $env:GITHUB_TOKEN="seu_token"; node generate-report.js');
+        process.exit(1);
+    }
+    if (!DASHBOARD_READ_SECRET) {
+        console.warn('Aviso: DASHBOARD_READ_SECRET não definido — o relatório será gerado sem o botão "Atualizar dados" (snapshot estático).');
+    }
+
     console.log(`Buscando eventos de ${REPO}...`);
     const events = await fetchAllEvents();
     console.log(`${events.length} evento(s) encontrado(s).`);
@@ -494,7 +808,11 @@ async function main() {
     console.log(`Relatório gerado em: ${outPath}`);
 }
 
-main().catch((err) => {
-    console.error('Erro ao gerar o relatório:', err.message);
-    process.exit(1);
-});
+module.exports = { renderHtml };
+
+if (require.main === module) {
+    main().catch((err) => {
+        console.error('Erro ao gerar o relatório:', err.message);
+        process.exit(1);
+    });
+}

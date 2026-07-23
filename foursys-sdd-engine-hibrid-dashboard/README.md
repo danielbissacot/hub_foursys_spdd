@@ -17,17 +17,22 @@ node generate-report.js
 GITHUB_TOKEN=seu_token_aqui node generate-report.js
 ```
 
-O token nunca é salvo em disco — só existe enquanto o comando roda.
+O `GITHUB_TOKEN` nunca é salvo em disco nem embutido no `report.html` — só existe enquanto o comando roda, e é usado apenas aqui no terminal pra buscar os eventos.
+
+## Botão "Atualizar dados" (opcional)
+
+Se você também definir `DASHBOARD_READ_SECRET` (o mesmo valor configurado como secret `DASHBOARD_READ_SECRET` no Worker — ver `telemetry-worker/DEPLOY.md`), o relatório gerado ganha um botão **"🔄 Atualizar dados"** que busca os eventos mais recentes direto do navegador, sem precisar rodar o script de novo.
+
+```bash
+GITHUB_TOKEN=seu_token_aqui DASHBOARD_READ_SECRET=seu_read_secret_aqui node generate-report.js
+```
+
+Esse botão **não usa o `GITHUB_TOKEN`** — ele chama um endpoint próprio do Worker (que guarda o `GITHUB_TOKEN` em segredo do lado do servidor) autenticado com o `DASHBOARD_READ_SECRET`, um valor separado e de escopo bem mais limitado: só serve pra reler os mesmos eventos que já estão no `report.html`, não dá acesso de escrita nem navegação livre no repositório. Sem `DASHBOARD_READ_SECRET` definido, o relatório é gerado sem o botão (modo estático, como sempre foi).
 
 ## Resultado
 
 Gera `report.html` nesta mesma pasta (não versionado — contém e-mails reais de colegas). Abra esse arquivo direto no navegador — já mostra o snapshot do momento em que foi gerado.
 
-## Atualizar dados sem rodar o script de novo
+Dentro do relatório é possível filtrar por stack, tipo de evento e intervalo de datas, além de exportar os dados filtrados em CSV — tudo processado localmente no navegador.
 
-O `report.html` tem um botão **"🔄 Atualizar dados"** no topo da página — clique e ele busca os dados mais recentes direto do GitHub, no próprio navegador, sem precisar voltar ao terminal.
-
-⚠️ **Atenção**: por decisão explícita, o token (só leitura) fica **gravado dentro do próprio arquivo `report.html`** gerado, pra esse botão funcionar sozinho. Isso significa:
-- **Nunca compartilhe, envie por e-mail, publique ou faça upload desse arquivo em nenhum lugar** — quem tiver o arquivo ganha acesso de leitura ao repositório de telemetria (que contém e-mails de colegas).
-- O `.gitignore` da pasta já impede o `report.html` de ir pro controle de versão, mas a responsabilidade de não compartilhar o arquivo manualmente é sua.
-- Se o token vazar (por exemplo, se o arquivo for compartilhado sem querer), revogue-o no GitHub e gere um novo (mesmo processo de sempre), depois rode `generate-report.js` de novo pra gerar um `report.html` com o token atualizado.
+⚠️ **Atenção**: o `report.html` contém e-mails reais de colegas (e, se você gerou com o botão de atualização, um `DASHBOARD_READ_SECRET` de escopo limitado). **Nunca compartilhe, envie por e-mail, publique ou faça upload desse arquivo em nenhum lugar.** O `.gitignore` da pasta já impede o `report.html` de ir pro controle de versão, mas a responsabilidade de não compartilhar o arquivo manualmente é sua.

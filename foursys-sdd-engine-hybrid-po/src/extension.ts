@@ -22,6 +22,7 @@ import {
 } from './utils';
 import { trackEvent, optOutTelemetry, setTelemetryEmail } from './telemetry';
 import { MEND_EXTENSION_ID, MEND_LICENSE_SECRET, MEND_API_TOKEN } from './mend-config';
+import { syncPersonalCopilot } from './personal-copilot-sync';
 
 async function ensureMendAdvise(
     context: vscode.ExtensionContext,
@@ -465,6 +466,9 @@ Este design é o mockup da User Story em ${userStoryRelPath}`;
     // Telemetria de uso (opt-in, ver PRIVACY.md)
     context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.optOut', () => optOutTelemetry(context)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.setEmail', () => setTelemetryEmail(context)));
+
+    // Skills nativas do Copilot (opcional, aditivo — nao substitui o @foursys_sdd_po)
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.syncPersonalCopilot', () => syncPersonalCopilot(context, outputChannel)));
 }
 
 async function executeSDDPhase(

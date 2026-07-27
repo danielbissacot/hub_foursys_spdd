@@ -85,7 +85,8 @@
       { "command": "foursys.openPOPanel",        "title": "Foursys: Abrir Product Owner Agent" },
       { "command": "foursys.poDiscovery",         "title": "Foursys: PO — Iniciar Discovery" },
       { "command": "foursys.telemetry.optOut",    "title": "Foursys: Desativar Telemetria" },
-      { "command": "foursys.telemetry.setEmail",  "title": "Foursys: Definir/Atualizar E-mail de Telemetria" }
+      { "command": "foursys.telemetry.setEmail",  "title": "Foursys: Definir/Atualizar E-mail de Telemetria" },
+      { "command": "foursys.syncPersonalCopilot", "title": "Foursys: Sincronizar Skills Nativas do Copilot (VS Code/IntelliJ/CLI)" }
     ],
     "configuration": {
       "title": "Foursys SDD",

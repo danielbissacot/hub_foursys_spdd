@@ -3,7 +3,7 @@ applyTo: '**/*.java'
 name: springboot-mvc-arch
 description: Instruções para implementar a arquitetura MVC em projetos Spring Boot.
 metadata:
-  version: "0.0.2"
+  version: "0.0.3"
 ---
 
 # 🏛️ Instrução Global: Arquitetura MVC (Java Spring)
@@ -22,8 +22,6 @@ Todos os projetos devem seguir e derivar seus componentes da seguinte árvore l�
 ├── controller/
 │   ├── mapper/
 │   └── dto/
-│       ├── request/
-│       └── response/
 ├── consumer/
 ├── service/
 ├── repository/
@@ -32,14 +30,14 @@ Todos os projetos devem seguir e derivar seus componentes da seguinte árvore l�
 ├── client/
 │   ├── mapper/
 │   └── dto/
-│       ├── request/
-│       └── response/
 ├── producer/
 ├── model/                 # Classes Puras de Domínio
 ├── mapper/
 ├── exception/
 └── config/
 ```
+
+**BFF vs SRV:** um serviço **BFF** (orquestração/composição, sem regra de negócio própria) não deve ter `repository/`, `consumer/` nem `producer/` — só `controller/`, `service/`, `client/`. Um serviço **SRV** (com regra de negócio e persistência) usa a estrutura completa acima.
 
 ## 2. Regras Estritas de Design Arquitetural
 
@@ -67,8 +65,7 @@ public class Usuario {
 
 ### 📦 DTOs e Isolamento
 
-- Payloads de Entrada obrigatoriamente residem em `dto/request/`.
-- Payloads de Saída obrigatoriamente residem em `dto/response/`.
+- Todo payload (entrada ou saída) reside em `dto/`, com sufixo único **`Dto`** — **nunca** separe em `RequestDto`/`ResponseDto`. Prefira **`record`** (Java 21) para DTOs imutáveis.
 - A conversão entre `DTOs`, `Entities` e `Models` DEVE sempre ocorrer em classes `Mapper`. Não misture casting dentro de controllers.
 
 ## 3. Direção das Dependências (Layer Topologies)
@@ -114,8 +111,7 @@ Toda classe nasce com sufixo atrelado à responsabilidade da sua gaveta parental
 | `producer/`              | Producer         | `UsuarioProducer`        |
 | `service/`               | Service          | `UsuarioService`         |
 | `exception/`             | Exception        | `UsuarioNotFoundException` |
-| `dto/request/`           | Request          | `CriarUsuarioRequest`    |
-| `dto/response/`          | Response         | `UsuarioResponse`        |
+| `dto/`                   | Dto (sufixo único) | `UsuarioDto`           |
 
 > Classes anotadas com `@RestController` ou `@Controller` **DEVEM** terminar com `Controller`.
 
@@ -129,7 +125,7 @@ Ao inspecionar código entregue por humanos, denuncie e bloqueie imediatamente P
 - Uso de `@Autowired` em campos (field injection).
 - Classes `model` com anotações de infraestrutura (`@Entity`, `@Getter`, `@JsonProperty`).
 
-## 6. Validação de Arquitetura
+## 6. Validação de Arquitetura e Cobertura (Obrigatório)
 
 Execute antes de cada commit para garantir conformidade com a arquitetura:
 
@@ -137,14 +133,15 @@ Execute antes de cada commit para garantir conformidade com a arquitetura:
 mvn clean verify     # build completo com todas as validações
 ```
 
-> O projeto pode configurar um plugin adicional de validação arquitetural
-> (ex: ArchUnit, Checkstyle customizado) com um goal dedicado. Consulte o `pom.xml` do projeto.
+- Testes **ArchUnit** que validem a topologia da Seção 3 (ex: `controller` não depende de `repository`/`client`/`producer`) são **obrigatórios**, não um plugin opcional — fazem parte da Definition of Done da feature.
+- Cobertura mínima recomendada: **90%**. Ajuste conforme o padrão do cliente, mas nunca aceite menos sem justificativa explícita.
 
 ## 7. Checklist de Conformidade
 
-- [ ] Estrutura de pacotes conforme o padrão acima
-- [ ] Nomenclatura com sufixos corretos por camada
+- [ ] Estrutura de pacotes conforme o padrão acima (BFF sem `repository/`/`consumer/`/`producer/`)
+- [ ] Nomenclatura com sufixos corretos por camada, DTOs com sufixo único `Dto`
 - [ ] Dependências entre camadas respeitadas (sem violações de layer topology)
 - [ ] Classes `model` livres de anotações externas (Lombok, JPA, Jackson)
 - [ ] Injeção de dependência exclusivamente via construtor
-- [ ] Validação de arquitetura executada: `mvn clean verify`
+- [ ] Testes ArchUnit configurados e sem violações
+- [ ] Cobertura acima do mínimo combinado com o cliente

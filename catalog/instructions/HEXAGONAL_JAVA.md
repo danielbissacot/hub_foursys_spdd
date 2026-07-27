@@ -20,16 +20,18 @@ Ao sugerir a criação ou mover arquivos, respeite a taxonomia do repositório (
 │   └── output/                # Interfaces de saída (contratos de persistência/eventos)
 ├── adapter/
 │   ├── input/
-│   │   ├── controller/dto/request|response/
+│   │   ├── controller/dto/
 │   │   ├── consumer/
 │   │   └── mapper/
 │   └── output/
-│       ├── client/dto/request|response/
+│       ├── client/dto/
 │       ├── repository/entity/
 │       ├── producer/
 │       └── mapper/
 └── config/
 ```
+
+**BFF vs SRV:** se o projeto for um BFF (orquestração/composição, sem regra de negócio própria), omita `repository/` e `producer/` — o BFF não persiste nem publica eventos, só orquestra `client`s. Um SRV (com regra de negócio e persistência) usa a estrutura completa acima.
 
 ## 2. Princípios de Isolamento (Layer Rules)
 
@@ -54,7 +56,20 @@ Você nunca pode inventar nomes ou padrões aleatórios para as classes. O Namin
 | `port/output/` | OutputPort | `UsuarioOutputPort` |
 | `adapter/input/controller/` | Controller | `UsuarioController` |
 | `adapter/output/repository/` | Repository | `UsuarioRepository` |
-| `dto/request ou response/` | Request / Response | `UsuarioRequest` |
+| `dto/` (input ou output) | **Dto** (sufixo único) | `UsuarioDto` |
+
+**Nunca separe em `RequestDto`/`ResponseDto`** — um único sufixo `Dto` por classe, independente da direção (entrada ou saída). Prefira **`record`** (Java 21) para todo DTO imutável.
+
+### UseCase vs Service — quando usar cada um
+
+| Cenário | UseCase | Service |
+|---|:---:|:---:|
+| Operação de negócio exposta a um InputPort/Controller | ✅ | ❌ |
+| Lógica pontual reutilizável entre UseCases | ❌ | ✅ |
+| Orquestração ampla com múltiplos OutputPorts | ✅ | ❌ |
+| Cálculo ou validação específica de domínio | ❌ | ✅ |
+
+Um `Service` nunca é exposto diretamente como InputPort — só existe pra ser chamado por um ou mais `UseCase`s. Um `UseCase` nunca chama outro `UseCase` (se precisar reutilizar lógica, extraia um `Service`).
 
 ## 5. Anti-Patterns Severamente Proibidos
 
@@ -84,3 +99,17 @@ public class UseCaseConfig {
 }
 ```
 - Isso evita o erro fatal `NoSuchBeanDefinitionException` em tempo de execução.
+
+## 8. Validação de Arquitetura e Cobertura (Obrigatório)
+
+- Configure testes **ArchUnit** que validem as regras de isolamento da Seção 2 (ex: `core` não importa `adapter`, `port/*` são só interfaces) — isso não é opcional, é parte da Definition of Done da feature.
+- Cobertura mínima recomendada: **90%** nas camadas `core/` e `port/`. Ajuste conforme o padrão do cliente, mas nunca aceite menos sem justificativa explícita.
+
+### Checklist de Conformidade
+
+- [ ] `core/*` sem imports de `adapter/*` ou `config/*`
+- [ ] Ports são interfaces puras; um `UseCase` implementa exatamente um `InputPort`
+- [ ] DTOs são `record` com sufixo único `Dto` (nunca `RequestDto`/`ResponseDto`)
+- [ ] Injeção via construtor em toda a base
+- [ ] Testes ArchUnit configurados e sem violações
+- [ ] Cobertura de `core/`+`port/` acima do mínimo combinado com o cliente

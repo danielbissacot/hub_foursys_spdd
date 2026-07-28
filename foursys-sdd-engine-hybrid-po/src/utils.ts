@@ -82,7 +82,17 @@ export function listStoryFolders(rootPath: string): string[] {
  *  direto — mesmo comportamento de sempre, preserva projetos que nunca adotaram subpastas. */
 export function resolveStoryDocPath(rootPath: string, context: vscode.ExtensionContext): string {
     const slug = getActiveStorySlug(context);
-    const docPath = slug ? path.join(rootPath, DOC_FOLDER, slug) : path.join(rootPath, DOC_FOLDER);
+    if (slug) {
+        const slugPath = path.join(rootPath, DOC_FOLDER, slug);
+        if (fs.existsSync(slugPath)) { return slugPath; }
+        // A pasta da história ativa foi apagada por fora do VS Code (Explorer, terminal, etc.) —
+        // o ponteiro em workspaceState não sabe disso, então sem essa checagem toda chamada
+        // "só de leitura" (ex: detectar a stack ativa no load da sidebar) recriava a pasta do
+        // zero. Em vez de ressuscitar o que o usuário apagou de propósito, limpa o ponteiro e
+        // cai no fallback de doc_projeto/ raiz abaixo.
+        void setActiveStorySlug(context, undefined);
+    }
+    const docPath = path.join(rootPath, DOC_FOLDER);
     if (!fs.existsSync(docPath)) { fs.mkdirSync(docPath, { recursive: true }); }
     return docPath;
 }

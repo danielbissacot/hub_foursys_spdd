@@ -168,12 +168,21 @@ describe('utils.ts', () => {
             assert.ok(fs.existsSync(docPath));
         });
 
-        it('com slug ativo, resolve (e cria) a subpasta doc_projeto/<slug>', async () => {
+        it('com slug ativo e pasta ja existente, resolve a subpasta doc_projeto/<slug>', async () => {
             const context = createFakeContext();
+            fs.mkdirSync(path.join(tmpRoot, 'doc_projeto', 'checkout'), { recursive: true });
             await setActiveStorySlug(context, 'checkout');
             const docPath = resolveStoryDocPath(tmpRoot, context);
             assert.strictEqual(docPath, path.join(tmpRoot, 'doc_projeto', 'checkout'));
-            assert.ok(fs.existsSync(docPath));
+        });
+
+        it('com slug ativo mas pasta apagada por fora do VS Code, limpa o ponteiro e cai em doc_projeto/ raiz sem recriar', async () => {
+            const context = createFakeContext();
+            await setActiveStorySlug(context, 'checkout');
+            const docPath = resolveStoryDocPath(tmpRoot, context);
+            assert.strictEqual(docPath, path.join(tmpRoot, 'doc_projeto'));
+            assert.strictEqual(fs.existsSync(path.join(tmpRoot, 'doc_projeto', 'checkout')), false);
+            assert.strictEqual(getActiveStorySlug(context), undefined);
         });
     });
 
@@ -279,6 +288,7 @@ describe('utils.ts', () => {
 
         it('com historia ja ativa, reaproveita a mesma pasta sem perguntar nada', async () => {
             const context = createFakeContext();
+            fs.mkdirSync(path.join(tmpRoot, 'doc_projeto', 'checkout'), { recursive: true });
             await setActiveStorySlug(context, 'checkout');
             const showInputBox = sandbox.stub(vscode.window, 'showInputBox');
 
@@ -290,6 +300,7 @@ describe('utils.ts', () => {
 
         it('nao sobrescreve technical_spec.md se ja existir', async () => {
             const context = createFakeContext();
+            fs.mkdirSync(path.join(tmpRoot, 'doc_projeto', 'checkout'), { recursive: true });
             await setActiveStorySlug(context, 'checkout');
             const docPath = resolveStoryDocPath(tmpRoot, context);
             fs.writeFileSync(path.join(docPath, 'technical_spec.md'), 'conteudo tecnico ja preenchido');

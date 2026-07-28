@@ -28,7 +28,14 @@ Depois de instalar, **recarregue a janela** do seu editor pra ele reconhecer as 
 
 ### Chamar uma Skill
 
-No chat do Copilot, digite `/` seguido do nome da skill. Exemplos:
+> ⚠️ **Antes de tudo**: o chat do Copilot precisa estar no modo **"Agent"** (não "Ask" nem "Edit") — é um seletor perto do campo de texto. No modo "Ask", Skills e Agents não aparecem, mesmo estando tudo instalado corretamente.
+
+No chat do Copilot, digite `/` seguido do nome da skill. A sintaxe varia por IDE:
+
+- **VS Code**: `/foursys-specify-angular`
+- **IntelliJ**: `/skill:foursys-specify-angular` (com o prefixo `skill:`)
+
+Exemplos (ajuste o prefixo conforme seu IDE):
 
 ```
 /foursys-specify-angular
@@ -36,9 +43,9 @@ No chat do Copilot, digite `/` seguido do nome da skill. Exemplos:
 /foursys-tasks-cobol
 ```
 
-Cada fase do SDD (`constitution`, `specify`, `plan`, `tasks`) existe pra cada stack (Angular, Spring Boot, Node, COBOL, iOS, Android) — o Copilot autocompleta o nome conforme você digita `/foursys-`.
+Cada fase do SDD (`constitution`, `specify`, `plan`, `tasks`) existe pra cada stack (Angular, Spring Boot, Node, COBOL, iOS, Android) — o Copilot autocompleta o nome conforme você digita `/foursys-` (ou `/skill:foursys-` no IntelliJ).
 
-Além dos playbooks do SDD, também tem dezenas de skills técnicas específicas (Kafka, MongoDB, Redis, testes, etc.) — digite `/` e o nome da tecnologia pra encontrar.
+Além dos playbooks do SDD, também tem dezenas de skills técnicas específicas (Kafka, MongoDB, Redis, testes, etc.) — digite `/` (ou `/skill:`) e o nome da tecnologia pra encontrar.
 
 ### Deixar o Copilot descobrir a fase sozinho
 
@@ -62,10 +69,13 @@ O catálogo de skills muda com o tempo. Pra atualizar, rode o **mesmo comando da
 Não. Isso usa só os recursos nativos do próprio GitHub Copilot.
 
 **Funciona no IntelliJ?**
-Sim, automaticamente — é a mesma instalação, sem passo extra. Só confirme que "Enable Skills" e "Enable Custom Agent" estão marcados em Settings → Tools → GitHub Copilot → Chat (já vem ligado por padrão na maioria dos casos).
+Sim — é a mesma instalação, sem passo extra. Duas diferenças em relação ao VS Code, confirmadas na prática (plugin GitHub Copilot 1.11.2-251):
+
+1. O chat precisa estar no modo **"Agent"** (não "Ask"/"Edit") — no modo "Ask" nada aparece, mesmo com tudo instalado certo.
+2. Skills são chamadas com o prefixo **`/skill:<nome>`** (ex.: `/skill:foursys-specify-angular`), diferente do `/<nome>` direto do VS Code. Agents (as personas por stack e o orquestrador) aparecem no seletor "Agent" do chat, sem precisar de prefixo.
 
 **Não aparece nada depois de instalar.**
-Recarregue a janela do editor (veja a seção de Instalação acima) — as vezes a lista de skills só atualiza depois disso.
+Primeiro confirme que o chat está no modo **"Agent"**, não "Ask" (ver acima — essa é a causa mais comum). Se já estiver em "Agent" e ainda assim não aparecer nada, recarregue a janela do editor (veja a seção de Instalação acima) — às vezes a lista de skills só atualiza depois disso.
 
 **Funciona no Copilot CLI (terminal)?**
 Em princípio sim (mesmo mecanismo), mas hoje o Copilot CLI standalone ainda depende de uma política da organização que precisa ser habilitada pelo time de TI/admin do GitHub. Use pelo chat do VS Code ou IntelliJ normalmente enquanto isso.

@@ -2,6 +2,12 @@
 
 Você é o **Agente Android do Hub Foursys SDD**. Antes de qualquer implementação, estabeleça os princípios de governança obrigatórios para este projeto Android.
 
+## 0. 🌐 Idioma de Nomenclatura (Obrigatório)
+
+Nomes de classes/arquivos que representem conceitos de negócio — o `<Nome>` em `<Nome>Screen`/`<Nome>ViewModel`/`<Nome>UseCase`/`<Nome>Repository`/entidades de domínio — DEVEM usar o termo em português (pt-BR) já usado na História de Usuário. Ex.: `ExtratoScreen`, `ExtratoViewModel`, `BuscarExtratoUseCase`. NUNCA traduza o termo de negócio para inglês (ex.: NÃO gere `StatementViewModel` para uma história sobre "Extrato").
+
+**Exceção deliberada, não alterar**: campos internos de `UiState`/`UiEvent` continuam em inglês (`isLoading`, `isError` — ver Seção 2), pois é a convenção Kotlin/MVI já adotada pelo time.
+
 ## 1. Stack Tecnológica Obrigatória
 
 - **UI**: Jetpack Compose (Material 3). XML layouts proibidos em código novo.

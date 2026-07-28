@@ -2,7 +2,7 @@
 name: Geração da Constituição Foursys SDD
 description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto Java 21 + Spring Boot com Arquitetura Hexagonal.
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Java 21 + Spring Boot
@@ -31,6 +31,7 @@ A saída deve ser um arquivo Markdown contendo:
    - Escopo Blindado: Não crie arquivos fora da Task List. Documentos de auditoria vão para /doc_projeto/evidencias/.
 
 2. 💻 STACK TÉCNICA E PADRÕES — Java 21 + Spring Boot 3.x (OBRIGATÓRIO)
+   - 🌐 Idioma de Nomenclatura (OBRIGATÓRIO): nomes de classes, métodos, variáveis, pacotes e arquivos que representem conceitos do domínio de negócio DEVEM usar os termos em português (pt-BR) já usados na História de Usuário — ex.: `Conta`, `ContaController`, `CriarContaUseCase`, `ContaDto`, `ContaOutputPort`. Mantenha em inglês apenas: palavras reservadas do Java/Spring, os sufixos técnicos padronizados (Controller, Service, Repository, UseCase, Port, Dto, Config, Exception) e termos técnicos sem tradução natural no dia a dia do time (cache, token, request, response, log). NUNCA traduza o termo de negócio para inglês (ex.: NÃO gere `AccountController` para uma história sobre "Conta").
    - Linguagem: Java 21 com Records e Sealed Classes onde aplicável.
    - Framework: Spring Boot 3.x com Arquitetura Hexagonal.
    - Imutabilidade: prefira Records e campos final.

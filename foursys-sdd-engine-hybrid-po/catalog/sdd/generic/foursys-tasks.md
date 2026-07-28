@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD — Genérico
 description: Decompõe um plano técnico em tarefas granulares, atômicas e testáveis. Agnóstico de stack — exemplos de arquivos globais são substituídos em runtime pelo catalog-loader.
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -17,6 +17,7 @@ Atue como um Tech Lead Sênior da Foursys.
 Sua tarefa é analisar o Plano de Implementação (Implementation Plan) e a Constituição e gerar uma LISTA DE TAREFAS (Task List).
 
 ### 🚫 REGRAS ESTRITAS
+- 🌐 IDIOMA DE NOMENCLATURA: nomes de classe/componente e caminhos de arquivo citados nas tarefas (títulos, "Arquivo impactado") DEVEM seguir a regra de nomenclatura da Constituição do projeto — termos de domínio em português (pt-BR), sufixos técnicos (Controller/Service/UseCase/Dto/etc.) em inglês. NUNCA traduza o termo de negócio para inglês só porque é mais comum em código.
 - NÃO GERE CÓDIGO FONTE.
 - NÃO dê explicações longas.
 - NÃO crie arquivos de documentação ou checklists extras que não foram solicitados. Se gerar evidências automáticas de teste/acessibilidade, salve-as obrigatoriamente em `doc_projeto/evidencias/`.

@@ -2,7 +2,7 @@
 name: Geração da Constituição Foursys SDD
 description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto Angular v20+.
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Angular v20+
@@ -31,6 +31,7 @@ A saída deve ser um arquivo Markdown contendo:
    - Escopo Blindado: Não crie arquivos fora da Task List. Documentos de auditoria vão para /doc_projeto/evidencias/.
 
 2. 💻 STACK TÉCNICA E PADRÕES (Angular v20+)
+   - 🌐 Idioma de Nomenclatura (OBRIGATÓRIO): nomes de componentes, services, variáveis, pastas e arquivos que representem conceitos do domínio de negócio DEVEM usar os termos em português (pt-BR) já usados na História de Usuário — ex.: `ExtratoComponent`, `ExtratoService`, `extrato.component.ts`, `src/app/extrato/`. Mantenha em inglês apenas: palavras reservadas do TypeScript/Angular, os sufixos técnicos padronizados (Component, Service, Directive, Pipe, Guard, Resolver) e termos técnicos sem tradução natural no dia a dia do time (cache, token, request, response, log). NUNCA traduza o termo de negócio para inglês (ex.: NÃO gere `StatementComponent` para uma história sobre "Extrato").
    - Signals: signal(), computed(), effect(), linkedSignal() — primitivos obrigatórios para estado reativo.
    - HTTP: httpResource() e resource() como PRIMEIRO padrão para carregamento reativo de dados (v20+); HttpClient para mutações (POST/PUT/DELETE) ou operadores RxJS complexos.
    - Standalone Components: OBRIGATÓRIO. NgModule = erro grave de arquitetura legada.

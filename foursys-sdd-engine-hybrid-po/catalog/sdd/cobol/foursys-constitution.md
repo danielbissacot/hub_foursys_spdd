@@ -2,7 +2,7 @@
 name: Constituição Foursys SDD — COBOL
 description: Princípios, padrões e regras de ouro para projetos COBOL com divisões, copybooks, JCL e CICS.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Playbook: Foursys Constitution Generator — COBOL
@@ -25,6 +25,7 @@ Sua tarefa é gerar a CONSTITUIÇÃO do projeto COBOL. Este é o documento mestr
    - Escopo Blindado: Não crie programas fora da Task List. Evidências vão para /doc_projeto/evidencias/.
 
 2. 💻 STACK TÉCNICA E PADRÕES (COBOL)
+   - 🌐 Idioma de Nomenclatura (OBRIGATÓRIO): nomes de PROGRAM-ID, paragraphs, copybooks e data-names que representem conceitos de negócio DEVEM refletir os termos em português já usados na História de Usuário, respeitando o limite de 8 caracteres da Regra 2 (abrevie o termo em português — não traduza para inglês antes de abreviar). Ex.: para uma história sobre "Conta Corrente", prefira `CRCONTA`/`WS-CONTA` a `CRACCT`/`WS-ACCOUNT`. Mantenha em inglês apenas palavras reservadas do COBOL (MOVE, PERFORM, DIVISION) e siglas técnicas já padronizadas no mainframe do cliente (JCL, CICS, VSAM).
    - Divisões obrigatórias: IDENTIFICATION, ENVIRONMENT, DATA, PROCEDURE DIVISION.
    - WORKING-STORAGE SECTION: toda variável deve ser declarada com PIC clause correta.
    - Copybooks (COPY verb): reutilize estruturas de dados via copybooks em vez de duplicar código.

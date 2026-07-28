@@ -2,7 +2,7 @@
 name: Constituição Foursys SDD — Genérica (Fallback)
 description: Princípios SOLID, TDD e Clean Code agnósticos de stack. Usado como fallback quando nenhuma stack específica está selecionada.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Genérico
@@ -28,6 +28,7 @@ Gere um documento Markdown estruturado e direto, sem ser prolixo.
    - SOLID: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion.
 
 2. 💻 STACK TÉCNICA E PADRÕES
+   - 🌐 Idioma de Nomenclatura (OBRIGATÓRIO): nomes de classes/componentes, métodos, variáveis, pastas e arquivos que representem conceitos do domínio de negócio DEVEM usar os termos em português (pt-BR) já usados na História de Usuário. Mantenha em inglês apenas palavras reservadas da linguagem/framework, sufixos técnicos padronizados (Controller, Service, Repository, etc.) e termos técnicos sem tradução natural (cache, token, request, log). NUNCA traduza o termo de negócio para inglês.
    - Identifique a stack do projeto a partir do contexto fornecido (TECNOLOGIA declarada no user_story.md).
    - Siga os padrões da stack identificada. Não misture padrões de stacks diferentes.
    - Se a stack não for identificável, use princípios agnósticos: Clean Architecture (Entidades, Use Cases, Adapters, Frameworks).

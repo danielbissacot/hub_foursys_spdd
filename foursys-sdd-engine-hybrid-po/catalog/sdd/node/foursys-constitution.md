@@ -2,7 +2,7 @@
 name: Constituição Foursys SDD — Node.js / NestJS
 description: Princípios, padrões e regras de ouro para projetos Node.js 20+ LTS com NestJS, TypeScript e Jest.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Node.js / NestJS
@@ -25,6 +25,7 @@ Sua tarefa é gerar a CONSTITUIÇÃO do projeto Node.js/NestJS. Este é o docume
    - Escopo Blindado: Não crie arquivos fora da Task List. Logs e evidências vão para /doc_projeto/evidencias/.
 
 2. 💻 STACK TÉCNICA E PADRÕES (Node.js 20+ LTS + NestJS)
+   - 🌐 Idioma de Nomenclatura (OBRIGATÓRIO): nomes de classes, métodos, variáveis, pastas e arquivos que representem conceitos do domínio de negócio DEVEM usar os termos em português (pt-BR) já usados na História de Usuário — ex.: `ContaController`, `ContaService`, `conta.service.ts`, `CriarContaDto`. Mantenha em inglês apenas: palavras reservadas do TypeScript/NestJS, os sufixos técnicos padronizados (Controller, Service, Module, Dto, Entity, Guard) e termos técnicos sem tradução natural no dia a dia do time (cache, token, request, response, log). NUNCA traduza o termo de negócio para inglês (ex.: NÃO gere `AccountService` para uma história sobre "Conta").
    - Node.js 20+ LTS com TypeScript strict mode.
    - NestJS: Modules, Controllers, Services, Providers via Injeção de Dependência (@Injectable, @Module).
    - Arquitetura em camadas: Controller → Service → Repository.

@@ -14,7 +14,8 @@ import {
     getDocPath,
     readWorkspaceContext,
     readProjectStackInfo,
-    extractHtmlBlock
+    extractHtmlBlock,
+    extractFencedBlocks
 } from './engine/prompt-context';
 import {
     getMcpConfigPath, checkFigmaMcpConfigured, resolveStoryDocPath, ensureNewStorySlug, getActiveStorySlug,
@@ -105,14 +106,24 @@ export function activate(context: vscode.ExtensionContext) {
 
     const commandToken = () => new vscode.CancellationTokenSource().token;
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.constitution', () => executeSDDPhase('constitution', '', '', null, commandToken(), context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.specify',      () => executeSDDPhase('specify',      '', '', null, commandToken(), context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.plan',         () => executeSDDPhase('plan',         '', '', null, commandToken(), context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.tasks',        () => executeSDDPhase('tasks',        '', '', null, commandToken(), context, outputChannel)));
+    // Comandos que só disparam executeSDDPhase(fase) sem nenhuma lógica adicional.
+    const SIMPLE_PHASE_COMMANDS: [string, string][] = [
+        ['foursys.constitution', 'constitution'],
+        ['foursys.specify', 'specify'],
+        ['foursys.plan', 'plan'],
+        ['foursys.tasks', 'tasks'],
+        ['foursys.qaTestPlan', 'qa-test-plan'],
+        ['foursys.qaTestCases', 'qa-test-cases'],
+        ['foursys.qaAutomation', 'qa-automation'],
+        ['foursys.qaCoverage', 'qa-coverage'],
+        ['foursys.qaReport', 'qa-report'],
+    ];
+    for (const [commandId, phase] of SIMPLE_PHASE_COMMANDS) {
+        context.subscriptions.push(vscode.commands.registerCommand(commandId, () =>
+            executeSDDPhase(phase, '', '', null, commandToken(), context, outputChannel)
+        ));
+    }
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestPlan',   () => executeSDDPhase('qa-test-plan',   '', '', null, commandToken(), context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaTestCases',  () => executeSDDPhase('qa-test-cases',  '', '', null, commandToken(), context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaAutomation', () => executeSDDPhase('qa-automation',  '', '', null, commandToken(), context, outputChannel)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
@@ -123,8 +134,6 @@ export function activate(context: vscode.ExtensionContext) {
             query: `Leia o arquivo ${roteirosPath} deste workspace. Crie cada arquivo de teste marcado com o comentário <!-- file: caminho --> exatamente no caminho indicado, criando diretórios quando necessário, com o conteúdo do bloco de código correspondente. Invoque a Skill: ${config.implementSkillTag}.`
         });
     }));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaCoverage',   () => executeSDDPhase('qa-coverage',   '', '', null, commandToken(), context, outputChannel)));
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaReport',     () => executeSDDPhase('qa-report',     '', '', null, commandToken(), context, outputChannel)));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaExportXray', async () => {
         const rootPath = getWorkspaceRoot();
@@ -138,22 +147,7 @@ export function activate(context: vscode.ExtensionContext) {
         const content = fs.readFileSync(casesPath, 'utf8');
 
         // Extrai todos os blocos gherkin
-        const gherkinBlocks: string[] = [];
-        const lines = content.split('\n');
-        let inBlock = false;
-        let blockLines: string[] = [];
-        for (const line of lines) {
-            if (!inBlock) {
-                if (/^```gherkin/i.test(line)) { inBlock = true; blockLines = []; }
-            } else {
-                if (line.startsWith('```')) {
-                    if (blockLines.length > 0) { gherkinBlocks.push(blockLines.join('\n')); }
-                    inBlock = false;
-                } else {
-                    blockLines.push(line);
-                }
-            }
-        }
+        const gherkinBlocks = extractFencedBlocks(content, 'gherkin');
 
         if (gherkinBlocks.length === 0) {
             vscode.window.showWarningMessage('⚠️ Nenhum bloco gherkin encontrado em casos_teste.md. Verifique se o arquivo contém blocos ```gherkin.');

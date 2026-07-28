@@ -240,9 +240,30 @@ export function assembleFinalPrompt(params: {
     return { systemPrompt, finalPrompt, outputPath };
 }
 
+/** Extrai todos os blocos ```<lang>``` de um texto Markdown, na ordem em que aparecem. Usado
+ *  pelo comando foursys.qaExportXray para extrair blocos ```gherkin``` de casos_teste.md. */
+export function extractFencedBlocks(content: string, lang: string): string[] {
+    const openRe = new RegExp(`^\`\`\`${lang}`, 'i');
+    const blocks: string[] = [];
+    let inBlock = false;
+    let current: string[] = [];
+    for (const line of content.split('\n')) {
+        if (!inBlock) {
+            if (openRe.test(line)) { inBlock = true; current = []; }
+        } else if (line.startsWith('```')) {
+            if (current.length > 0) { blocks.push(current.join('\n')); }
+            inBlock = false;
+        } else {
+            current.push(line);
+        }
+    }
+    return blocks;
+}
+
 /** Extrai um único bloco ```html``` de uma resposta Markdown (usado por qa-report/qa-coverage
  *  para separar o relatório HTML executivo do corpo Markdown). Mesmo padrão de parsing em
- *  máquina de estados usado na extração de blocos ```gherkin``` do comando foursys.qaExportXray. */
+ *  máquina de estados usado em extractFencedBlocks, mas para no primeiro bloco fechado e
+ *  preserva o restante do texto em `rest` — por isso não reaproveita a função acima. */
 export function extractHtmlBlock(content: string): { html: string | null; rest: string } {
     const lines = content.split('\n');
     const restLines: string[] = [];

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
 import { execFile } from 'child_process';
 import { resolveStack, getStackConfig, getAllStacks, StackDetectionResult } from './engine/stack-registry';
 import { resolveSkillMdFile } from './engine/catalog-loader';
@@ -209,9 +208,6 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'OpenPOPanel':
                     vscode.commands.executeCommand('foursys.openPOPanel');
                     break;
-                case 'PODiscoveryDirect':
-                    vscode.commands.executeCommand('foursys.poDiscovery');
-                    break;
                 case 'InstallMend':
                     await this._installMend();
                     updateWebview();
@@ -225,93 +221,6 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'SyncPersonalCopilot':
                     vscode.commands.executeCommand('foursys.syncPersonalCopilot');
                     break;
-                case 'ViewPlaybooks': {
-                    const globalStoragePath = this._context.globalStorageUri.fsPath;
-                    const playbookRoot = path.join(globalStoragePath, 'hub', 'catalog', 'playbook');
-                    if (!fs.existsSync(playbookRoot)) {
-                        vscode.window.showWarningMessage(
-                            'Playbooks não encontrados. Execute "📥 CONECTAR AO HUB" primeiro.'
-                        );
-                        break;
-                    }
-                    const pbFiles: { label: string; description: string; filepath: string }[] = [];
-                    const collectMd = (dir: string, fase: string) => {
-                        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-                            const fullPath = path.join(dir, entry.name);
-                            if (entry.isDirectory()) {
-                                collectMd(fullPath, fase);
-                            } else if (entry.name.endsWith('.md') && entry.name !== 'README.md') {
-                                pbFiles.push({
-                                    label: `📋 ${entry.name.replace('.md', '')}`,
-                                    description: fase,
-                                    filepath: fullPath
-                                });
-                            }
-                        }
-                    };
-                    for (const entry of fs.readdirSync(playbookRoot, { withFileTypes: true })) {
-                        if (entry.isDirectory() && entry.name.startsWith('fase')) {
-                            collectMd(path.join(playbookRoot, entry.name), entry.name);
-                        }
-                    }
-                    if (pbFiles.length === 0) {
-                        vscode.window.showInformationMessage('Nenhum playbook encontrado.');
-                        break;
-                    }
-                    const pickedPb = await vscode.window.showQuickPick(pbFiles, {
-                        title: 'Foursys SDD — Playbooks',
-                        placeHolder: 'Selecione um playbook para visualizar'
-                    });
-                    if (pickedPb) {
-                        const filename = path.basename(pickedPb.filepath);
-                        await trackEvent(this._context, undefined, {
-                            event: 'playbook_clicked',
-                            command: filename,
-                            stack: this._currentStackId()
-                        });
-                        await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd_po /playbook ${filename} `,
-                            // false = envia direto (acceptInput), sem isso o texto so fica no
-                            // campo aguardando Enter manual e parece que nada aconteceu.
-                            isPartialQuery: false
-                        });
-                    }
-                    break;
-                }
-                case 'ViewSkills': {
-                    const globalStoragePath = this._context.globalStorageUri.fsPath;
-                    const skillsDir = path.join(globalStoragePath, 'skills');
-                    const customSkillsDir = path.join(globalStoragePath, 'custom-skills');
-                    const allFiles: { label: string; description: string; filepath: string }[] = [];
-                    if (fs.existsSync(skillsDir)) {
-                        for (const f of fs.readdirSync(skillsDir).filter(f => f.endsWith('.md'))) {
-                            allFiles.push({ label: `📄 ${f}`, description: 'Hub Skill', filepath: path.join(skillsDir, f) });
-                        }
-                    }
-                    if (fs.existsSync(customSkillsDir)) {
-                        for (const f of fs.readdirSync(customSkillsDir).filter(f => f.endsWith('.md'))) {
-                            allFiles.push({ label: `✏️ ${f}`, description: 'Custom Skill', filepath: path.join(customSkillsDir, f) });
-                        }
-                    }
-                    if (allFiles.length === 0) {
-                        vscode.window.showInformationMessage('Nenhuma skill encontrada. Clique em Sincronizar primeiro.');
-                        break;
-                    }
-                    const picked = await vscode.window.showQuickPick(allFiles, {
-                        title: 'Foursys SDD — Skills Disponíveis',
-                        placeHolder: 'Selecione uma skill para visualizar'
-                    });
-                    if (picked) {
-                        const filename = path.basename(picked.filepath);
-                        await trackEvent(this._context, undefined, {
-                            event: 'skill_clicked',
-                            command: filename,
-                            stack: this._currentStackId()
-                        });
-                        await this._openSkillChat(`@foursys_sdd_po /skill ${filename} `);
-                    }
-                    break;
-                }
                 case 'OpenCustomSkills': {
                     const globalStoragePath = this._context.globalStorageUri.fsPath;
                     const customSkillsDir = path.join(globalStoragePath, 'custom-skills');

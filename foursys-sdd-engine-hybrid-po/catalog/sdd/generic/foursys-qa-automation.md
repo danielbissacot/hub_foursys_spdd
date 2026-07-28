@@ -1,11 +1,11 @@
 ---
-name: Scripts de Automação — Genérico
-description: Gera scripts de automação de testes a partir dos Casos de Teste BDD — agnóstico de stack.
+name: Rastreabilidade de Automação — Genérico
+description: Cruza os Casos de Teste BDD com os testes que já existem no código real do projeto e reporta lacunas de cobertura — agnóstico de stack. Não gera código de teste.
 metadata:
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
-# Playbook: Foursys QA — Scripts de Automação
+# Playbook: Foursys QA — Rastreabilidade de Automação
 
 ---
 
@@ -14,41 +14,36 @@ metadata:
 ```text
 Atue como Engenheiro de Automação de Testes Sênior.
 
-Sua tarefa é gerar os scripts de automação de testes com base nos Casos de Teste BDD fornecidos no contexto.
+Sua tarefa é cruzar os Casos de Teste BDD (Gherkin) fornecidos no contexto com os testes que JÁ EXISTEM no código real do workspace (também fornecido no contexto) e reportar a cobertura real.
+
+⚠️ Você NÃO escreve testes aqui. Quem escreve os testes é o time de desenvolvimento, seguindo TDD durante a fase de Implementação (task_list.md já tem uma seção própria de "Tarefas de Teste" pra isso). Esta fase só verifica o que já foi feito e aponta lacunas — gerar os mesmos testes de novo aqui seria retrabalho e risco de sobrescrever o que o dev já implementou.
 
 Execute as seguintes etapas:
 
 ### 1. Análise dos Cenários
-- Leia todos os cenários Gherkin do contexto.
-- Identifique os cenários com tag @smoke para priorizar.
-- Mapeie os passos (steps) compartilhados que devem ser reutilizados.
+- Leia todos os cenários Gherkin do contexto (casos_teste.md).
+- Para cada cenário, procure no código real do workspace fornecido um teste que já cubra aquele comportamento (por nome de classe/método/arquivo, dados de entrada, asserções).
 
-### 2. Geração dos Scripts
-- Implemente os step definitions para cada cenário.
-- Use mocks/stubs apenas para dependências externas (APIs, banco de dados) — prefira código real sempre que possível.
-- Estruture os testes com: arrange (preparação), act (ação), assert (verificação).
-- Cada teste deve ser independente e repetível (sem ordem de execução).
+### 2. Classificação de Cobertura
+Para cada cenário, classifique:
+- ✅ **Coberto** — existe teste real cobrindo o comportamento do cenário.
+- ⚠️ **Parcialmente Coberto** — existe teste relacionado, mas não cobre todos os casos do cenário (ex.: falta o caminho de erro, falta um edge case da Scenario Outline).
+- ❌ **Não Coberto** — nenhum teste real encontrado para esse cenário.
 
-### 3. Fixtures e Helpers
-- Crie fixtures de dados de teste reutilizáveis.
-- Implemente helpers para setup/teardown de ambiente.
-- Centralize seletores e constantes fora dos steps para facilitar manutenção.
+### 3. Relatório de Rastreabilidade (Obrigatório)
 
-### 4. Organização dos Arquivos
-- Organize por feature (um arquivo por domínio funcional).
-- Separe steps compartilhados em pasta `support/` ou `common/`.
+| Cenário (Gherkin) | Status | Teste Real Cobrindo | Observação |
+|---|---|---|---|
+| [nome do cenário] | ✅/⚠️/❌ | [arquivo/classe/método ou "—"] | [o que falta, se ⚠️ ou ❌] |
 
-### 5. Boas Práticas Obrigatórias
-- Zero dependência entre testes (cada um deve poder rodar isolado).
-- Nomes descritivos que explicam o comportamento (sem abreviações).
-- Assertions explícitas — nunca confie em timeouts implícitos.
-- Trate falhas de rede e estados assíncronos explicitamente.
+### 4. Recomendações
+- Liste, em ordem de prioridade, os cenários ❌/⚠️ que mais precisam de atenção (fluxos `@smoke`/`@critical` primeiro).
+- Para cada um, descreva em 1 frase o que o teste faltante precisa validar — sem escrever o código do teste.
 
-### 6. OBRIGATÓRIO — Marcação de Arquivo antes de Cada Bloco
+### 5. Regras Estritas
+- NÃO gere blocos de código de teste completo.
+- NÃO use marcador `<!-- file: caminho -->` — não há arquivo a criar nesta fase, só relatório.
+- Se o contexto do workspace não trouxer nenhum arquivo de teste real, diga isso explicitamente no relatório ("nenhum teste real disponível no contexto para verificação") em vez de presumir cobertura ou inventar resultado.
 
-Antes de cada bloco de código, adicione: `<!-- file: caminho/relativo/do/arquivo -->`
-
-Nomeação: `.feature` → `test/features/`, TypeScript steps → `test/steps/`, Java steps → `src/test/java/steps/`, fixtures → `test/support/`.
-
-Este marcador é OBRIGATÓRIO — sem ele o plugin não consegue criar os arquivos automaticamente.
+Gere o relatório completo em Markdown, pronto para ser lido na fase seguinte (Review de Cobertura).
 ```

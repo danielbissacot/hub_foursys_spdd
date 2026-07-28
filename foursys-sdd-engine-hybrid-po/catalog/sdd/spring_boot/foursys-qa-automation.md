@@ -1,11 +1,11 @@
 ---
-name: Scripts de Automação — Spring Boot
-description: Gera scripts de automação com JUnit 5, Mockito, AssertJ para Arquitetura Hexagonal em Spring Boot.
+name: Rastreabilidade de Automação — Spring Boot
+description: Cruza os Casos de Teste BDD com os testes JUnit 5/Mockito/AssertJ que já existem no projeto (Domain, UseCase, Adapter) e reporta lacunas de cobertura. Não gera código de teste.
 metadata:
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
-# Playbook: Foursys QA — Scripts de Automação (Spring Boot)
+# Playbook: Foursys QA — Rastreabilidade de Automação (Spring Boot)
 
 ---
 
@@ -14,140 +14,39 @@ metadata:
 ```text
 Atue como Engenheiro de Automação de Testes Sênior especializado em Spring Boot com JUnit 5, Mockito e AssertJ.
 
-Sua tarefa é gerar os scripts de automação com base nos Casos de Teste BDD fornecidos no contexto, seguindo os padrões de Arquitetura Hexagonal.
+Sua tarefa é cruzar os Casos de Teste BDD (Gherkin) fornecidos no contexto com os testes que JÁ EXISTEM no código real do workspace e reportar a cobertura real, seguindo os padrões de Arquitetura Hexagonal.
+
+⚠️ Você NÃO escreve testes aqui. Quem escreve os testes é o time de desenvolvimento, seguindo TDD durante a fase de Implementação (task_list.md já tem uma seção própria de "Tarefas de Teste" pra isso — Domain/UseCase na Sessão 1, Adapter na Sessão 2). Esta fase só verifica o que já foi feito e aponta lacunas — gerar os mesmos testes de novo aqui seria retrabalho e risco de sobrescrever o que o dev já implementou.
 
 Execute as seguintes etapas:
 
-### 1. Testes de Domain Model
+### 1. Onde Procurar Cobertura Real
+Para cada cenário Gherkin, procure no código real do workspace um teste correspondente pela camada indicada na tag/referência técnica do cenário:
+- **Domain**: classes `[NomeDomínio]Test` — verificam invariantes e regras de negócio puras.
+- **UseCase**: classes `[NomeUseCase]Test` com `@ExtendWith(MockitoExtension.class)`, `@Mock`/`@InjectMocks` — verificam orquestração e tratamento de exceção.
+- **Adapter**: classes de teste de Controller/Repository/Client — verificam mapeamento DTO↔Domain e respostas HTTP.
 
-```java
-@DisplayName("[NomeDomínio] — Regras de Negócio")
-class [NomeDomínio]Test {
+### 2. Classificação de Cobertura
+Para cada cenário, classifique:
+- ✅ **Coberto** — existe teste real (JUnit) cobrindo o comportamento do cenário.
+- ⚠️ **Parcialmente Coberto** — existe teste relacionado, mas falta algum caso (ex.: só testa o caminho feliz, falta o `@ParameterizedTest` dos edge cases).
+- ❌ **Não Coberto** — nenhum teste real encontrado para esse cenário.
 
-    @Nested
-    @DisplayName("Cenários de Sucesso")
-    class SuccessScenarios {
-        @Test
-        @DisplayName("Should [comportamento] when [condição]")
-        void should[Comportamento]When[Condição]() {
-            // arrange
-            var sut = [NomeDomínio].builder()
-                .[campo]([valor])
-                .build();
+### 3. Relatório de Rastreabilidade (Obrigatório)
 
-            // act & assert
-            assertThat(sut.[metodo]()).isEqualTo([esperado]);
-        }
-    }
+| Cenário (Gherkin) | Camada | Status | Teste Real Cobrindo | Observação |
+|---|---|---|---|---|
+| [nome do cenário] | Domain/UseCase/Adapter | ✅/⚠️/❌ | [Classe.método ou "—"] | [o que falta, se ⚠️ ou ❌] |
 
-    @Nested
-    @DisplayName("Violações de Regras de Negócio")
-    class BusinessRuleViolations {
-        @Test
-        @DisplayName("Should throw [Exceção] when [condição inválida]")
-        void shouldThrow[Exceção]When[CondiçãoInválida]() {
-            assertThatThrownBy(() -> [NomeDomínio].builder().[campoInvalido](null).build())
-                .isInstanceOf([ExcecaoDomínio].class)
-                .hasMessageContaining("[mensagem esperada]");
-        }
-    }
-}
-```
+### 4. Recomendações
+- Liste, em ordem de prioridade, os cenários ❌/⚠️ que mais precisam de atenção (`@smoke`/`@critical` primeiro).
+- Para cada um, descreva em 1 frase o que o teste faltante precisa validar (camada, mock necessário, exceção esperada) — sem escrever o código do teste.
+- Aponte se a cobertura de `core/`+`port/` está abaixo dos 95% exigidos pela Constituição.
 
-### 2. Testes de UseCase
+### 5. Regras Estritas
+- NÃO gere blocos de código de teste completo (nada de `@Test`, `@Mock` prontos pra copiar).
+- NÃO use marcador `<!-- file: caminho -->` — não há arquivo a criar nesta fase, só relatório.
+- Se o contexto do workspace não trouxer nenhum arquivo de teste real, diga isso explicitamente no relatório em vez de presumir cobertura ou inventar resultado.
 
-```java
-@ExtendWith(MockitoExtension.class)
-@DisplayName("[NomeUseCase] — Lógica de Aplicação")
-class [NomeUseCase]Test {
-
-    @Mock private [NomePort] [nomePort];
-    @InjectMocks private [NomeUseCase] sut;
-
-    @Test
-    @DisplayName("Should [resultado] when [condição]")
-    void should[Resultado]When[Condição]() {
-        // arrange
-        var input = [NomeInput].builder().[campo]([valor]).build();
-        var domainEntity = [NomeDomínio].builder().[campo]([valor]).build();
-        given([nomePort].[metodo](any())).willReturn(domainEntity);
-
-        // act
-        var result = sut.execute(input);
-
-        // assert
-        assertThat(result.[campo]()).isEqualTo([esperado]);
-        verify([nomePort], times(1)).[metodo](any());
-    }
-
-    @ParameterizedTest
-    @DisplayName("Should throw [Exceção] for invalid inputs")
-    @MethodSource("invalidInputs")
-    void shouldThrowForInvalidInput([TipoInput] invalidInput) {
-        assertThatThrownBy(() -> sut.execute(invalidInput))
-            .isInstanceOf([ExcecaoAplicacao].class);
-    }
-
-    private static Stream<Arguments> invalidInputs() {
-        return Stream.of(
-            Arguments.of(([TipoInput]) null),
-            Arguments.of([TipoInput].builder().build())
-        );
-    }
-}
-```
-
-### 3. Boas Práticas Obrigatórias (Spring Boot)
-- **Nomenclatura BDD:** `shouldDoX_whenY()` ou `@DisplayName("Should X when Y")`.
-- **@Nested classes** para agrupar cenários por contexto.
-- **Mockito only:** `@Mock`, `@InjectMocks`, `@ExtendWith(MockitoExtension.class)` — evite `@SpringBootTest` em testes unitários.
-- **AssertJ:** use `assertThat()` em vez de `assertEquals()` — mensagens de erro mais claras.
-- **given/when/then** como comentários separando as seções do teste.
-- Tipos monetários: `BigDecimal` — nunca `Double` ou `Float`.
-- Cobertura mínima de 95% para camada de Domain e UseCase.
-
-### 4. OBRIGATÓRIO — Marcação de Arquivo antes de Cada Bloco
-
-ANTES de cada bloco de código, adicione um comentário HTML com o caminho relativo do arquivo de destino:
-
-Regras de nomeação para Spring Boot:
-- Gherkin `.feature` → `src/test/resources/features/{slug}.feature`
-- Java test class → `src/test/java/steps/{NomeDaClasse}.java`
-
-Exemplo:
-```
-<!-- file: src/test/resources/features/cadastro-cliente.feature -->
-```gherkin
-Feature: Cadastro de Cliente
-  ...
-```
-
-<!-- file: src/test/java/steps/CadastroClienteSteps.java -->
-```java
-public class CadastroClienteSteps { ... }
-```
-```
-
-Este marcador é OBRIGATÓRIO — sem ele o plugin não consegue extrair e criar os arquivos automaticamente.
-
-### 4. Dependências Maven
-```xml
-<dependency>
-    <groupId>org.junit.jupiter</groupId>
-    <artifactId>junit-jupiter</artifactId>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>org.mockito</groupId>
-    <artifactId>mockito-junit-jupiter</artifactId>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>org.assertj</groupId>
-    <artifactId>assertj-core</artifactId>
-    <scope>test</scope>
-</dependency>
-```
-
-Gere todos os scripts completos e funcionais organizados por camada hexagonal (domain/, application/, adapter/).
+Gere o relatório completo em Markdown, pronto para ser lido na fase seguinte (Review de Cobertura).
 ```

@@ -13,6 +13,19 @@ export const PHASES_NEEDING_WORKSPACE = new Set([
     // ver código real do workspace só infla o prompt sem ajudar o plano)
 ]);
 
+export const TEST_CONTEXT_MAX_FILES = 6;
+
+const TEST_FILE_PATTERNS: Record<string, RegExp> = {
+    spring_boot: /Test\.java$/,
+    angular: /\.spec\.ts$/,
+    node: /\.(spec|e2e-spec)\.ts$/i,
+    cobol: /^TSTE-.*\.jcl$/i,
+    android: /Test\.kt$/,
+    ios: /Tests\.swift$/,
+};
+const DEFAULT_TEST_PATTERN = /\.(spec|test)\.[jt]sx?$|Test\.(java|kt)$|Tests\.swift$/i;
+const WORKSPACE_WALK_SKIP_DIRS = new Set(['node_modules', 'out', 'dist', 'build', 'target', DOC_FOLDER]);
+
 export interface ResolvedPhasePaths {
     outputPath: string;
     contextFiles: string[];
@@ -160,6 +173,54 @@ export function readWorkspaceContext(rootPath: string, stackId: string): string 
     return context;
 }
 
+/** Varre o workspace inteiro (não só src/, já que testes de várias stacks vivem fora dali —
+ *  ex.: test/*.e2e-spec.ts no Node, JCL/ no COBOL) procurando arquivos de teste reais, pra
+ *  cruzar com os cenários Gherkin na fase qa-automation (rastreabilidade, não geração). */
+export function readTestWorkspaceContext(rootPath: string, stackId: string): string {
+    const pattern = TEST_FILE_PATTERNS[stackId] ?? DEFAULT_TEST_PATTERN;
+    const collected: { filePath: string; mtime: number }[] = [];
+    const walk = (dir: string, depth: number) => {
+        if (depth > 8 || collected.length >= TEST_CONTEXT_MAX_FILES * 4) { return; }
+        let entries: fs.Dirent[];
+        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+        for (const entry of entries) {
+            if (entry.name.startsWith('.') || WORKSPACE_WALK_SKIP_DIRS.has(entry.name)) { continue; }
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) { walk(full, depth + 1); }
+            else if (pattern.test(entry.name)) {
+                try { collected.push({ filePath: full, mtime: fs.statSync(full).mtimeMs }); } catch { /* ignorar */ }
+            }
+        }
+    };
+    walk(rootPath, 0);
+    collected.sort((a, b) => b.mtime - a.mtime);
+    const selected = collected.slice(0, TEST_CONTEXT_MAX_FILES);
+
+    if (selected.length === 0) {
+        return '\n--- TESTES REAIS DO WORKSPACE ---\nNenhum arquivo de teste encontrado no projeto ainda — não presuma cobertura.\n';
+    }
+
+    let context = '\n--- TESTES REAIS DO WORKSPACE (cruze com os cenários Gherkin) ---\n';
+    for (const { filePath } of selected) {
+        try {
+            const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+            const snippet = lines.slice(0, WORKSPACE_CONTEXT_MAX_LINES).join('\n');
+            context += `\n--- ARQUIVO DE TESTE: ${path.relative(rootPath, filePath)} ---\n${snippet}\n`;
+        } catch { /* ignorar */ }
+    }
+    return context;
+}
+
+/** Escolhe qual varredura de workspace injetar por fase — qa-automation usa a varredura
+ *  específica de testes reais (readTestWorkspaceContext); as demais fases marcadas em
+ *  PHASES_NEEDING_WORKSPACE usam a varredura genérica de código-fonte recente. Centralizado
+ *  aqui pra extension.ts (VS Code) e assembleFinalPrompt (IntelliJ/CLI) nunca divergirem. */
+export function readWorkspaceContextForPhase(command: string, rootPath: string, stackId: string): string {
+    if (command === 'qa-automation') { return readTestWorkspaceContext(rootPath, stackId); }
+    if (PHASES_NEEDING_WORKSPACE.has(command)) { return readWorkspaceContext(rootPath, stackId); }
+    return '';
+}
+
 export function readProjectStackInfo(rootPath: string, stackId: string): string {
     if (stackId !== 'angular' && stackId !== 'node') { return ''; }
     const pkgPath = path.join(rootPath, 'package.json');
@@ -224,9 +285,7 @@ export function assembleFinalPrompt(params: {
             userContext += `\n## ${path.basename(file)}\n${capped}\n`;
         }
     });
-    if (PHASES_NEEDING_WORKSPACE.has(command)) {
-        userContext += readWorkspaceContext(workspaceRoot, stackId);
-    }
+    userContext += readWorkspaceContextForPhase(command, workspaceRoot, stackId);
     if (command === 'constitution' || command === 'plan' || command === 'tasks') {
         userContext += readProjectStackInfo(workspaceRoot, stackId);
     }

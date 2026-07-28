@@ -1,11 +1,11 @@
 ---
-name: Scripts de Automação — Angular
-description: Gera scripts de automação de testes para Angular v21+ com Vitest, Jasmine/TestBed e Playwright BDD.
+name: Rastreabilidade de Automação — Angular
+description: Cruza os Casos de Teste BDD com os testes Vitest/Jasmine que já existem no projeto (componentes, signals, services) e reporta lacunas de cobertura. Não gera código de teste.
 metadata:
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
-# Playbook: Foursys QA — Scripts de Automação (Angular)
+# Playbook: Foursys QA — Rastreabilidade de Automação (Angular)
 
 ---
 
@@ -14,119 +14,39 @@ metadata:
 ```text
 Atue como Engenheiro de Automação de Testes Sênior especializado em Angular v21+.
 
-Sua tarefa é gerar os scripts de automação com base nos Casos de Teste BDD fornecidos no contexto, usando Vitest (preferencial) ou Jasmine/TestBed para testes de componentes e serviços.
+Sua tarefa é cruzar os Casos de Teste BDD (Gherkin) fornecidos no contexto com os testes que JÁ EXISTEM no código real do workspace (Vitest ou Jasmine/TestBed, conforme o projeto) e reportar a cobertura real.
+
+⚠️ Você NÃO escreve testes aqui. Quem escreve os testes é o time de desenvolvimento, seguindo TDD durante a fase de Implementação (task_list.md já tem uma seção própria de "Tarefas de Teste" pra isso). Esta fase só verifica o que já foi feito e aponta lacunas — gerar os mesmos testes de novo aqui seria retrabalho e risco de sobrescrever o que o dev já implementou.
 
 Execute as seguintes etapas:
 
-### 1. Testes de Componente (Vitest + TestBed)
+### 1. Onde Procurar Cobertura Real
+Para cada cenário Gherkin, procure no código real do workspace (arquivos `.spec.ts`) um teste correspondente:
+- **Componente**: `describe('[NomeComponente]', ...)` com `TestBed`/`ComponentFixture`.
+- **Signal**: testes que fazem `.set()`/`.update()` e validam `computed()` resultante.
+- **Serviço HTTP**: testes com `HttpTestingController` verificando request/response.
 
-Para cada cenário de componente, gere:
-```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+### 2. Classificação de Cobertura
+Para cada cenário, classifique:
+- ✅ **Coberto** — existe teste real cobrindo o comportamento do cenário.
+- ⚠️ **Parcialmente Coberto** — existe teste relacionado, mas falta algum caso (ex.: só testa o caminho feliz, falta o estado de erro/loading).
+- ❌ **Não Coberto** — nenhum teste real encontrado para esse cenário.
 
-describe('[NomeComponente]', () => {
-  let component: [NomeComponente];
-  let fixture: ComponentFixture<[NomeComponente]>;
+### 3. Relatório de Rastreabilidade (Obrigatório)
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [[NomeComponente]],
-      providers: [
-        { provide: [Dependência], useValue: mock[Dependência] },
-      ],
-    }).compileComponents();
+| Cenário (Gherkin) | Status | Teste Real Cobrindo | Observação |
+|---|---|---|---|
+| [nome do cenário] | ✅/⚠️/❌ | [arquivo/describe/it ou "—"] | [o que falta, se ⚠️ ou ❌] |
 
-    fixture = TestBed.createComponent([NomeComponente]);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+### 4. Recomendações
+- Liste, em ordem de prioridade, os cenários ❌/⚠️ que mais precisam de atenção (`@smoke`/`@critical` primeiro).
+- Para cada um, descreva em 1 frase o que o teste faltante precisa validar — sem escrever o código do teste.
+- Aponte se a cobertura está abaixo dos 90% exigidos pela Constituição.
 
-  it('should [comportamento esperado]', () => {
-    // arrange
-    // act
-    // assert
-    expect(component).toBeTruthy();
-  });
-});
-```
+### 5. Regras Estritas
+- NÃO gere blocos de código de teste completo (nada de `it(...)` pronto pra copiar).
+- NÃO use marcador `<!-- file: caminho -->` — não há arquivo a criar nesta fase, só relatório.
+- Se o contexto do workspace não trouxer nenhum arquivo de teste real, diga isso explicitamente no relatório em vez de presumir cobertura ou inventar resultado.
 
-### 2. Testes de Signal
-```typescript
-it('should update computed when signal changes', () => {
-  component.[signal].set([valor]);
-  expect(component.[computed]()).toBe([esperado]);
-});
-```
-
-### 3. Testes de Serviço HTTP
-```typescript
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
-
-beforeEach(() => {
-  TestBed.configureTestingModule({
-    providers: [provideHttpClient(), provideHttpClientTesting()],
-  });
-  httpMock = TestBed.inject(HttpTestingController);
-});
-
-afterEach(() => { httpMock.verify(); });
-
-it('should [comportamento HTTP]', () => {
-  service.[metodo]().subscribe(result => {
-    expect(result).toEqual([esperado]);
-  });
-  const req = httpMock.expectOne('[url]');
-  expect(req.request.method).toBe('GET');
-  req.flush([dadoMock]);
-});
-```
-
-### 4. Mocks de Serviços com Signals
-```typescript
-const mock[Servico] = {
-  [signal]: signal<[Tipo] | null>(null),
-  [metodo]: vi.fn(),
-};
-```
-
-### 5. Boas Práticas Obrigatórias (Angular)
-- Use `setInput()` para definir signal inputs em testes.
-- Sempre chame `fixture.detectChanges()` após mutações de estado.
-- Use `fakeAsync`/`tick` para debounce e operações temporizadas.
-- Prefira Vitest (`vi.fn()`) ao Jasmine (`jasmine.createSpy()`) **somente se o projeto já usa Vitest**; em projeto legado com Jasmine/Karma já configurado, mantenha Jasmine — não proponha migração de framework de teste.
-- Isole cada teste — nunca compartilhe estado entre `it` blocks.
-
-### 5.1 Execução Não-Interativa (OBRIGATÓRIO)
-- Gere todos os arquivos de teste do lote de uma vez e rode a suíte completa em modo single-run (`ng test --watch=false --code-coverage` ou `vitest run --coverage`) — nunca deixe o test runner em modo watch.
-- Reporte o resultado agregado (quantos passaram/falharam + % de cobertura) ao final da execução; não pause pedindo confirmação a cada teste individual.
-- Se a cobertura ficar abaixo da meta (≥90%), leia o relatório de cobertura, identifique os branches/linhas não cobertos e escreva os testes faltantes em uma única passada adicional — não repita o ciclo teste a teste tentando adivinhar o que falta.
-
-### 6. OBRIGATÓRIO — Marcação de Arquivo antes de Cada Bloco
-
-ANTES de cada bloco de código, adicione um comentário HTML com o caminho relativo do arquivo de destino:
-
-Regras de nomeação para Angular:
-- Gherkin `.feature` → `test/features/{slug}.feature`
-- TypeScript spec → `test/steps/{slug}.steps.ts`
-- Fixtures/helpers → `test/support/{nome}.ts`
-
-Exemplo:
-```
-<!-- file: test/features/autenticacao.feature -->
-```gherkin
-Feature: Autenticação
-  ...
-```
-
-<!-- file: test/steps/autenticacao.steps.ts -->
-```typescript
-describe('Autenticação', () => { ... });
-```
-```
-
-Este marcador é OBRIGATÓRIO — sem ele o plugin não consegue extrair e criar os arquivos automaticamente.
-
-Gere todos os scripts completos e funcionais, organizados por arquivo, com marcadores antes de cada bloco.
+Gere o relatório completo em Markdown, pronto para ser lido na fase seguinte (Review de Cobertura).
 ```

@@ -9,10 +9,9 @@ import { POPanelProvider } from './po-panel-provider';
 import { getStackConfig, getAllStacks, resolveStack } from './engine/stack-registry';
 import {
     CONTEXT_FILE_MAX_LINES,
-    PHASES_NEEDING_WORKSPACE,
     resolveOutputAndContextFiles,
     getDocPath,
-    readWorkspaceContext,
+    readWorkspaceContextForPhase,
     readProjectStackInfo,
     extractHtmlBlock,
     extractFencedBlocks
@@ -131,7 +130,7 @@ export function activate(context: vscode.ExtensionContext) {
         const config = getStackConfig(stackId);
         const roteirosPath = path.relative(rootPath, path.join(resolveStoryDocPath(rootPath, context), 'qa', 'roteiros_teste.md')).replace(/\\/g, '/');
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia o arquivo ${roteirosPath} deste workspace. Crie cada arquivo de teste marcado com o comentário <!-- file: caminho --> exatamente no caminho indicado, criando diretórios quando necessário, com o conteúdo do bloco de código correspondente. Invoque a Skill: ${config.implementSkillTag}.`
+            query: `Leia o arquivo ${roteirosPath} deste workspace — é um relatório de rastreabilidade entre os Casos de Teste (Gherkin) e os testes já implementados no projeto. Identifique APENAS as linhas marcadas como ❌ (não coberto) ou ⚠️ (parcialmente coberto) e escreva SOMENTE o teste que falta pra cada uma, seguindo exatamente o framework, padrão e convenções de nomenclatura já usados nos testes existentes do projeto. NÃO reescreva nem duplique testes que já estão ✅ cobertos. Invoque a Skill: ${config.implementSkillTag}.`
         });
     }));
 
@@ -797,9 +796,7 @@ async function executeSDDPhase(
                 userContext += `\n## ${path.basename(file)}\n${capped}\n`;
             }
         });
-        if (PHASES_NEEDING_WORKSPACE.has(command)) {
-            userContext += readWorkspaceContext(rootPath, stackId);
-        }
+        userContext += readWorkspaceContextForPhase(command, rootPath, stackId);
         if (command === 'constitution' || command === 'plan' || command === 'tasks') {
             userContext += readProjectStackInfo(rootPath, stackId);
         }

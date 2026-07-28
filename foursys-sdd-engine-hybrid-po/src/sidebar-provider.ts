@@ -1354,14 +1354,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaAutomation')">
                 <span class="step-number">4</span>
-                <span class="step-label"><span class="step-title">🤖 Scripts de Automação</span><span class="step-sub">Gerar código de teste</span></span>
+                <span class="step-label"><span class="step-title">🤖 Rastreabilidade de Testes</span><span class="step-sub">Cruzar BDD com testes reais</span></span>
                 <span class="info-icon" onclick="showInfo('QaAutomation', event)">i</span>
             </button>
             <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')">
                 <span class="step-number">5</span>
                 <span class="step-label">
                     <span class="step-title">🚀 Implementar Testes</span>
-                    <span class="step-sub">${qaScriptsReady ? 'Extrair e criar arquivos de teste' : 'Aguardando Scripts de Automação'}</span>
+                    <span class="step-sub">${qaScriptsReady ? 'Criar só os testes que faltam' : 'Aguardando Rastreabilidade de Testes'}</span>
                 </span>
                 <span class="info-icon" onclick="showInfo('QaImplement', event)">i</span>
             </button>
@@ -1444,12 +1444,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             QaExportXray: { icon: '📤', title: 'Exportar para Xray',
                 faz: 'Envia os casos de teste BDD gerados para o Jira/Xray, criando os testes no projeto configurado.',
                 serve: 'Centraliza os casos de teste no Xray, integrando QA com o board do time.' },
-            QaAutomation: { icon: '🤖', title: 'Scripts de Automação',
-                faz: 'Gera o código de automação dos testes (ex: Playwright) a partir dos casos de teste BDD.',
-                serve: 'Acelera a criação dos scripts de teste automatizado, sem escrever do zero.' },
+            QaAutomation: { icon: '🤖', title: 'Rastreabilidade de Testes',
+                faz: 'Cruza os casos de teste BDD com os testes que já existem no código real do projeto e reporta o que está coberto e o que falta — não gera código.',
+                serve: 'Evita retrabalho: mostra a cobertura real sem duplicar testes que o dev já escreveu seguindo TDD no Implement.' },
             QaImplement: { icon: '🚀', title: 'Implementar Testes',
-                faz: 'Extrai os scripts de automação gerados e cria os arquivos de teste reais no projeto.',
-                serve: 'Materializa os scripts gerados em arquivos de teste executáveis no repositório.' },
+                faz: 'Lê o relatório de rastreabilidade e escreve apenas os testes marcados como faltando (❌/⚠️).',
+                serve: 'Fecha as lacunas de cobertura identificadas, sem sobrescrever ou duplicar testes que já existem.' },
             QaCoverage: { icon: '🔍', title: 'Review de Cobertura',
                 faz: 'Analisa a cobertura dos testes implementados frente aos critérios de aceite da história.',
                 serve: 'Identifica lacunas de cobertura antes de considerar a história pronta.' },

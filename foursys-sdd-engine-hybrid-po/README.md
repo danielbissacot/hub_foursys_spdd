@@ -57,6 +57,5 @@ momento com `Foursys: Desativar Telemetria`. Detalhes completos em `PRIVACY.md`.
 | Setting | Descrição |
 |---|---|
 | `foursys.modelOverride` | Força um modelo específico (vazio = modelo otimizado por fase) |
-| `foursys.tokenBudget` | Limite de tokens de entrada por chamada (padrão: 4500) |
 | `foursys.xrayJiraUrl` | URL base do Jira com Xray instalado |
 | `foursys.xrayProjectKey` | Chave do projeto Jira onde os testes serão criados |

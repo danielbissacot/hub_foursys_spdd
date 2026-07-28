@@ -2,7 +2,7 @@
   "name": "foursys-sdd-engine-hybrid-po",
   "displayName": "Foursys SDD Engine Hybrid PO",
   "description": "Motor SDD + Product Owner Agent — Discovery, PRD e User Stories com pipeline business-first.",
-  "version": "1.2.5",
+  "version": "1.2.5-test",
   "publisher": "foursys",
   "repository": {
     "type": "git",
@@ -95,11 +95,6 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Deixe **vazio** para usar o modelo otimizado por fase. Preencha para forcar um modelo especifico."
-        },
-        "foursys.tokenBudget": {
-          "type": "number",
-          "default": 4500,
-          "markdownDescription": "Limite de tokens de **entrada** por chamada."
         },
         "foursys.xrayJiraUrl": {
           "type": "string",

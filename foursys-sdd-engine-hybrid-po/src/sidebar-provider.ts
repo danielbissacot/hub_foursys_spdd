@@ -33,7 +33,40 @@ interface UiState {
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'foursys-sdd-po-view';
 
+    // Controla se já abrimos chat de skill nesta janela do VS Code — na 1ª vez não há nada
+    // pra proteger, então abre direto; da 2ª em diante pergunta pra não empilhar contexto de
+    // skills sem relação na mesma conversa.
+    private _skillChatUsedThisSession = false;
+
     constructor(private readonly _context: vscode.ExtensionContext) {}
+
+    /** Abre o chat com a query da skill, perguntando antes se já há uma conversa em andamento
+     *  (nesta janela) se o dev quer uma sessão nova ou continuar na atual. Não temos como ler
+     *  o histórico real do painel de chat (API não expõe isso), então usamos "já abrimos uma
+     *  skill antes nesta janela" como aproximação de "pode já ter conteúdo relevante". */
+    private async _openSkillChat(query: string): Promise<void> {
+        if (this._skillChatUsedThisSession) {
+            const choice = await vscode.window.showQuickPick(
+                [
+                    { label: '🆕 Nova sessão de chat', description: 'Conversa limpa, só para esta skill', value: 'new' as const },
+                    { label: '↩️ Continuar na conversa atual', description: 'Mantém o histórico do chat aberto', value: 'continue' as const }
+                ],
+                { placeHolder: 'Já há uma conversa de chat aberta — como deseja continuar?' }
+            );
+            if (choice?.value === 'new') {
+                try { await vscode.commands.executeCommand('workbench.action.chat.newChat'); }
+                catch { /* comando pode não existir em versões mais antigas do VS Code — segue mesmo assim */ }
+            }
+            // undefined (Esc) ou 'continue' -> mantém a sessão atual, comportamento de sempre
+        }
+        this._skillChatUsedThisSession = true;
+        await vscode.commands.executeCommand('workbench.action.chat.open', {
+            query,
+            // false = envia direto (acceptInput), sem isso o texto so fica no
+            // campo aguardando Enter manual e parece que nada aconteceu.
+            isPartialQuery: false
+        });
+    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -189,6 +222,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'RunMend':
                     vscode.commands.executeCommand('foursys.runMend');
                     break;
+                case 'SyncPersonalCopilot':
+                    vscode.commands.executeCommand('foursys.syncPersonalCopilot');
+                    break;
                 case 'ViewPlaybooks': {
                     const globalStoragePath = this._context.globalStorageUri.fsPath;
                     const playbookRoot = path.join(globalStoragePath, 'hub', 'catalog', 'playbook');
@@ -272,12 +308,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                             command: filename,
                             stack: this._currentStackId()
                         });
-                        await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd_po /skill ${filename} `,
-                            // false = envia direto (acceptInput), sem isso o texto so fica no
-                            // campo aguardando Enter manual e parece que nada aconteceu.
-                            isPartialQuery: false
-                        });
+                        await this._openSkillChat(`@foursys_sdd_po /skill ${filename} `);
                     }
                     break;
                 }
@@ -324,12 +355,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                             command: slug,
                             stack: this._currentStackId()
                         });
-                        await vscode.commands.executeCommand('workbench.action.chat.open', {
-                            query: `@foursys_sdd_po /skill ${slug} `,
-                            // false = envia direto (acceptInput), sem isso o texto so fica no
-                            // campo aguardando Enter manual e parece que nada aconteceu.
-                            isPartialQuery: false
-                        });
+                        await this._openSkillChat(`@foursys_sdd_po /skill ${slug} `);
                     } else if (typeof data.value === 'string' && data.value.startsWith('RunPlaybook:')) {
                         const slug = data.value.replace('RunPlaybook:', '');
                         await trackEvent(this._context, undefined, {
@@ -533,6 +559,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
 
         // "Nova história": pergunta o nome ali mesmo e já cria a pasta + template — antes só
         // avisava pra ir clicar em outro botão, sem fazer nada de fato.
+        // Limpa a história ativa ANTES de chamar createBlankUserStory: sem isso, ela reaproveita
+        // a pasta da história atual (em vez de criar uma nova) sempre que já existir uma ativa.
+        await setActiveStorySlug(this._context, undefined);
         const stackDisplayName = getStackConfig(this._currentStackId()).displayName;
         const targetDocPath = await createBlankUserStory(workspaceRoot, this._context, stackDisplayName);
         vscode.window.showInformationMessage(`📖 Nova história criada: ${getActiveStorySlug(this._context)}`);
@@ -649,7 +678,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         // ── PlayBooks — seção própria no topo ──
         html += `<div class="catalog-section" id="sec-playbooks">`;
         html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-playbooks')">`;
-        html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ff6b00"></span>📋 PlayBooks</span>`;
+        html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ff6b00"></span>📋 PlayBooks<span class="info-icon" onclick="showInfo('CatPlaybooks', event)">i</span></span>`;
         html += `<span class="catalog-chevron">▶</span></div>`;
         html += `<div class="catalog-section-body">`;
         html += skillSearch('sec-playbooks', 'Buscar playbook...');
@@ -666,13 +695,19 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         html += `</div></div>`;
 
         // ── Stacks ──
+        const STACK_INFO_KEYS: Record<string, string> = {
+            angular: 'CatAngular', spring_boot: 'CatSpringBoot', node: 'CatNode',
+            cobol: 'CatCobol', ios: 'CatIos', android: 'CatAndroid', 'java-legado': 'CatJavaLegado'
+        };
         for (const stack of data.stacks) {
             const openClass = stack.isCurrent ? ' open' : '';
             const currentClass = stack.isCurrent ? ' current-stack' : '';
             const currentTag = stack.isCurrent ? `<span class="current-tag">stack atual</span>` : '';
+            const infoKey = STACK_INFO_KEYS[stack.id] ?? '';
             html += `<div class="catalog-section${openClass}" id="sec-${stack.id}">`;
             html += `<div class="catalog-stack-header${currentClass}" onclick="toggleCatalog('sec-${stack.id}')">`;
-            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:${stack.color}"></span>${e(stack.label)}${currentTag}</span>`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:${stack.color}"></span>${e(stack.label)}${currentTag}` +
+                (infoKey ? `<span class="info-icon" onclick="showInfo('${infoKey}', event)">i</span>` : '') + `</span>`;
             html += `<span class="catalog-chevron">▶</span></div>`;
             html += `<div class="catalog-section-body">`;
             html += skillSearch(`sec-${stack.id}`, 'Buscar skill...');
@@ -688,7 +723,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         if (data.shared.length > 0) {
             html += `<div class="catalog-section" id="sec-shared">`;
             html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-shared')">`;
-            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#bdbdbd"></span>Processo</span>`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#bdbdbd"></span>Processo<span class="info-icon" onclick="showInfo('CatShared', event)">i</span></span>`;
             html += `<span class="catalog-chevron">▶</span></div>`;
             html += `<div class="catalog-section-body">`;
             html += skillSearch('sec-shared', 'Buscar skill...');
@@ -700,7 +735,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         if (data.productOwner.length > 0) {
             html += `<div class="catalog-section" id="sec-po">`;
             html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-po')">`;
-            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ff8a65"></span>🎯 Product Owner</span>`;
+            html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ff8a65"></span>🎯 Product Owner<span class="info-icon" onclick="showInfo('CatPO', event)">i</span></span>`;
             html += `<span class="catalog-chevron">▶</span></div>`;
             html += `<div class="catalog-section-body">`;
             html += skillSearch('sec-po', 'Buscar skill...');
@@ -711,7 +746,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         // ── Custom Skills ──
         html += `<div class="catalog-section" id="sec-custom">`;
         html += `<div class="catalog-stack-header" onclick="toggleCatalog('sec-custom')">`;
-        html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ce93d8"></span>✏️ Custom Skills</span>`;
+        html += `<span class="catalog-header-left"><span class="catalog-dot" style="background:#ce93d8"></span>✏️ Custom Skills<span class="info-icon" onclick="showInfo('CatCustom', event)">i</span></span>`;
         html += `<span class="catalog-chevron">▶</span></div>`;
         html += `<div class="catalog-section-body">`;
         html += skillSearch('sec-custom', 'Buscar skill...');
@@ -1230,6 +1265,50 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         .skill-clear { background: none; border: none; color: rgba(204,204,204,0.4); cursor: pointer; font-size: 13px; padding: 0; }
         .skill-no-results { text-align: center; padding: 12px 8px; font-size: 11px; color: rgba(204,204,204,0.35); display: none; }
         mark { background: rgba(255,107,0,0.3); color: #ffffff; border-radius: 2px; padding: 0 1px; }
+
+        /* ── Info Popover (i) ── */
+        .info-icon {
+            margin-left: auto;
+            width: 15px; height: 15px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.14);
+            color: inherit;
+            font-size: 9px;
+            font-weight: bold;
+            font-style: normal;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            opacity: 0.75;
+            transition: all 0.15s;
+        }
+        .info-icon:hover { opacity: 1; background: var(--foursys-orange); }
+        .catalog-header-left .info-icon { margin-left: 6px; }
+        .info-overlay { display: none; position: fixed; inset: 0; z-index: 1000; }
+        .info-overlay.open { display: block; }
+        .info-popover {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            width: 230px;
+            max-width: calc(100vw - 20px);
+            background: #1b2130;
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            padding: 12px;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #d8dae0;
+        }
+        .info-popover-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+        .info-popover-title { font-size: 12px; font-weight: bold; color: #ffffff; }
+        .info-popover-close { cursor: pointer; opacity: 0.5; font-size: 13px; background: none; border: none; color: inherit; padding: 0 2px; flex-shrink: 0; }
+        .info-popover-close:hover { opacity: 1; }
+        .info-popover-label { color: var(--foursys-orange); font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; margin-bottom: 3px; }
+        .info-popover-label:first-of-type { margin-top: 0; }
+        .info-popover-text { opacity: 0.85; }
     </style>
 </head>
 <body>
@@ -1293,6 +1372,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Constitution')">
                 <span class="step-number">0</span>
                 <span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança & padrões</span></span>
+                <span class="info-icon" onclick="showInfo('Constitution', event)">i</span>
             </button>
             <div class="specify-row">
                 <button class="btn ${stackUnknown ? 'btn-alert' : storyHasContent ? 'btn-ready' : ''}" onclick="sendAction('Specify')">
@@ -1301,6 +1381,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                         <span class="step-title">${storyHasContent ? '🔍 Specify (analisar)' : '📝 Specify (criar)'}</span>
                         <span class="step-sub">${storyHasContent ? 'Story pronta — clique para analisar' : 'Criar User Story'}</span>
                     </span>
+                    <span class="info-icon" onclick="showInfo('Specify', event)">i</span>
                 </button>
                 <button class="btn-mockup-sm" onclick="sendAction('SelectStoryFile')"
                     title="Selecionar um arquivo com história pronta (de qualquer origem) para usar no Specify">
@@ -1320,14 +1401,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Plan')">
                 <span class="step-number">2</span>
                 <span class="step-label"><span class="step-title">📐 Plan (Técnico)</span><span class="step-sub">Especificação técnica</span></span>
+                <span class="info-icon" onclick="showInfo('Plan', event)">i</span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Tasks')">
                 <span class="step-number">3</span>
                 <span class="step-label"><span class="step-title">📋 Tasks (Checklist)</span><span class="step-sub">Decomposição em tarefas</span></span>
+                <span class="info-icon" onclick="showInfo('Tasks', event)">i</span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Implement')">
                 <span class="step-number">4</span>
                 <span class="step-label"><span class="step-title">🚀 Implement (Copilot)</span><span class="step-sub">Codificação assistida</span></span>
+                <span class="info-icon" onclick="showInfo('Implement', event)">i</span>
             </button>
         </div>
     </div>
@@ -1344,10 +1428,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaTestPlan')">
                 <span class="step-number">1</span>
                 <span class="step-label"><span class="step-title">📝 Plano de Testes</span><span class="step-sub">Estratégia de testes</span></span>
+                <span class="info-icon" onclick="showInfo('QaTestPlan', event)">i</span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaTestCases')">
                 <span class="step-number">2</span>
                 <span class="step-label"><span class="step-title">📄 Casos de Teste</span><span class="step-sub">Cenários BDD / Gherkin</span></span>
+                <span class="info-icon" onclick="showInfo('QaTestCases', event)">i</span>
             </button>
             <button class="btn btn-implement-tests ${casosTesteReady ? '' : 'disabled'}" onclick="sendAction('QaExportXray')">
                 <span class="step-number">3</span>
@@ -1355,10 +1441,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     <span class="step-title">📤 Exportar para Xray</span>
                     <span class="step-sub">${casosTesteReady ? 'Enviar casos BDD para o Xray' : 'Aguardando Casos de Teste'}</span>
                 </span>
+                <span class="info-icon" onclick="showInfo('QaExportXray', event)">i</span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaAutomation')">
                 <span class="step-number">4</span>
                 <span class="step-label"><span class="step-title">🤖 Scripts de Automação</span><span class="step-sub">Gerar código de teste</span></span>
+                <span class="info-icon" onclick="showInfo('QaAutomation', event)">i</span>
             </button>
             <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')">
                 <span class="step-number">5</span>
@@ -1366,14 +1454,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     <span class="step-title">🚀 Implementar Testes</span>
                     <span class="step-sub">${qaScriptsReady ? 'Extrair e criar arquivos de teste' : 'Aguardando Scripts de Automação'}</span>
                 </span>
+                <span class="info-icon" onclick="showInfo('QaImplement', event)">i</span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaCoverage')">
                 <span class="step-number">6</span>
                 <span class="step-label"><span class="step-title">🔍 Review de Cobertura</span><span class="step-sub">Análise de cobertura</span></span>
+                <span class="info-icon" onclick="showInfo('QaCoverage', event)">i</span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaReport')">
                 <span class="step-number">7</span>
                 <span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span>
+                <span class="info-icon" onclick="showInfo('QaReport', event)">i</span>
             </button>
         </div>
     </div>
@@ -1391,13 +1482,133 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     </div>
 
+    <div class="mend-section">
+        <div class="mend-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>🧩 Copilot Nativo (VS Code / IntelliJ / CLI)</span>
+            <span class="info-icon" onclick="showInfo('SyncPersonalCopilot', event)">i</span>
+        </div>
+        <div class="mend-status">Skills/Agents Foursys direto no Copilot Chat, fora da extensão</div>
+        <button class="btn-mend" onclick="sendAction('SyncPersonalCopilot')">🔄 Sincronizar Skills Nativas</button>
+    </div>
+
     <button class="btn btn-sync" onclick="sendAction('Sync')">
         ${isConnected ? '🔄 ATUALIZAR SKILLS' : '📥 CONECTAR AO HUB'}
     </button>
 
+    <div class="info-overlay" id="info-overlay" onclick="closeInfo()"></div>
+    <div class="info-popover" id="info-popover">
+        <div class="info-popover-head">
+            <span class="info-popover-title" id="info-popover-title"></span>
+            <button class="info-popover-close" onclick="closeInfo()">✕</button>
+        </div>
+        <div class="info-popover-label">O que faz</div>
+        <div class="info-popover-text" id="info-popover-faz"></div>
+        <div class="info-popover-label">Pra que serve</div>
+        <div class="info-popover-text" id="info-popover-serve"></div>
+    </div>
+
     <script>
         const vscode = acquireVsCodeApi();
         function sendAction(value) { vscode.postMessage({ value: value }); }
+        const INFO_TEXTS = {
+            Constitution: { icon: '🏛️', title: 'Constitution',
+                faz: 'Gera o constitution.md com as regras de governança do projeto (padrões de código, arquitetura, convenções) a partir da stack detectada e do Playbook Foursys.',
+                serve: 'Define os princípios que Specify, Plan, Tasks e Implement devem respeitar — evita decisões técnicas inconsistentes ao longo da história.' },
+            Specify: { icon: '📝', title: 'Specify',
+                faz: 'Abre um template de user_story.md em branco pra descrever a necessidade de negócio; se já tiver conteúdo, envia a história pra IA analisar antes de seguir pra fase técnica.',
+                serve: 'Garante que o "o quê" e o "porquê" do negócio estejam claros antes de qualquer decisão técnica.' },
+            Plan: { icon: '📐', title: 'Plan (Técnico)',
+                faz: 'Lê o user_story.md (e o technical_spec.md, se existir) e gera a especificação técnica: componentes, endpoints, contratos, impacto no código existente.',
+                serve: 'Traduz a necessidade de negócio em decisões técnicas concretas antes de quebrar em tarefas.' },
+            Tasks: { icon: '📋', title: 'Tasks (Checklist)',
+                faz: 'Quebra o plano técnico numa lista de tarefas objetivas e sequenciais, prontas para execução.',
+                serve: 'Transforma a especificação técnica num checklist acionável, fácil de acompanhar durante a implementação.' },
+            Implement: { icon: '🚀', title: 'Implement (Copilot)',
+                faz: 'Envia o checklist de tasks pro Copilot codificar, tarefa por tarefa, seguindo o Playbook e a Constitution do projeto.',
+                serve: 'Fecha o ciclo SDD: da história de negócio até o código implementado, com rastreabilidade de cada etapa.' },
+            QaTestPlan: { icon: '📝', title: 'Plano de Testes',
+                faz: 'Gera a estratégia de testes (tipos de teste, riscos, cobertura esperada) a partir da user story e do plano técnico.',
+                serve: 'Define o que precisa ser testado antes de escrever qualquer caso de teste.' },
+            QaTestCases: { icon: '📄', title: 'Casos de Teste',
+                faz: 'Gera os cenários de teste em BDD/Gherkin (Dado/Quando/Então) a partir do plano de testes.',
+                serve: 'Detalha os casos de teste de forma legível pelo negócio e pronta pra automação.' },
+            QaExportXray: { icon: '📤', title: 'Exportar para Xray',
+                faz: 'Envia os casos de teste BDD gerados para o Jira/Xray, criando os testes no projeto configurado.',
+                serve: 'Centraliza os casos de teste no Xray, integrando QA com o board do time.' },
+            QaAutomation: { icon: '🤖', title: 'Scripts de Automação',
+                faz: 'Gera o código de automação dos testes (ex: Playwright) a partir dos casos de teste BDD.',
+                serve: 'Acelera a criação dos scripts de teste automatizado, sem escrever do zero.' },
+            QaImplement: { icon: '🚀', title: 'Implementar Testes',
+                faz: 'Extrai os scripts de automação gerados e cria os arquivos de teste reais no projeto.',
+                serve: 'Materializa os scripts gerados em arquivos de teste executáveis no repositório.' },
+            QaCoverage: { icon: '🔍', title: 'Review de Cobertura',
+                faz: 'Analisa a cobertura dos testes implementados frente aos critérios de aceite da história.',
+                serve: 'Identifica lacunas de cobertura antes de considerar a história pronta.' },
+            QaReport: { icon: '📊', title: 'Relatório de Qualidade',
+                faz: 'Consolida um relatório final com o status de qualidade da história: testes, cobertura e pendências.',
+                serve: 'Documenta a qualidade entregue, servindo de evidência para homologação/entrega.' },
+            CatPlaybooks: { icon: '📋', title: 'PlayBooks',
+                faz: 'Lista os guias de processo do Playbook Foursys, organizados por fase: Descoberta, Refinamento de Negócio, Desenho Técnico, Portões de Qualidade, Homologação e Modernização de Legado.',
+                serve: 'Consulta rápida aos padrões que orientam cada fase do SDD, sem precisar abrir o repositório do Hub manualmente.' },
+            CatAngular: { icon: '🅰️', title: 'Angular 18+',
+                faz: 'Skills de Angular: componentes, forms reativos, signals, HttpResource, DI, roteamento, diretivas, design system, testes e vertical slice.',
+                serve: 'Acelera tarefas técnicas recorrentes em projetos Angular, aplicando os padrões de arquitetura já validados pelo time.' },
+            CatSpringBoot: { icon: '☕', title: 'Java 21 + Spring Boot',
+                faz: 'Skills de integração e arquitetura Spring Boot: Kafka, Redis, MongoDB, Feign Client, Service Bus, Blob Storage, autorizador, certificado digital, validação hexagonal/MVC e testes com JUnit 5.',
+                serve: 'Padroniza a criação de integrações e camadas técnicas comuns em serviços Java, seguindo a arquitetura de referência.' },
+            CatNode: { icon: '🟢', title: 'Node.js / NestJS',
+                faz: 'Skills técnicas para projetos Node.js/NestJS — catálogo ainda em expansão.',
+                serve: 'Mesmo objetivo das demais stacks: padronizar tarefas técnicas recorrentes assim que as skills forem publicadas no Hub.' },
+            CatCobol: { icon: '🖥️', title: 'COBOL',
+                faz: 'Skills para o ciclo de vida de sistemas legados COBOL: análise de abend, documentação, geração de JCL e batch, transpilação para Java, refatoração, otimização de performance e testes de borda.',
+                serve: 'Apoia manutenção e modernização de código legado sem depender só do conhecimento tácito de quem já mexeu no sistema.' },
+            CatIos: { icon: '📱', title: 'iOS — Swift / Xcode',
+                faz: 'Skills de arquitetura iOS: networking, persistência, ViewModel, casos de uso, roteamento, componentes SwiftUI e testes.',
+                serve: 'Padroniza a criação de features iOS seguindo a arquitetura de referência do time.' },
+            CatAndroid: { icon: '🤖', title: 'Android — Kotlin',
+                faz: 'Skills de arquitetura Android: Compose, MVI, DI customizada, networking, persistência, scaffold de features e testes.',
+                serve: 'Padroniza a criação de features Android seguindo a arquitetura de referência do time.' },
+            CatJavaLegado: { icon: '📦', title: 'Java Legado',
+                faz: 'Skills de descoberta e análise de impacto para sistemas Java legados — mapeia estrutura e dependências antes de qualquer mudança.',
+                serve: 'Reduz o risco de alterar sistemas legados sem entender o impacto real da mudança.' },
+            CatShared: { icon: '⚙️', title: 'Processo',
+                faz: 'Skills compartilhadas entre todas as stacks: análise de projeto, checklist de homologação, code review, diagrama de sequência, especificação técnica, diagrama Mermaid, geração de features BDD/Playwright, refinamento de negócio e TDD.',
+                serve: 'Cobre etapas do processo SDD que não dependem de uma linguagem específica.' },
+            CatPO: { icon: '🎯', title: 'Product Owner',
+                faz: 'Skills usadas pelo PO Agent: discovery, geração de user story, regras de APF, geração de BPMN/Mermaid, exportação para Jira/Confluence e o Business Reviewer.',
+                serve: 'Permite rodar as mesmas skills do PO Agent direto pelo catálogo, sem abrir o painel dedicado.' },
+            SyncPersonalCopilot: { icon: '🧩', title: 'Sincronizar Skills Nativas',
+                faz: 'Copia as Skills técnicas e os Agents do catálogo Foursys para a pasta pessoal do Copilot (~/.copilot/skills e ~/.copilot/agents) — a mesma pasta usada pelo Copilot Chat em qualquer editor.',
+                serve: 'Uma vez sincronizado nesta máquina, os Skills/Agents ficam disponíveis via comando "/" no Copilot Chat tanto no VS Code quanto no IntelliJ (e no Copilot CLI), sem precisar da extensão instalada no IntelliJ — é a mesma pasta pessoal compartilhada. Opcional: não afeta o funcionamento do Hub (@foursys_sdd_po).' },
+            CatCustom: { icon: '✏️', title: 'Custom Skills',
+                faz: 'Lista as skills próprias criadas pelo time, salvas como arquivos .md fora do catálogo oficial do Hub.',
+                serve: 'Permite estender o Hub com conhecimento específico do projeto/squad sem esperar uma atualização do catálogo oficial.' }
+        };
+        function showInfo(key, evt) {
+            evt.stopPropagation();
+            const data = INFO_TEXTS[key];
+            if (!data) { return; }
+            document.getElementById('info-popover-title').textContent = data.icon + ' ' + data.title;
+            document.getElementById('info-popover-faz').textContent = data.faz;
+            document.getElementById('info-popover-serve').textContent = data.serve;
+            const pop = document.getElementById('info-popover');
+            document.getElementById('info-overlay').classList.add('open');
+            pop.style.display = 'block';
+            const rect = evt.currentTarget.getBoundingClientRect();
+            const popRect = pop.getBoundingClientRect();
+            let left = rect.right - popRect.width;
+            left = Math.max(8, Math.min(left, window.innerWidth - popRect.width - 8));
+            let top = rect.bottom + 6;
+            if (top + popRect.height > window.innerHeight - 8) {
+                top = Math.max(8, rect.top - popRect.height - 6);
+            }
+            pop.style.left = left + 'px';
+            pop.style.top = top + 'px';
+        }
+        function closeInfo() {
+            document.getElementById('info-popover').style.display = 'none';
+            document.getElementById('info-overlay').classList.remove('open');
+        }
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1447,6 +1658,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
+                closeInfo();
                 document.querySelectorAll('.skill-search input').forEach(input => {
                     if (input.value) { input.value = ''; filterSkills(input, input.closest('.catalog-section')?.id || ''); }
                 });

@@ -52,6 +52,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .d-on{background:var(--or)}.d-off{background:var(--t2)}.d-lk{background:var(--lk)}
 .lkic{font-size:9px;opacity:.5;flex-shrink:0}
+.info-icon{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.12);
+  color:var(--t2);font-size:9px;font-weight:700;font-style:normal;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0;opacity:.75;transition:all .15s}
+.info-icon:hover{opacity:1;background:var(--or)}
+.info-overlay{display:none;position:fixed;inset:0;z-index:1000}
+.info-overlay.open{display:block}
+.info-popover{display:none;position:fixed;z-index:1001;width:250px;max-width:calc(100vw - 20px);
+  background:#1b2130;border:1px solid rgba(255,255,255,.14);border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);padding:12px;font-size:11px;line-height:1.5;color:#d8dae0}
+.info-popover-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.info-popover-title{font-size:12px;font-weight:700;color:#fff}
+.info-popover-close{cursor:pointer;opacity:.5;font-size:13px;background:none;border:none;color:inherit;padding:0 2px;flex-shrink:0}
+.info-popover-close:hover{opacity:1}
+.info-popover-label{color:var(--or);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:8px;margin-bottom:3px}
+.info-popover-label:first-of-type{margin-top:0}
+.info-popover-text{opacity:.85}
 
 /* EXEC AREA */
 .exec{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -199,35 +215,38 @@ body.chat-on .v-chat{display:flex}
     <div class="item active" id="i-discovery" onclick="selItem('discovery')">
       <div class="ico ic-d">&#128269;</div>
       <div class="inf"><div class="iname">Iniciar Discovery</div><span class="itype ba">Agente</span></div>
+      <span class="info-icon" onclick="showInfo('discovery', event)">i</span>
       <div class="dot d-on"></div>
     </div>
     <div class="item locked" id="i-prd" onclick="bloqueado('prd')">
       <div class="ico ic-p">&#128203;</div>
       <div class="inf"><div class="iname">Refinar Neg&#243;cio / PRD</div><span class="itype ba">Agente</span></div>
+      <span class="info-icon" onclick="showInfo('prd', event)">i</span>
       <div class="dot d-lk"></div><span class="lkic">&#128274;</span>
     </div>
     <div class="item locked" id="i-stories" onclick="bloqueado('stories')">
       <div class="ico ic-s">&#128221;</div>
       <div class="inf"><div class="iname">Gerar User Stories</div><span class="itype ba">Agente</span></div>
+      <span class="info-icon" onclick="showInfo('stories', event)">i</span>
       <div class="dot d-lk"></div><span class="lkic">&#128274;</span>
     </div>
 
     <div class="a-sec">Ferramentas de Suporte</div>
-    <div class="item" id="i-reviewer"    onclick="abrirChat('reviewer')"><div class="ico ic-t">&#9989;</div><div class="inf"><div class="iname">Business Reviewer</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-bpmn"        onclick="abrirChat('bpmn')"><div class="ico ic-t">&#128256;</div><div class="inf"><div class="iname">BPMN Generator</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-mermaid"     onclick="abrirChat('mermaid')"><div class="ico ic-t">&#128202;</div><div class="inf"><div class="iname">Mermaid Generator</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-apf"         onclick="abrirChat('apf')"><div class="ico ic-t">&#128207;</div><div class="inf"><div class="iname">APF Rules</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-jira"        onclick="abrirChat('jira')"><div class="ico ic-t">&#127915;</div><div class="inf"><div class="iname">Exportar &#8594; Jira</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-confluence"  onclick="abrirChat('confluence')"><div class="ico ic-t">&#128196;</div><div class="inf"><div class="iname">Exportar &#8594; Confluence</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-facilitator" onclick="abrirChat('facilitator')"><div class="ico ic-t">&#127908;</div><div class="inf"><div class="iname">Discovery Facilitator</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-reviewer"    onclick="abrirChat('reviewer')"><div class="ico ic-t">&#9989;</div><div class="inf"><div class="iname">Business Reviewer</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('reviewer', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-bpmn"        onclick="abrirChat('bpmn')"><div class="ico ic-t">&#128256;</div><div class="inf"><div class="iname">BPMN Generator</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('bpmn', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-mermaid"     onclick="abrirChat('mermaid')"><div class="ico ic-t">&#128202;</div><div class="inf"><div class="iname">Mermaid Generator</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('mermaid', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-apf"         onclick="abrirChat('apf')"><div class="ico ic-t">&#128207;</div><div class="inf"><div class="iname">APF Rules</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('apf', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-jira"        onclick="abrirChat('jira')"><div class="ico ic-t">&#127915;</div><div class="inf"><div class="iname">Exportar &#8594; Jira</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('jira', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-confluence"  onclick="abrirChat('confluence')"><div class="ico ic-t">&#128196;</div><div class="inf"><div class="iname">Exportar &#8594; Confluence</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('confluence', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-facilitator" onclick="abrirChat('facilitator')"><div class="ico ic-t">&#127908;</div><div class="inf"><div class="iname">Discovery Facilitator</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('facilitator', event)">i</span><div class="dot d-off"></div></div>
 
     <div class="a-sec">Discovery &amp; PRD (avan&#231;ado)</div>
-    <div class="item" id="i-discoveryinit" onclick="abrirChat('discoveryinit')"><div class="ico ic-t">&#128270;</div><div class="inf"><div class="iname">Iniciar Discovery (fase A)</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-refinarneg" onclick="abrirChat('refinarneg')"><div class="ico ic-t">&#128203;</div><div class="inf"><div class="iname">Refinar Neg&#243;cio (fase B)</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-gerarstories" onclick="abrirChat('gerarstories')"><div class="ico ic-t">&#128221;</div><div class="inf"><div class="iname">Gerar User Stories (fase C)</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-quickprd" onclick="abrirChat('quickprd')"><div class="ico ic-t">&#9889;</div><div class="inf"><div class="iname">PRD R&#225;pido (rascunho)</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-techbridge" onclick="abrirChat('techbridge')"><div class="ico ic-t">&#127756;</div><div class="inf"><div class="iname">Ponte PO &#8594; TL</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
-    <div class="item" id="i-bpmnmd" onclick="abrirChat('bpmnmd')"><div class="ico ic-t">&#128260;</div><div class="inf"><div class="iname">BPMN &#8594; Markdown</div><span class="itype bs">Skill</span></div><div class="dot d-off"></div></div>
+    <div class="item" id="i-discoveryinit" onclick="abrirChat('discoveryinit')"><div class="ico ic-t">&#128270;</div><div class="inf"><div class="iname">Iniciar Discovery (fase A)</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('discoveryinit', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-refinarneg" onclick="abrirChat('refinarneg')"><div class="ico ic-t">&#128203;</div><div class="inf"><div class="iname">Refinar Neg&#243;cio (fase B)</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('refinarneg', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-gerarstories" onclick="abrirChat('gerarstories')"><div class="ico ic-t">&#128221;</div><div class="inf"><div class="iname">Gerar User Stories (fase C)</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('gerarstories', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-quickprd" onclick="abrirChat('quickprd')"><div class="ico ic-t">&#9889;</div><div class="inf"><div class="iname">PRD R&#225;pido (rascunho)</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('quickprd', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-techbridge" onclick="abrirChat('techbridge')"><div class="ico ic-t">&#127756;</div><div class="inf"><div class="iname">Ponte PO &#8594; TL</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('techbridge', event)">i</span><div class="dot d-off"></div></div>
+    <div class="item" id="i-bpmnmd" onclick="abrirChat('bpmnmd')"><div class="ico ic-t">&#128260;</div><div class="inf"><div class="iname">BPMN &#8594; Markdown</div><span class="itype bs">Skill</span></div><span class="info-icon" onclick="showInfo('bpmnmd', event)">i</span><div class="dot d-off"></div></div>
   </div>
 
   <!-- EXEC AREA -->
@@ -320,6 +339,18 @@ body.chat-on .v-chat{display:flex}
   <span style="margin-left:auto"><strong id="st-last">&#8212;</strong></span>
 </div>
 
+<div class="info-overlay" id="info-overlay" onclick="closeInfo()"></div>
+<div class="info-popover" id="info-popover">
+  <div class="info-popover-head">
+    <span class="info-popover-title" id="info-popover-title"></span>
+    <button class="info-popover-close" onclick="closeInfo()">&#10005;</button>
+  </div>
+  <div class="info-popover-label">O que faz</div>
+  <div class="info-popover-text" id="info-popover-faz"></div>
+  <div class="info-popover-label">Pra que serve</div>
+  <div class="info-popover-text" id="info-popover-serve"></div>
+</div>
+
 <script>
 var NAMES = {
   discovery:'PO Agent — Discovery',
@@ -374,6 +405,84 @@ var SKILL_SLUGS = {
   techbridge:'po-technical-bridge',
   bpmnmd:'bpmn-markdown'
 };
+
+var INFO_TEXTS = {
+  discovery: { icon:'&#128269;', title:'Iniciar Discovery',
+    faz:'Conduz uma conversa estruturada para extrair os requisitos de negócio de um Epic/demanda, gerando um discovery.md revisável.',
+    serve:'Documentar o "porquê" e o "o quê" do negócio antes de qualquer coisa técnica — evita começar a especificar sem entender o problema real.' },
+  prd: { icon:'&#128203;', title:'Refinar Negócio / PRD',
+    faz:'Consolida o discovery.md aprovado em um PRD completo: objetivos, escopo, requisitos, regras de negócio e critérios de aceite.',
+    serve:'Formaliza o discovery num documento único que o time técnico usa como fonte de verdade do negócio.' },
+  stories: { icon:'&#128221;', title:'Gerar User Stories',
+    faz:'Quebra o prd.md aprovado em User Stories granulares, já com critérios de aceite em BDD.',
+    serve:'Prepara o backlog pronto para entrar no fluxo técnico SDD (Specify/Plan/Tasks/Implement).' },
+  reviewer: { icon:'&#9989;', title:'Business Reviewer',
+    faz:'Revisa discovery.md ou prd.md e devolve um veredito: Aprovado / Precisa Revisar / Bloqueado.',
+    serve:'Garante um checkpoint de qualidade de negócio antes de avançar para a próxima fase do pipeline PO.' },
+  bpmn: { icon:'&#128256;', title:'BPMN Generator',
+    faz:'Gera um diagrama de processo (BPMN) a partir da descrição de atores, passos, decisões e exceções.',
+    serve:'Visualiza processos de negócio complexos sem precisar desenhar manualmente numa ferramenta de BPMN.' },
+  mermaid: { icon:'&#128202;', title:'Mermaid Generator',
+    faz:'Gera diagramas Mermaid (fluxogramas, sequência, etc.) a partir da descrição de um fluxo simples.',
+    serve:'Documenta fluxos de forma visual e versionável em Markdown, sem ferramenta externa.' },
+  apf: { icon:'&#128207;', title:'APF Rules',
+    faz:'Analisa uma user story aplicando as regras de Análise de Ponto de Função (APF) business-visible.',
+    serve:'Apoia a estimativa de tamanho/esforço da história com base numa métrica de negócio reconhecida.' },
+  jira: { icon:'&#127915;', title:'Exportar → Jira',
+    faz:'Exporta discovery, PRD ou user stories para o Jira/Xray, criando os itens no projeto informado.',
+    serve:'Leva os artefatos gerados pelo PO Agent direto pro board do time, sem retrabalho manual.' },
+  confluence: { icon:'&#128196;', title:'Exportar → Confluence',
+    faz:'Publica o artefato (discovery, PRD ou user stories) como página no Confluence, no espaço informado.',
+    serve:'Centraliza a documentação de negócio onde o restante da empresa já costuma consultar.' },
+  facilitator: { icon:'&#127908;', title:'Discovery Facilitator',
+    faz:'Conduz o discovery em 4 blocos guiados: problema e contexto, personas, cenários e regras, escopo e limites.',
+    serve:'Alternativa mais estruturada ao Discovery padrão, útil quando o contexto inicial é muito vago.' },
+  discoveryinit: { icon:'&#128270;', title:'Iniciar Discovery (fase A)',
+    faz:'Esclarece problema, valor, personas e limites de um briefing ainda pouco estruturado, antes de seguir para o PRD.',
+    serve:'Usado quando o pedido inicial chega cru demais (ex: e-mail solto) para o Discovery padrão conseguir estruturar direto.' },
+  refinarneg: { icon:'&#128203;', title:'Refinar Negócio (fase B)',
+    faz:'Consolida um discovery aprovado em PRD de negócio revisável e no handoff funcional para o time técnico.',
+    serve:'Versão avançada do PRD, com handoff explícito para a fase técnica seguinte.' },
+  gerarstories: { icon:'&#128221;', title:'Gerar User Stories (fase C)',
+    faz:'Decompõe um prd.md aprovado em user stories de negócio prontas para backlog grooming.',
+    serve:'Fecha o pipeline avançado de PO (Discovery → PRD → Stories) com foco em granularidade de negócio.' },
+  quickprd: { icon:'&#9889;', title:'PRD Rápido (rascunho)',
+    faz:'Gera um rascunho de PRD a partir de qualquer insumo informal (e-mail, reunião, post-it), sem passar pelo Discovery completo.',
+    serve:'Serve para prototipar rápido um PRD quando não há tempo/necessidade do fluxo completo — não substitui o fluxo formal.' },
+  techbridge: { icon:'&#127756;', title:'Ponte PO → TL',
+    faz:'Revisa o handoff técnico (tl-refiner-input.md) garantindo que fique compreensível para o Tech Lead, sem inserir soluções técnicas indevidas.',
+    serve:'Evita que o PO, sem querer, prescreva solução técnica no lugar do TL — mantém a separação de responsabilidades.' },
+  bpmnmd: { icon:'&#128260;', title:'BPMN → Markdown',
+    faz:'Padroniza referências a fluxos BPMN dentro de documentos Markdown (discovery, PRD, handoff, user stories).',
+    serve:'Mantém consistência de como fluxos BPMN são citados/linkados nos documentos gerados pelo PO Agent.' }
+};
+
+function showInfo(key, evt) {
+  evt.stopPropagation();
+  var data = INFO_TEXTS[key];
+  if (!data) { return; }
+  document.getElementById('info-popover-title').innerHTML = data.icon + ' ' + data.title;
+  document.getElementById('info-popover-faz').textContent = data.faz;
+  document.getElementById('info-popover-serve').textContent = data.serve;
+  var pop = document.getElementById('info-popover');
+  document.getElementById('info-overlay').classList.add('open');
+  pop.style.display = 'block';
+  var rect = evt.currentTarget.getBoundingClientRect();
+  var popRect = pop.getBoundingClientRect();
+  var left = rect.right - popRect.width;
+  left = Math.max(8, Math.min(left, window.innerWidth - popRect.width - 8));
+  var top = rect.bottom + 6;
+  if (top + popRect.height > window.innerHeight - 8) {
+    top = Math.max(8, rect.top - popRect.height - 6);
+  }
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+}
+function closeInfo() {
+  document.getElementById('info-popover').style.display = 'none';
+  document.getElementById('info-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeInfo(); } });
 
 document.getElementById('skill-count').textContent = 'Carregadas (' + Object.keys(SKILL_SLUGS).length + ')';
 

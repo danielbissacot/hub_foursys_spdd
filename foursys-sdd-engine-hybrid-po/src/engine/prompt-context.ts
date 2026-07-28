@@ -8,7 +8,9 @@ export const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de wor
 export const WORKSPACE_CONTEXT_MAX_LINES = 80;  // era 300 — snippet curto de imports + assinaturas
 export const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc é suficiente
 export const PHASES_NEEDING_WORKSPACE = new Set([
-    'plan', 'qa-test-plan', 'qa-automation'  // removido qa-test-cases (não precisa de código)
+    'plan', 'qa-automation'  // removido qa-test-cases (não precisa de código) e qa-test-plan
+    // (roteiro de QA é baseado na história + plano de implementação, não em código real —
+    // ver código real do workspace só infla o prompt sem ajudar o plano)
 ]);
 
 export interface ResolvedPhasePaths {
@@ -60,11 +62,12 @@ export function resolveOutputAndContextFiles(
             break;
         case 'qa-test-plan':
             outputPath = path.join(storyDocPath, 'qa', 'plano_testes.md');
+            // technical_spec.md fica de fora: seu conteúdo já foi absorvido pelo
+            // implementation_plan.md na fase 'plan' — injetar os dois duplica contexto.
             contextFiles = [
                 path.join(docPath, 'constitution.md'),
                 path.join(storyDocPath, 'user_story.md'),
                 path.join(storyDocPath, 'implementation_plan.md'),
-                path.join(storyDocPath, 'technical_spec.md'),
             ];
             break;
         case 'qa-test-cases':

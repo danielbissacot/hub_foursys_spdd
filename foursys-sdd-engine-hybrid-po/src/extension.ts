@@ -18,7 +18,7 @@ import {
 } from './engine/prompt-context';
 import {
     getMcpConfigPath, checkFigmaMcpConfigured, resolveStoryDocPath, ensureNewStorySlug, getActiveStorySlug,
-    parseUserStoryBlocks, importPoStory, createBlankUserStory
+    parseUserStoryBlocks, importPoStory, createBlankUserStory, listStoryFolders
 } from './utils';
 import { trackEvent, optOutTelemetry, setTelemetryEmail } from './telemetry';
 import { MEND_EXTENSION_ID, MEND_LICENSE_SECRET, MEND_API_TOKEN } from './mend-config';
@@ -634,6 +634,22 @@ async function executeSDDPhase(
                 tokens: playbookResult.totalTokens,
                 credits: playbookResult.credits ?? 0
             });
+
+            // Salva o resultado em doc_projeto/playbook/ em vez de deixar só no chat — sem isso o
+            // desenvolvedor só tinha o texto na conversa (ou o "Create File" nativo do Copilot Chat
+            // jogava o arquivo solto na raiz do projeto, fora da estrutura do doc_projeto).
+            const playbookRootPath = getWorkspaceRoot();
+            if (playbookRootPath) {
+                const playbookOutDir = path.join(getDocPath(playbookRootPath), 'playbook');
+                if (!fs.existsSync(playbookOutDir)) { fs.mkdirSync(playbookOutDir, { recursive: true }); }
+                const playbookOutPath = path.join(playbookOutDir, `${pbName}.md`);
+                fs.writeFileSync(playbookOutPath, playbookResult.text);
+                await openFile(playbookOutPath);
+                if (chatResponse) {
+                    chatResponse.markdown(`\n\n✅ **Salvo em**: doc_projeto/playbook/${pbName}.md`);
+                }
+                outputChannel.appendLine(`[SDD] 📋 Playbook salvo em doc_projeto/playbook/${pbName}.md`);
+            }
         }
         return;
     }
@@ -643,6 +659,18 @@ async function executeSDDPhase(
 
     const savedStack = context.workspaceState.get<string>('activeStack');
     const docPath = getDocPath(rootPath);
+
+    // Sem história ativa mas já existem pastas de história no projeto: resolveStoryDocPath cairia
+    // silenciosamente na raiz de doc_projeto/, gerando um arquivo órfão fora da história certa
+    // (aconteceu de verdade — ver doc_projeto/qa/plano_testes.md vs doc_projeto/<história>/qa/).
+    // Projetos legados sem subpastas (listStoryFolders vazio) continuam funcionando como sempre.
+    if (!getActiveStorySlug(context) && command !== 'specify' && listStoryFolders(rootPath).length > 0) {
+        vscode.window.showWarningMessage(
+            '⚠️ Nenhuma história ativa selecionada — este documento será salvo em doc_projeto/ (raiz), fora da pasta da história. Selecione a história ativa na sidebar antes de continuar, se não for intencional.'
+        );
+        outputChannel.appendLine('[SDD] ⚠️ Nenhuma história ativa — salvando em doc_projeto/ raiz.');
+    }
+
     const storyDocPath = resolveStoryDocPath(rootPath, context);
     const userStoryPath = path.join(storyDocPath, 'user_story.md');
     const detection = resolveStack(rootPath, userStoryPath, savedStack);

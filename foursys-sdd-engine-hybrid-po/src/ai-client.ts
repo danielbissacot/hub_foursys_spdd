@@ -4,12 +4,14 @@ import { calculateCredits } from './model-pricing';
 // Modelos por tipo de fase — evita Claude Opus 4.8 e GPT-5.5 (mais caros/Auto).
 // 'light'     → constitution, plan, tasks (Haiku: leve, contexto grande)
 // 'mini'      → specify (Haiku ou GPT-5 mini: mais leve ainda)
-// 'implement' → codificação (Sonnet 4.6: melhor custo-benefício para código)
+// 'implement' → codificação (Haiku primeiro: Sonnet 4.6 tem cota corporativa muito mais
+//               apertada e combinado com prompt grande de workspace batia rate limit direto;
+//               Sonnet vira fallback em vez de 1ª tentativa)
 // 'standard'  → QA e demais fases
 const PHASE_MODELS: Record<string, string[]> = {
     light:     ['claude-haiku-4-5', 'gpt-5.3-codex'],
     mini:      ['claude-haiku-4-5', 'gpt-5-mini'],
-    implement: ['claude-sonnet-4-6', 'claude-haiku-4-5'],
+    implement: ['claude-haiku-4-5', 'claude-sonnet-4-6'],
     standard:  ['claude-haiku-4-5', 'gpt-5.3-codex'],
 };
 
@@ -18,6 +20,12 @@ export interface SendPromptResult {
     totalTokens: number;
     /** Estimativa (ver model-pricing.ts) — undefined se o modelo usado não estiver na tabela de preços. */
     credits?: number;
+}
+
+// Erros transitórios do provedor (limite de taxa) valem retry/fallback; outros erros (recusa,
+// permissão, resposta inválida) não se resolvem sozinhos e devem propagar na hora.
+function isRateLimitError(error: any): boolean {
+    return /rate limit|too many requests|429/i.test(error?.message ?? String(error));
 }
 
 export class AIClient {
@@ -36,21 +44,23 @@ export class AIClient {
             const override = vscode.workspace.getConfiguration('foursys').get<string>('modelOverride', '').trim();
             const families = override ? [override] : (PHASE_MODELS[phaseType] ?? PHASE_MODELS.standard);
 
-            let models: vscode.LanguageModelChat[] = [];
+            // Monta a lista de modelos candidatos (1 por família preferida disponível).
+            const candidates: vscode.LanguageModelChat[] = [];
             for (const family of families) {
-                models = await vscode.lm.selectChatModels({ vendor: 'copilot', family });
-                if (models.length > 0) { break; }
+                const found = await vscode.lm.selectChatModels({ vendor: 'copilot', family });
+                if (found.length > 0) { candidates.push(found[0]); }
             }
-            // Fallback de segurança: se nenhum modelo preferido estiver disponível
-            // (política da empresa, versão diferente do Copilot), usa qualquer modelo ativo.
-            if (models.length === 0) {
-                models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
+            // Fallback de disponibilidade e de limite de taxa: acrescenta qualquer outro modelo
+            // Copilot ativo (não incluído nas famílias preferidas) ao final da lista. Cobre tanto
+            // o caso de nenhuma família preferida estar disponível quanto o caso de todas elas
+            // (ex: Haiku e Codex) baterem rate limit — o retry abaixo cai pra essa próxima opção.
+            const anyModels = await vscode.lm.selectChatModels({ vendor: 'copilot' });
+            for (const m of anyModels) {
+                if (!candidates.some(c => c.id === m.id)) { candidates.push(m); }
             }
-            if (models.length === 0) {
+            if (candidates.length === 0) {
                 throw new Error('Nenhum modelo de IA disponível. Verifique se o GitHub Copilot está ativo.');
             }
-
-            const model = models[0];
 
             // Padrão User/Assistant simula system message (vscode.lm não expõe role System).
             // O modelo trata a resposta prévia do assistente como "compromisso" com as instruções,
@@ -63,77 +73,97 @@ export class AIClient {
                 vscode.LanguageModelChatMessage.User(`EXECUTAR AGORA SOBRE ESTE CONTEXTO:\n${userPrompt}`)
             ];
 
-            // Conta tokens de entrada — falha silenciosa se modelo não suportar countTokens
-            let inputTokens = 0;
-            try {
-                const counts = await Promise.all(messages.map(m => model.countTokens(m, token)));
-                inputTokens = counts.reduce((a, b) => a + b, 0);
-            } catch { /* countTokens não disponível — ignora */ }
+            // Rate limit costuma ser rajada de requisições da conta (não cota por modelo) — repetir
+            // o MESMO modelo várias vezes só empilha mais pedidos na mesma rajada e piora o throttle.
+            // Por isso: no máximo 2 tentativas no total, cada uma num modelo candidato diferente,
+            // com uma pausa entre elas em vez de martelar em sequência.
+            const MAX_TOTAL_ATTEMPTS = 2;
 
-            // Avisa se o prompt exceder o orçamento configurado pela empresa
-            const tokenBudget = vscode.workspace.getConfiguration('foursys').get<number>('tokenBudget', 4500);
-            if (inputTokens > 0 && tokenBudget > 0 && inputTokens > tokenBudget) {
-                const proceed = await vscode.window.showWarningMessage(
-                    `⚠️ Foursys SDD: prompt com ${inputTokens} tokens (orçamento: ${tokenBudget}). Continuar mesmo assim?`,
-                    'Continuar', 'Cancelar'
-                );
-                if (proceed !== 'Continuar') { throw new Error('Cancelado: orçamento de tokens excedido.'); }
+            let lastError: any;
+            for (let i = 0; i < candidates.length && i < MAX_TOTAL_ATTEMPTS; i++) {
+                const model = candidates[i];
+                try {
+                    return await AIClient._sendToModel(model, messages, outputChannel, token, onChunk);
+                } catch (error: any) {
+                    lastError = error;
+                    if (!isRateLimitError(error)) { throw error; } // erro definitivo — não adianta retry
+
+                    const hasNext = i + 1 < candidates.length && i + 1 < MAX_TOTAL_ATTEMPTS;
+                    if (hasNext) {
+                        outputChannel.appendLine(`[IA] ${model.family} com limite de taxa. Aguardando antes de tentar modelo alternativo...`);
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                    }
+                }
             }
 
-            // Temperatura 0.1: determinístico. maxTokens: cap de saída para respeitar cota empresarial.
-            const response = await model.sendRequest(
-                messages,
-                { modelOptions: { temperature: 0.1, maxTokens: 3500 } },
-                token
-            );
-
-            let fullResponse = '';
-            outputChannel.appendLine('------------------------------------------------------------');
-            for await (const chunk of response.text) {
-                fullResponse += chunk;
-                if (onChunk) { onChunk(chunk); }
-                outputChannel.append(chunk);
-            }
-            outputChannel.appendLine('\n------------------------------------------------------------');
-
-            // Validação mínima de saída: rejeita recusas e respostas vazias antes de salvar arquivo.
-            const refusalKeywords = ["i'm sorry", "i cannot", "não posso", "não é possível", "desculpe, não"];
-            const lowerResponse = fullResponse.toLowerCase();
-            if (refusalKeywords.some(k => lowerResponse.startsWith(k))) {
-                throw new Error(`IA recusou a solicitação: ${fullResponse.substring(0, 200)}`);
-            }
-            if (fullResponse.trim().length < 50) {
-                throw new Error('Resposta da IA muito curta ou vazia. Tente novamente.');
-            }
-
-            outputChannel.appendLine('[IA] Resposta recebida e validada com sucesso. ✅');
-
-            // Conta tokens de saída — falha silenciosa
-            let outputTokens = 0;
-            try {
-                outputTokens = await model.countTokens(
-                    vscode.LanguageModelChatMessage.Assistant(fullResponse), token
-                );
-            } catch { /* ignora */ }
-
-            const totalTokens = inputTokens + outputTokens;
-            const maxTokens = model.maxInputTokens ?? 0;
-            const pct = maxTokens > 0 ? Math.round((totalTokens / maxTokens) * 100) : 0;
-            const modelLabel = `${model.family} (${model.vendor})`;
-            const credits = calculateCredits(model.family, inputTokens, outputTokens);
-            const creditsLabel = credits !== undefined ? ` — ≈${credits.toFixed(3)} créditos (estimado)` : '';
-            outputChannel.appendLine(
-                `[IA] ${modelLabel} | Capacidade: ${maxTokens} tokens | Consumiu: ${totalTokens} (${pct}%)${creditsLabel}`
-            );
-            vscode.window.showInformationMessage(
-                `Foursys SDD | ${modelLabel} | ${maxTokens} tokens disponíveis — consumiu ${pct}%${creditsLabel}`
-            );
-
-            return { text: fullResponse, totalTokens, credits };
+            throw lastError;
         } catch (error: any) {
             outputChannel.appendLine(`[IA ERRO] ${error.message || error}`);
             vscode.window.showErrorMessage(`❌ Erro na comunicação com a IA: ${error.message}`);
             throw error;
         }
+    }
+
+    private static async _sendToModel(
+        model: vscode.LanguageModelChat,
+        messages: vscode.LanguageModelChatMessage[],
+        outputChannel: vscode.OutputChannel,
+        token: vscode.CancellationToken,
+        onChunk?: (chunk: string) => void
+    ): Promise<SendPromptResult> {
+        // Conta tokens de entrada — falha silenciosa se modelo não suportar countTokens
+        let inputTokens = 0;
+        try {
+            const counts = await Promise.all(messages.map(m => model.countTokens(m, token)));
+            inputTokens = counts.reduce((a, b) => a + b, 0);
+        } catch { /* countTokens não disponível — ignora */ }
+
+        // Temperatura 0.1: determinístico. maxTokens: cap de saída para respeitar cota empresarial.
+        const response = await model.sendRequest(
+            messages,
+            { modelOptions: { temperature: 0.1, maxTokens: 3500 } },
+            token
+        );
+
+        let fullResponse = '';
+        outputChannel.appendLine('------------------------------------------------------------');
+        for await (const chunk of response.text) {
+            fullResponse += chunk;
+            if (onChunk) { onChunk(chunk); }
+            outputChannel.append(chunk);
+        }
+        outputChannel.appendLine('\n------------------------------------------------------------');
+
+        // Validação mínima de saída: rejeita recusas e respostas vazias antes de salvar arquivo.
+        const refusalKeywords = ["i'm sorry", "i cannot", "não posso", "não é possível", "desculpe, não"];
+        const lowerResponse = fullResponse.toLowerCase();
+        if (refusalKeywords.some(k => lowerResponse.startsWith(k))) {
+            throw new Error(`IA recusou a solicitação: ${fullResponse.substring(0, 200)}`);
+        }
+        if (fullResponse.trim().length < 50) {
+            throw new Error('Resposta da IA muito curta ou vazia. Tente novamente.');
+        }
+
+        outputChannel.appendLine('[IA] Resposta recebida e validada com sucesso. ✅');
+
+        // Conta tokens de saída — falha silenciosa
+        let outputTokens = 0;
+        try {
+            outputTokens = await model.countTokens(
+                vscode.LanguageModelChatMessage.Assistant(fullResponse), token
+            );
+        } catch { /* ignora */ }
+
+        const totalTokens = inputTokens + outputTokens;
+        const maxTokens = model.maxInputTokens ?? 0;
+        const pct = maxTokens > 0 ? Math.round((totalTokens / maxTokens) * 100) : 0;
+        const modelLabel = `${model.family} (${model.vendor})`;
+        const credits = calculateCredits(model.family, inputTokens, outputTokens);
+        const creditsLabel = credits !== undefined ? ` — ≈${credits.toFixed(3)} créditos (estimado)` : '';
+        outputChannel.appendLine(
+            `[IA] ${modelLabel} | Capacidade: ${maxTokens} tokens | Consumiu: ${totalTokens} (${pct}%)${creditsLabel}`
+        );
+
+        return { text: fullResponse, totalTokens, credits };
     }
 }

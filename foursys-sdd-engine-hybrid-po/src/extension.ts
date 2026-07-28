@@ -113,7 +113,6 @@ export function activate(context: vscode.ExtensionContext) {
         ['foursys.tasks', 'tasks'],
         ['foursys.qaTestPlan', 'qa-test-plan'],
         ['foursys.qaTestCases', 'qa-test-cases'],
-        ['foursys.qaAutomation', 'qa-automation'],
         ['foursys.qaCoverage', 'qa-coverage'],
         ['foursys.qaReport', 'qa-report'],
     ];
@@ -122,17 +121,6 @@ export function activate(context: vscode.ExtensionContext) {
             executeSDDPhase(phase, '', '', null, commandToken(), context, outputChannel)
         ));
     }
-
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaImplement', async () => {
-        const rootPath = getWorkspaceRoot();
-        if (!rootPath) { return; }
-        const stackId = getActiveStackId(context);
-        const config = getStackConfig(stackId);
-        const roteirosPath = path.relative(rootPath, path.join(resolveStoryDocPath(rootPath, context), 'qa', 'roteiros_teste.md')).replace(/\\/g, '/');
-        vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia o arquivo ${roteirosPath} deste workspace — é um relatório de rastreabilidade entre os Casos de Teste (Gherkin) e os testes já implementados no projeto. Identifique APENAS as linhas marcadas como ❌ (não coberto) ou ⚠️ (parcialmente coberto) e escreva SOMENTE o teste que falta pra cada uma, seguindo exatamente o framework, padrão e convenções de nomenclatura já usados nos testes existentes do projeto. NÃO reescreva nem duplique testes que já estão ✅ cobertos. Invoque a Skill: ${config.implementSkillTag}.`
-        });
-    }));
 
     context.subscriptions.push(vscode.commands.registerCommand('foursys.qaExportXray', async () => {
         const rootPath = getWorkspaceRoot();

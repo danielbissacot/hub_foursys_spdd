@@ -8,23 +8,12 @@ export const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de wor
 export const WORKSPACE_CONTEXT_MAX_LINES = 80;  // era 300 — snippet curto de imports + assinaturas
 export const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc é suficiente
 export const PHASES_NEEDING_WORKSPACE = new Set([
-    'plan', 'qa-automation'  // removido qa-test-cases (não precisa de código) e qa-test-plan
-    // (roteiro de QA é baseado na história + plano de implementação, não em código real —
-    // ver código real do workspace só infla o prompt sem ajudar o plano)
+    'plan',
+    // qa-coverage: valida se cada critério de aceite foi de fato entregue no código real
+    // (endpoint, regra, tela) — precisa ver a aplicação real, não só os Casos de Teste.
+    'qa-coverage'
+    // removido qa-test-cases/qa-test-plan (baseados na história, não em código real).
 ]);
-
-export const TEST_CONTEXT_MAX_FILES = 6;
-
-const TEST_FILE_PATTERNS: Record<string, RegExp> = {
-    spring_boot: /Test\.java$/,
-    angular: /\.spec\.ts$/,
-    node: /\.(spec|e2e-spec)\.ts$/i,
-    cobol: /^TSTE-.*\.jcl$/i,
-    android: /Test\.kt$/,
-    ios: /Tests\.swift$/,
-};
-const DEFAULT_TEST_PATTERN = /\.(spec|test)\.[jt]sx?$|Test\.(java|kt)$|Tests\.swift$/i;
-const WORKSPACE_WALK_SKIP_DIRS = new Set(['node_modules', 'out', 'dist', 'build', 'target', DOC_FOLDER]);
 
 export interface ResolvedPhasePaths {
     outputPath: string;
@@ -87,15 +76,14 @@ export function resolveOutputAndContextFiles(
             outputPath = path.join(storyDocPath, 'qa', 'casos_teste.md');
             contextFiles = [path.join(docPath, 'constitution.md'), path.join(storyDocPath, 'qa', 'plano_testes.md')];
             break;
-        case 'qa-automation':
-            outputPath = path.join(storyDocPath, 'qa', 'roteiros_teste.md');
-            contextFiles = [path.join(docPath, 'constitution.md'), path.join(storyDocPath, 'qa', 'casos_teste.md')];
-            break;
         case 'qa-coverage':
             outputPath = path.join(storyDocPath, 'qa', 'review_cobertura.md');
+            // le user_story.md (criterios de aceite) e casos_teste.md (cenarios Gherkin
+            // detalhados) — a validacao aqui e contra o codigo real entregue.
             contextFiles = [
                 path.join(docPath, 'constitution.md'),
-                path.join(storyDocPath, 'qa', 'roteiros_teste.md'),
+                path.join(storyDocPath, 'user_story.md'),
+                path.join(storyDocPath, 'qa', 'casos_teste.md'),
                 path.join(resourcesPath, 'qa-coverage-template.html'),
             ];
             break;
@@ -173,50 +161,9 @@ export function readWorkspaceContext(rootPath: string, stackId: string): string 
     return context;
 }
 
-/** Varre o workspace inteiro (não só src/, já que testes de várias stacks vivem fora dali —
- *  ex.: test/*.e2e-spec.ts no Node, JCL/ no COBOL) procurando arquivos de teste reais, pra
- *  cruzar com os cenários Gherkin na fase qa-automation (rastreabilidade, não geração). */
-export function readTestWorkspaceContext(rootPath: string, stackId: string): string {
-    const pattern = TEST_FILE_PATTERNS[stackId] ?? DEFAULT_TEST_PATTERN;
-    const collected: { filePath: string; mtime: number }[] = [];
-    const walk = (dir: string, depth: number) => {
-        if (depth > 8 || collected.length >= TEST_CONTEXT_MAX_FILES * 4) { return; }
-        let entries: fs.Dirent[];
-        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
-        for (const entry of entries) {
-            if (entry.name.startsWith('.') || WORKSPACE_WALK_SKIP_DIRS.has(entry.name)) { continue; }
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) { walk(full, depth + 1); }
-            else if (pattern.test(entry.name)) {
-                try { collected.push({ filePath: full, mtime: fs.statSync(full).mtimeMs }); } catch { /* ignorar */ }
-            }
-        }
-    };
-    walk(rootPath, 0);
-    collected.sort((a, b) => b.mtime - a.mtime);
-    const selected = collected.slice(0, TEST_CONTEXT_MAX_FILES);
-
-    if (selected.length === 0) {
-        return '\n--- TESTES REAIS DO WORKSPACE ---\nNenhum arquivo de teste encontrado no projeto ainda — não presuma cobertura.\n';
-    }
-
-    let context = '\n--- TESTES REAIS DO WORKSPACE (cruze com os cenários Gherkin) ---\n';
-    for (const { filePath } of selected) {
-        try {
-            const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-            const snippet = lines.slice(0, WORKSPACE_CONTEXT_MAX_LINES).join('\n');
-            context += `\n--- ARQUIVO DE TESTE: ${path.relative(rootPath, filePath)} ---\n${snippet}\n`;
-        } catch { /* ignorar */ }
-    }
-    return context;
-}
-
-/** Escolhe qual varredura de workspace injetar por fase — qa-automation usa a varredura
- *  específica de testes reais (readTestWorkspaceContext); as demais fases marcadas em
- *  PHASES_NEEDING_WORKSPACE usam a varredura genérica de código-fonte recente. Centralizado
- *  aqui pra extension.ts (VS Code) e assembleFinalPrompt (IntelliJ/CLI) nunca divergirem. */
+/** Escolhe se injeta o código real do workspace pra fase — centralizado aqui pra extension.ts
+ *  (VS Code) e assembleFinalPrompt (IntelliJ/CLI) nunca divergirem na mesma decisão. */
 export function readWorkspaceContextForPhase(command: string, rootPath: string, stackId: string): string {
-    if (command === 'qa-automation') { return readTestWorkspaceContext(rootPath, stackId); }
     if (PHASES_NEEDING_WORKSPACE.has(command)) { return readWorkspaceContext(rootPath, stackId); }
     return '';
 }

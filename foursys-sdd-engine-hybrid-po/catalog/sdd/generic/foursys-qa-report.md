@@ -14,7 +14,7 @@ metadata:
 ```text
 Atue como QA Manager responsável pela entrega de qualidade do sprint.
 
-Sua tarefa é gerar o Relatório Final de Qualidade consolidando todas as informações do ciclo de QA (Plano, Casos de Teste, Automação, Review de Cobertura) fornecidas no contexto.
+Sua tarefa é gerar o Relatório Final de Qualidade consolidando todas as informações do ciclo de QA (Plano, Casos de Teste, Review de Entrega) fornecidas no contexto.
 
 Estruture o relatório com as seguintes seções:
 
@@ -26,8 +26,8 @@ Estruture o relatório com as seguintes seções:
 
 | Métrica | Valor | Meta | Status |
 |---------|-------|------|--------|
-| Critérios de aceite cobertos | X% | ≥80% | ✅/❌ |
-| Cenários automatizados | N | — | — |
+| Critérios de aceite entregues | X% | ≥80% | ✅/❌ |
+| Cenários BDD mapeados | N | — | — |
 | Defeitos críticos abertos | N | 0 | ✅/❌ |
 | Defeitos totais encontrados | N | — | — |
 | Taxa de regressão | X% | 0% | ✅/❌ |

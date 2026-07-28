@@ -21,12 +21,12 @@ interface UiState {
     mendInstalling: boolean;
     storyHasContent: boolean;
     activeStorySlug: string | undefined;
-    qaScriptsReady: boolean;
     casosTesteReady: boolean;
     mockupExists: boolean;
     activeDesignSystem: string | null;
     figmaExtInstalled: boolean;
     figmaMcpConfigured: boolean;
+    activeTab: string;
 }
 
 export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
@@ -93,12 +93,15 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 mendInstalling: !!this._context.workspaceState.get('mendInstalling'),
                 storyHasContent: this._checkStoryHasContent(workspaceRoot),
                 activeStorySlug: getActiveStorySlug(this._context),
-                qaScriptsReady: this._checkQaScriptsReady(workspaceRoot),
                 casosTesteReady: this._checkCasosTesteReady(workspaceRoot),
                 mockupExists: this._checkMockupExists(workspaceRoot),
                 activeDesignSystem: this._context.workspaceState.get<string>('activeDesignSystem') || null,
                 figmaExtInstalled,
                 figmaMcpConfigured: figmaExtInstalled && this._checkFigmaMcpConfigured(),
+                // sem isso, todo re-render (ex: abrir o .md gerado por uma fase QA muda o editor
+                // ativo, que dispara updateWebview) reconstruía o HTML do zero e a aba sempre
+                // voltava pra "dev", mesmo com o dev no meio do fluxo de QA.
+                activeTab: this._context.workspaceState.get<string>('activeTab') || 'dev',
             };
             webviewView.webview.html = this._getHtmlForWebview(state);
         };
@@ -171,17 +174,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 case 'QaTestCases':
                     vscode.commands.executeCommand('foursys.qaTestCases');
                     break;
-                case 'QaAutomation':
-                    vscode.commands.executeCommand('foursys.qaAutomation');
-                    break;
                 case 'QaCoverage':
                     vscode.commands.executeCommand('foursys.qaCoverage');
                     break;
                 case 'QaReport':
                     vscode.commands.executeCommand('foursys.qaReport');
-                    break;
-                case 'QaImplement':
-                    vscode.commands.executeCommand('foursys.qaImplement');
                     break;
                 case 'SelectDesignSystem':
                     await vscode.commands.executeCommand('foursys.selectDesignSystem');
@@ -257,7 +254,11 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 default: {
-                    if (typeof data.value === 'string' && data.value.startsWith('RunSkill:')) {
+                    if (typeof data.value === 'string' && data.value.startsWith('SwitchTab:')) {
+                        // So persiste — a troca visual ja aconteceu no client (switchTab), e um
+                        // updateWebview() aqui so causaria um flicker desnecessario.
+                        await this._context.workspaceState.update('activeTab', data.value.replace('SwitchTab:', ''));
+                    } else if (typeof data.value === 'string' && data.value.startsWith('RunSkill:')) {
                         const slug = data.value.replace('RunSkill:', '');
                         await trackEvent(this._context, undefined, {
                             event: 'skill_clicked',
@@ -364,11 +365,6 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             vscode.window.showInformationMessage(`✅ Stack ativa: ${picked.label}`);
             await trackEvent(this._context, undefined, { event: 'stack_selected', stack: picked.stackId });
         }
-    }
-
-    private _checkQaScriptsReady(workspaceRoot: string): boolean {
-        if (!workspaceRoot) { return false; }
-        return fs.existsSync(path.join(resolveStoryDocPath(workspaceRoot, this._context), 'qa', 'roteiros_teste.md'));
     }
 
     private _checkCasosTesteReady(workspaceRoot: string): boolean {
@@ -852,7 +848,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private _getHtmlForWebview({ isConnected, detection, mendInstalled, mendInstalling, storyHasContent, activeStorySlug, qaScriptsReady, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured }: UiState) {
+    private _getHtmlForWebview({ isConnected, detection, mendInstalled, mendInstalling, storyHasContent, activeStorySlug, casosTesteReady, mockupExists, activeDesignSystem, figmaExtInstalled, figmaMcpConfigured, activeTab }: UiState) {
         const stackId = detection.stackId === 'unknown' ? null : detection.stackId;
         const catalogData = this._loadCatalogData(stackId);
         const catalogHtml = this._buildCatalogHtml(catalogData);
@@ -1244,13 +1240,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     </div>` : ''}
 
     <div class="tabs">
-        <button class="tab-btn active" data-tab="dev" onclick="switchTab('dev')">Dev</button>
-        <button class="tab-btn" data-tab="qa" onclick="switchTab('qa')">QA Auto</button>
-        <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">📚 Catalog</button>
+        <button class="tab-btn ${activeTab === 'dev' ? 'active' : ''}" data-tab="dev" onclick="switchTab('dev')">Dev</button>
+        <button class="tab-btn ${activeTab === 'qa' ? 'active' : ''}" data-tab="qa" onclick="switchTab('qa')">QA Auto</button>
+        <button class="tab-btn ${activeTab === 'catalog' ? 'active' : ''}" data-tab="catalog" onclick="switchTab('catalog')">📚 Catalog</button>
     </div>
 
     <!-- TAB DEV -->
-    <div id="tab-dev" class="tab-content active">
+    <div id="tab-dev" class="tab-content ${activeTab === 'dev' ? 'active' : ''}">
         <div class="section-label">Workflow SDD</div>
         <div class="story-badge">
             <div class="stack-info">
@@ -1326,12 +1322,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
     </div>
 
     <!-- TAB CATALOG -->
-    <div id="tab-catalog" class="tab-content">
+    <div id="tab-catalog" class="tab-content ${activeTab === 'catalog' ? 'active' : ''}">
         ${catalogHtml}
     </div>
 
     <!-- TAB QA AUTO -->
-    <div id="tab-qa" class="tab-content">
+    <div id="tab-qa" class="tab-content ${activeTab === 'qa' ? 'active' : ''}">
         <div class="section-label">Workflow SDD</div>
         <div class="${isConnected ? '' : 'disabled'}">
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaTestPlan')">
@@ -1352,26 +1348,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 </span>
                 <span class="info-icon" onclick="showInfo('QaExportXray', event)">i</span>
             </button>
-            <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaAutomation')">
-                <span class="step-number">4</span>
-                <span class="step-label"><span class="step-title">🤖 Rastreabilidade de Testes</span><span class="step-sub">Cruzar BDD com testes reais</span></span>
-                <span class="info-icon" onclick="showInfo('QaAutomation', event)">i</span>
-            </button>
-            <button class="btn btn-implement-tests ${qaScriptsReady ? '' : 'disabled'}" onclick="sendAction('QaImplement')">
-                <span class="step-number">5</span>
-                <span class="step-label">
-                    <span class="step-title">🚀 Implementar Testes</span>
-                    <span class="step-sub">${qaScriptsReady ? 'Criar só os testes que faltam' : 'Aguardando Rastreabilidade de Testes'}</span>
-                </span>
-                <span class="info-icon" onclick="showInfo('QaImplement', event)">i</span>
-            </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaCoverage')">
-                <span class="step-number">6</span>
-                <span class="step-label"><span class="step-title">🔍 Review de Cobertura</span><span class="step-sub">Análise de cobertura</span></span>
+                <span class="step-number">4</span>
+                <span class="step-label"><span class="step-title">🔍 Review de Entrega</span><span class="step-sub">Critérios de aceite × código real</span></span>
                 <span class="info-icon" onclick="showInfo('QaCoverage', event)">i</span>
             </button>
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('QaReport')">
-                <span class="step-number">7</span>
+                <span class="step-number">5</span>
                 <span class="step-label"><span class="step-title">📊 Relatório de Qualidade</span><span class="step-sub">Report final de qualidade</span></span>
                 <span class="info-icon" onclick="showInfo('QaReport', event)">i</span>
             </button>
@@ -1444,15 +1427,9 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             QaExportXray: { icon: '📤', title: 'Exportar para Xray',
                 faz: 'Envia os casos de teste BDD gerados para o Jira/Xray, criando os testes no projeto configurado.',
                 serve: 'Centraliza os casos de teste no Xray, integrando QA com o board do time.' },
-            QaAutomation: { icon: '🤖', title: 'Rastreabilidade de Testes',
-                faz: 'Cruza os casos de teste BDD com os testes que já existem no código real do projeto e reporta o que está coberto e o que falta — não gera código.',
-                serve: 'Evita retrabalho: mostra a cobertura real sem duplicar testes que o dev já escreveu seguindo TDD no Implement.' },
-            QaImplement: { icon: '🚀', title: 'Implementar Testes',
-                faz: 'Lê o relatório de rastreabilidade e escreve apenas os testes marcados como faltando (❌/⚠️).',
-                serve: 'Fecha as lacunas de cobertura identificadas, sem sobrescrever ou duplicar testes que já existem.' },
-            QaCoverage: { icon: '🔍', title: 'Review de Cobertura',
-                faz: 'Analisa a cobertura dos testes implementados frente aos critérios de aceite da história.',
-                serve: 'Identifica lacunas de cobertura antes de considerar a história pronta.' },
+            QaCoverage: { icon: '🔍', title: 'Review de Entrega',
+                faz: 'Verifica se cada critério de aceite da história foi realmente entregue no código real (endpoint, regra, tela) — não é auditoria de teste.',
+                serve: 'Identifica lacunas de entrega antes de considerar a história pronta pra homologação.' },
             QaReport: { icon: '📊', title: 'Relatório de Qualidade',
                 faz: 'Consolida um relatório final com o status de qualidade da história: testes, cobertura e pendências.',
                 serve: 'Documenta a qualidade entregue, servindo de evidência para homologação/entrega.' },
@@ -1523,6 +1500,7 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
             document.getElementById('tab-' + tab).classList.add('active');
+            sendAction('SwitchTab:' + tab);
         }
         function toggleCatalog(secId) {
             const sec = document.getElementById(secId);

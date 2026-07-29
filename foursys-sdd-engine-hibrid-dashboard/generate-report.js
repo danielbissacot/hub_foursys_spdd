@@ -218,8 +218,24 @@ function renderHtml(events) {
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-              <h2 class="card-title mb-0">Uso por Dia</h2>
+              <h2 class="card-title mb-0">Ranking de Pessoas</h2>
               <input type="search" id="personFilter" class="form-control form-control-sm" style="max-width:220px" placeholder="Filtrar por e-mail...">
+            </div>
+            <p class="text-muted small mb-2">Quem mais acessa e usa o Hub no período filtrado, do maior para o menor número de acessos (top 10). O mesmo filtro de e-mail acima também se aplica à tabela "Uso por Dia" logo abaixo.</p>
+            <canvas id="chartPersonRank" height="140" class="mb-3"></canvas>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead><tr><th>Pessoa</th><th>Acessos</th><th>Tokens</th><th>Créditos (estimado)</th><th>Último acesso</th><th>Opt-out</th></tr></thead>
+                    <tbody id="personRankRows"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <h2 class="card-title mb-0">Uso por Dia</h2>
             </div>
             <p class="text-muted small mb-2">A coluna "Pessoas" conta quem usou em cada dia — quem aparece em mais de um dia soma mais de uma vez aqui, então o total das linhas pode passar o card "Pessoas desde {data}" no topo (que conta cada pessoa só 1x no período todo).</p>
             <div class="table-responsive">
@@ -526,6 +542,33 @@ function renderDashboard(events) {
         ? '<span class="badge bg-secondary">Sim</span>'
         : '<span class="badge" style="background:var(--status-good)">Não</span>';
 
+    // Ranking = comparação de magnitude entre pessoas (nominal categórica: a ordem dos
+    // nomes não carrega significado, só o valor) — por isso 1 hue só (slot-1 da paleta),
+    // sem legenda, igual ao restante da paleta categórica já validada nesta página contra
+    // a superfície #252526 (ver comentário no <style> acima).
+    const topPeople = stats.byPerson.slice(0, 10);
+    upsertChart('personRank', 'chartPersonRank', {
+        type: 'bar',
+        data: {
+            labels: topPeople.map(([email]) => email),
+            datasets: [{ label: 'Acessos', data: topPeople.map(([, p]) => p.events), backgroundColor: cssVar('--s-orange'), borderRadius: 4, maxBarThickness: 16 }]
+        },
+        options: HBAR_OPTS_BASE
+    });
+
+    document.getElementById('personRankRows').innerHTML = stats.byPerson.map(([email, p]) => {
+        const lastSeen = p.lastSeen ? p.lastSeen.slice(0, 10).split('-').reverse().join('/') : '—';
+        return \`
+            <tr data-email="\${escapeHtml(email.toLowerCase())}">
+                <td>\${escapeHtml(email)}</td>
+                <td>\${p.events}</td>
+                <td>\${p.tokens}</td>
+                <td>\${p.credits.toFixed(3)}</td>
+                <td>\${lastSeen}</td>
+                <td>\${optedOutBadge(p.optedOut)}</td>
+            </tr>\`;
+    }).join('');
+
     document.getElementById('dayRows').innerHTML = stats.byDayDetail.map(({ day, events, tokens, credits, people }, i) => {
         const groupId = 'day-group-' + i;
         const optedOutCount = people.filter(([, p]) => p.optedOut).length;
@@ -648,6 +691,11 @@ document.querySelectorAll('[data-toggle-table]').forEach(btn => {
 
 document.getElementById('personFilter').addEventListener('input', (e) => {
     const term = e.target.value.trim().toLowerCase();
+
+    document.querySelectorAll('#personRankRows tr').forEach(row => {
+        row.style.display = !term || row.dataset.email.includes(term) ? '' : 'none';
+    });
+
     document.querySelectorAll('.day-header-row').forEach(headerRow => {
         const groupId = headerRow.dataset.dayToggle;
         const personRows = [...document.querySelectorAll(\`[data-day-group="\${groupId}"]\`)];

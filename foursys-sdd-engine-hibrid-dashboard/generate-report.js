@@ -221,11 +221,11 @@ function renderHtml(events) {
               <h2 class="card-title mb-0">Ranking de Pessoas</h2>
               <input type="search" id="personFilter" class="form-control form-control-sm" style="max-width:220px" placeholder="Filtrar por e-mail...">
             </div>
-            <p class="text-muted small mb-2">Quem mais acessa e usa o Hub no período filtrado, do maior para o menor número de acessos (top 10). O mesmo filtro de e-mail acima também se aplica à tabela "Uso por Dia" logo abaixo.</p>
+            <p class="text-muted small mb-2">Em quantos dias diferentes cada pessoa usou o Hub no período filtrado (frequência de acesso, não volume de trabalho), do maior para o menor (top 10). O mesmo filtro de e-mail acima também se aplica à tabela "Uso por Dia" logo abaixo.</p>
             <canvas id="chartPersonRank" height="140" class="mb-3"></canvas>
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-sm">
-                    <thead><tr><th>Pessoa</th><th>Acessos</th><th>Tokens</th><th>Créditos (estimado)</th><th>Último acesso</th><th>Opt-out</th></tr></thead>
+                    <thead><tr><th>Pessoa</th><th>Dias de acesso</th><th>Tokens</th><th>Créditos (estimado)</th><th>Último acesso</th><th>Opt-out</th></tr></thead>
                     <tbody id="personRankRows"></tbody>
                 </table>
             </div>
@@ -377,7 +377,7 @@ function aggregate(events) {
         const day = (ev.ts || '').slice(0, 10);
         const isVolumeEvent = !CLICK_ONLY_EVENTS.has(ev.event);
 
-        if (!byPerson.has(email)) byPerson.set(email, { events: 0, tokens: 0, credits: 0, lastSeen: '', optedOut: false });
+        if (!byPerson.has(email)) byPerson.set(email, { events: 0, tokens: 0, credits: 0, lastSeen: '', optedOut: false, days: new Set() });
         const p = byPerson.get(email);
         if (ev.ts && ev.ts > p.lastSeen) p.lastSeen = ev.ts;
         if (ev.event === 'telemetry_opted_out') p.optedOut = true;
@@ -398,6 +398,7 @@ function aggregate(events) {
         p.events += 1;
         p.tokens += tokens;
         p.credits += credits;
+        if (day) { p.days.add(day); }
 
         if (!byStack.has(stack)) byStack.set(stack, { events: 0, tokens: 0, credits: 0 });
         const s = byStack.get(stack);
@@ -449,7 +450,11 @@ function aggregate(events) {
         optedOutCount: [...byPerson.values()].filter(p => p.optedOut).length,
         byStack: [...byStack.entries()].sort((a, b) => b[1].events - a[1].events),
         byVersion: [...byVersion.entries()].sort((a, b) => a[0].localeCompare(b[0])),
-        byPerson: [...byPerson.entries()].sort((a, b) => b[1].events - a[1].events),
+        // Ranking de pessoas usa dias distintos de uso (frequência de acesso), não total
+        // de ações concluídas (volume de trabalho) — são perguntas diferentes: "quem vem
+        // mais vezes" vs. "quem produz mais". Tokens/Créditos na tabela continuam somando
+        // o total do período, só o critério de ORDEM que muda.
+        byPerson: [...byPerson.entries()].sort((a, b) => b[1].days.size - a[1].days.size),
         byDay: [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])),
         byDayDetail,
         byEventType: [...byEventType.entries()].sort((a, b) => b[1] - a[1]),
@@ -551,7 +556,7 @@ function renderDashboard(events) {
         type: 'bar',
         data: {
             labels: topPeople.map(([email]) => email),
-            datasets: [{ label: 'Acessos', data: topPeople.map(([, p]) => p.events), backgroundColor: cssVar('--s-orange'), borderRadius: 4, maxBarThickness: 16 }]
+            datasets: [{ label: 'Dias de acesso', data: topPeople.map(([, p]) => p.days.size), backgroundColor: cssVar('--s-orange'), borderRadius: 4, maxBarThickness: 16 }]
         },
         options: HBAR_OPTS_BASE
     });
@@ -561,7 +566,7 @@ function renderDashboard(events) {
         return \`
             <tr data-email="\${escapeHtml(email.toLowerCase())}">
                 <td>\${escapeHtml(email)}</td>
-                <td>\${p.events}</td>
+                <td>\${p.days.size}</td>
                 <td>\${p.tokens}</td>
                 <td>\${p.credits.toFixed(3)}</td>
                 <td>\${lastSeen}</td>

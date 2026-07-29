@@ -225,7 +225,7 @@ function renderHtml(events) {
             <canvas id="chartPersonRank" height="140" class="mb-3"></canvas>
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-sm">
-                    <thead><tr><th>Pessoa</th><th>Dias de acesso</th><th>Tokens</th><th>Créditos (estimado)</th><th>Último acesso</th><th>Opt-out</th></tr></thead>
+                    <thead><tr><th>Pessoa</th><th>Dias de acesso</th><th>Último acesso</th></tr></thead>
                     <tbody id="personRankRows"></tbody>
                 </table>
             </div>
@@ -567,10 +567,7 @@ function renderDashboard(events) {
             <tr data-email="\${escapeHtml(email.toLowerCase())}">
                 <td>\${escapeHtml(email)}</td>
                 <td>\${p.days.size}</td>
-                <td>\${p.tokens}</td>
-                <td>\${p.credits.toFixed(3)}</td>
                 <td>\${lastSeen}</td>
-                <td>\${optedOutBadge(p.optedOut)}</td>
             </tr>\`;
     }).join('');
 

@@ -7,12 +7,13 @@ import { calculateCredits } from './model-pricing';
 // 'implement' → codificação (Haiku primeiro: Sonnet 4.6 tem cota corporativa muito mais
 //               apertada e combinado com prompt grande de workspace batia rate limit direto;
 //               Sonnet vira fallback em vez de 1ª tentativa)
-// 'standard'  → QA e demais fases
+// 'standard'  → QA e demais fases (geração de texto/markdown, não código — fallback usa
+//               GPT-5 mini em vez de um modelo especializado em código como o Codex)
 const PHASE_MODELS: Record<string, string[]> = {
-    light:     ['claude-haiku-4-5', 'gpt-5.3-codex'],
+    light:     ['claude-haiku-4-5', 'gpt-5-mini'],
     mini:      ['claude-haiku-4-5', 'gpt-5-mini'],
     implement: ['claude-haiku-4-5', 'claude-sonnet-4-6'],
-    standard:  ['claude-haiku-4-5', 'gpt-5.3-codex'],
+    standard:  ['claude-haiku-4-5', 'gpt-5-mini'],
 };
 
 export interface SendPromptResult {

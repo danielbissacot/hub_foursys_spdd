@@ -38,6 +38,7 @@ Sua missão é implementar features seguindo os mais altos padrões de qualidade
 - Prefira **Constructor Injection** (final fields) em vez de field injection.
 - Implemente **equals/hashCode** em entidades e valide entradas cedo (fail-fast).
 - Use **try-with-resources** para gerenciar recursos.
+- **Exponha documentação OpenAPI/Swagger**: garanta a dependência `springdoc-openapi-starter-webmvc-ui` no `pom.xml`/`build.gradle` e anote Controllers com `@Tag`/`@Operation` e DTOs com `@Schema`, para que `/swagger-ui.html` e `/v3/api-docs` fiquem disponíveis assim que a aplicação sobe — sem esse passo, nenhum Swagger é gerado ao final do Implement.
 
 ---
 

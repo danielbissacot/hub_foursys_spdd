@@ -349,7 +349,6 @@ const CURTO_PRAZO_ROSTER = [
     { nome: 'Danilo Santos dos Santos', squad: 'ESTAUTCOD0', email: 'danilo.santos@foursys.com.br' },
     { nome: 'Demian Parenti Quirino', squad: 'AGENDAREC', email: 'demian.quirino@foursys.com.br' },
     { nome: 'Dirceu Santos Gonçalves', squad: 'ESTAUTCOD0', email: 'dirceu.goncalves@foursys.com.br' },
-    { nome: 'Elimara Cecilia Santos Fortes Pires', squad: 'Alecrim', email: 'elimara.santos@foursys.com.br' },
     { nome: 'Fabio Monteiro Amorim', squad: 'REGISDUP', email: 'fabio.amorim@foursys.com.br' },
     { nome: 'Fabio Victor da Silva Almeida', squad: 'PNLRECPDPJ', email: 'fabio.silva@foursys.com.br' },
     { nome: 'Felipe Monteiro Carneiro', squad: 'Visão Sacado', email: 'felipe.carneiro@foursys.com.br' },

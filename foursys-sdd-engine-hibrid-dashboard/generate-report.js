@@ -380,9 +380,22 @@ const CURTO_PRAZO_ROSTER = [
     { nome: 'Yuri Cesar Almeida Dos Santos', squad: 'Visão Sacado', email: 'yuri.almeida@foursys.com.br' },
 ];
 
-// Roster de Longo Prazo — ainda nao recebido. Preencher no mesmo formato do
-// CURTO_PRAZO_ROSTER acima ({ nome, squad, email }) quando a lista chegar.
-const LONGO_PRAZO_ROSTER = [];
+// Roster de Longo Prazo — recebido parcialmente em 07/08/2026 (so nome + email ainda,
+// squad prometido depois). squad fica vazio ('Sem squad definido') até o usuário mandar
+// essa coluna — so trocar o valor de squad de cada pessoa quando chegar, sem re-digitar
+// o resto.
+const LONGO_PRAZO_ROSTER = [
+    { nome: 'André Yamamura', squad: 'Sem squad definido', email: 'andre.yamamura@foursys.com.br' },
+    { nome: 'Diogo Cunha de Oliveira Silva', squad: 'Sem squad definido', email: 'diogo.oliveira@foursys.com.br' },
+    { nome: 'Fabiano Luiz Santos de Santana', squad: 'Sem squad definido', email: 'fabiano.santana@foursys.com.br' },
+    { nome: 'Guilherme Prado Fernandes', squad: 'Sem squad definido', email: 'guilherme.fernandes@foursys.com.br' },
+    { nome: 'Harley Souto Amaro Dalva', squad: 'Sem squad definido', email: 'harley.amaro@foursys.com.br' },
+    { nome: 'Hugo de Amorim', squad: 'Sem squad definido', email: 'hugo.amorim@foursys.com.br' },
+    { nome: 'Ivan Vidal de Almeida', squad: 'Sem squad definido', email: 'ivan.vidal@foursys.com.br' },
+    { nome: 'Jhonatan Barros', squad: 'Sem squad definido', email: 'jhonatan.barros@foursys.com.br' },
+    { nome: 'Joao Carlos Lopes Alves', squad: 'Sem squad definido', email: 'joao.alves@foursys.com.br' },
+    { nome: 'Jose da Costa Ramos', squad: 'Sem squad definido', email: 'jose.vitor@foursys.com.br' },
+];
 
 // Cruza o roster (nome + squad) com stats.byPerson (chave = e-mail vindo da telemetria).
 // Por squad: quantas pessoas do roster usaram o Hub pelo menos 1 vez (no periodo filtrado)

@@ -235,6 +235,22 @@ function renderHtml(events) {
     <div class="card mb-4">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <h2 class="card-title mb-0">Curto Prazo — Acessos por Squad Tribo</h2>
+            </div>
+            <p class="text-muted small mb-2">Quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado (os filtros de data no topo da página também valem aqui), considerando só o roster de Curto Prazo. Clique no nome do squad pra ver as pessoas, e no nome da pessoa pra ver os dias exatos de acesso.</p>
+            <canvas id="chartCurtoPrazoSquad" height="140" class="mb-3"></canvas>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead><tr><th>Squad Tribo</th><th>Pessoas usando</th></tr></thead>
+                    <tbody id="curtoPrazoSquadRows"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <h2 class="card-title mb-0">Uso por Dia</h2>
             </div>
             <p class="text-muted small mb-2">A coluna "Pessoas" conta quem usou em cada dia — quem aparece em mais de um dia soma mais de uma vez aqui, então o total das linhas pode passar o card "Pessoas desde {data}" no topo (que conta cada pessoa só 1x no período todo).</p>
@@ -280,6 +296,70 @@ Chart.defaults.color = TEXT_MUTED;
 
 function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Roster de Curto Prazo fornecido pelo usuario em 07/08/2026, agrupado por Squad Tribo.
+// Mateus Henrique Esteves ficou de fora da lista original: sem e-mail cadastrado, sem
+// como cruzar com a telemetria (que so identifica pessoa por e-mail).
+const CURTO_PRAZO_ROSTER = [
+    { nome: 'Alexandre Machado Hoepner', squad: 'OPTINMGT', email: 'alexandre.hoepner@foursys.com.br' },
+    { nome: 'Andre Alves Pinto', squad: 'AGENDAREC', email: 'andre.pinto@foursys.com.br' },
+    { nome: 'Bruno Da Silva Costa', squad: 'PNLRECPDPJ', email: 'bruno.costa@foursys.com.br' },
+    { nome: 'Caio Vinicius Alves de Souza', squad: 'OPTINMGT', email: 'caio.alves@foursys.com.br' },
+    { nome: 'Carlos Henrique Policastro Bispo', squad: 'ESTAUTCOD0', email: 'carlos.policastro@foursys.com.br' },
+    { nome: 'Danilo Santos dos Santos', squad: 'ESTAUTCOD0', email: 'danilo.santos@foursys.com.br' },
+    { nome: 'Demian Parenti Quirino', squad: 'AGENDAREC', email: 'demian.quirino@foursys.com.br' },
+    { nome: 'Dirceu Santos Gonçalves', squad: 'ESTAUTCOD0', email: 'dirceu.goncalves@foursys.com.br' },
+    { nome: 'Elimara Cecilia Santos Fortes Pires', squad: 'Alecrim', email: 'elimara.santos@foursys.com.br' },
+    { nome: 'Fabio Monteiro Amorim', squad: 'REGISDUP', email: 'fabio.amorim@foursys.com.br' },
+    { nome: 'Fabio Victor da Silva Almeida', squad: 'PNLRECPDPJ', email: 'fabio.silva@foursys.com.br' },
+    { nome: 'Felipe Monteiro Carneiro', squad: 'Visão Sacado', email: 'felipe.carneiro@foursys.com.br' },
+    { nome: 'Felipe Sampaio Marques Souza', squad: 'OPTINMGT', email: 'felipe.souza@foursys.com.br' },
+    { nome: 'Gabriel Handriel Kelm', squad: 'REGISDUP', email: 'gabriel.kelm@foursys.com.br' },
+    { nome: 'Guilherme Pereira', squad: 'AGENDAREC', email: 'guilherme.pereira@foursys.com.br' },
+    { nome: 'Joao Pedro da Silva Pereira dos Santos', squad: 'JORNAUTD0', email: 'joao.pereira@foursys.com.br' },
+    { nome: 'Jose Renato Sena Marques', squad: 'ESTAUTCOD0', email: 'jose.sena@foursys.com.br' },
+    { nome: 'Leonardo Arantes Di Nizo', squad: 'AGENDAREC', email: 'leonardo.nizo@foursys.com.br' },
+    { nome: 'Leonardo Gabriel De Oliveira', squad: 'HABMGTSERV', email: 'leonardo.gabriel@foursys.com.br' },
+    { nome: 'Leticia Aparecida De Souza Scalco', squad: 'ESTAUTCOD0', email: 'leticia.souza@foursys.com.br' },
+    { nome: 'Lincon Roberto Do Nascimento', squad: 'PNLRECPDPJ', email: 'lincon.nascimento@foursys.com.br' },
+    { nome: 'Lucas Alves De Abreu', squad: 'HABMGTSERV', email: 'lucas.abreu@foursys.com.br' },
+    { nome: 'Lucas Medina Cavalcanti', squad: 'HABMGTSERV', email: 'lucas.cavalcanti@foursys.com.br' },
+    { nome: 'Luis Miguel Giomo', squad: 'HABMGTSERV', email: 'luis.giomo@foursys.com.br' },
+    { nome: 'Luiz Augusto Gomes', squad: 'OPTINMGT', email: 'luiz.augusto@foursys.com.br' },
+    { nome: 'Marcia Cristina Marinho', squad: 'PNLRECPDPJ', email: 'marcia.marinho@foursys.com.br' },
+    { nome: 'Natalia De Almeida Silva', squad: 'HABMGTSERV', email: 'natalia.silva@foursys.com.br' },
+    { nome: 'Rafael Casanova Matos', squad: 'ESTAUTCOD0', email: 'rafael.matos@foursys.com.br' },
+    { nome: 'Rafael Pereira Freitas', squad: 'JORNAUTD0', email: 'rafael.freitas@foursys.com.br' },
+    { nome: 'Ramon Messias Correa De Andrade', squad: 'LIQCONTRAT', email: 'ramon.correa@foursys.com.br' },
+    { nome: 'Sanzio De Oliveira Carmo', squad: 'REGISDUP', email: 'sanzio.carmo@foursys.com.br' },
+    { nome: 'Sergio Diogo Antonio', squad: 'PNLRECPDPJ', email: 'sergio.diogo@foursys.com.br' },
+    { nome: 'Tiago Silva Martins', squad: 'REGISDUP', email: 'tiago.martins@foursys.com.br' },
+    { nome: 'Vitor Fernando Crispim Arfelli', squad: 'LIQCONTRAT', email: 'vitor.arfelli@foursys.com.br' },
+    { nome: 'Wanderson Pinho Da Silva De Jesus', squad: 'JORNAUTD0', email: 'wanderson.silva@foursys.com.br' },
+    { nome: 'Wellington Correia Martins', squad: 'REGISDUP', email: 'wellington.martins@foursys.com.br' },
+    { nome: 'Yago Do Nascimento Ferreira', squad: 'Visão Sacado', email: 'yago.ferreira@foursys.com.br' },
+    { nome: 'Yuri Cesar Almeida Dos Santos', squad: 'Visão Sacado', email: 'yuri.almeida@foursys.com.br' },
+];
+
+// Cruza o roster (nome + squad) com stats.byPerson (chave = e-mail vindo da telemetria).
+// Por squad: quantas pessoas do roster usaram o Hub pelo menos 1 vez (no periodo filtrado)
+// vs. total de pessoas do squad. Por pessoa: as datas exatas de acesso (nao só a contagem),
+// pra dar o drill-down "cliquei no nome e vi os dias que ele usou".
+function aggregateBySquad(roster, byPersonEntries) {
+    const lookup = new Map(byPersonEntries.map(([email, p]) => [email.toLowerCase(), p]));
+    const bySquad = new Map();
+    for (const person of roster) {
+        const p = lookup.get(person.email.toLowerCase());
+        const days = p ? [...p.days].sort() : [];
+        if (!bySquad.has(person.squad)) { bySquad.set(person.squad, { totalPeople: 0, usedPeople: 0, people: [] }); }
+        const s = bySquad.get(person.squad);
+        s.totalPeople += 1;
+        if (days.length > 0) { s.usedPeople += 1; }
+        s.people.push({ nome: person.nome, email: person.email, days });
+    }
+    for (const s of bySquad.values()) { s.people.sort((a, b) => b.days.length - a.days.length); }
+    return [...bySquad.entries()].sort((a, b) => b[1].usedPeople - a[1].usedPeople);
 }
 
 // MANTER EM SINCRONIA com os nomes de evento emitidos em
@@ -571,6 +651,64 @@ function renderDashboard(events) {
             </tr>\`;
     }).join('');
 
+    // Curto Prazo: quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado
+    // (não soma de dias — "cobertura" do squad), cruzando o roster fixo com stats.byPerson.
+    const curtoPrazoBySquad = aggregateBySquad(CURTO_PRAZO_ROSTER, stats.byPerson);
+    upsertChart('curtoPrazoSquad', 'chartCurtoPrazoSquad', {
+        type: 'bar',
+        data: {
+            labels: curtoPrazoBySquad.map(([squad]) => squad),
+            datasets: [
+                { label: 'Usando', data: curtoPrazoBySquad.map(([, v]) => v.usedPeople), backgroundColor: cssVar('--status-good'), maxBarThickness: 24 },
+                { label: 'Ainda não usou', data: curtoPrazoBySquad.map(([, v]) => v.totalPeople - v.usedPeople), backgroundColor: TEXT_MUTED, maxBarThickness: 24 }
+            ]
+        },
+        options: STACKED_HBAR_OPTS
+    });
+
+    document.getElementById('curtoPrazoSquadRows').innerHTML = curtoPrazoBySquad.map(([squad, v], i) => {
+        const squadGroupId = 'squad-group-' + i;
+        const headerRow = \`
+            <tr class="day-header-row" data-squad-toggle="\${squadGroupId}" style="cursor:pointer">
+                <td><span class="toggle-icon">▸</span> \${escapeHtml(squad)}</td>
+                <td>\${v.usedPeople} de \${v.totalPeople}</td>
+            </tr>\`;
+        const personRows = v.people.map(p => {
+            const hasAccess = p.days.length > 0;
+            const datesLabel = p.days.map(d => d.split('-').reverse().join('/')).join(', ');
+            return \`
+            <tr class="day-person-row hidden-table" data-squad-group="\${squadGroupId}" \${hasAccess ? 'data-person-toggle="true" style="cursor:pointer"' : ''}>
+                <td class="ps-4 text-muted">\${hasAccess ? '<span class="toggle-icon-person">▸</span> ' : ''}\${escapeHtml(p.nome)}
+                    \${hasAccess ? \`<div class="person-days-detail text-muted small mt-1" style="display:none">Dias de acesso: \${datesLabel}</div>\` : ''}
+                </td>
+                <td class="text-muted small">\${hasAccess ? p.days.length + ' dia(s)' : 'sem acesso no período'}</td>
+            </tr>\`;
+        }).join('');
+        return headerRow + personRows;
+    }).join('');
+
+    document.querySelectorAll('[data-squad-toggle]').forEach(row => {
+        row.addEventListener('click', () => {
+            const groupId = row.dataset.squadToggle;
+            const icon = row.querySelector('.toggle-icon');
+            const expanding = icon.textContent === '▸';
+            icon.textContent = expanding ? '▾' : '▸';
+            document.querySelectorAll(\`[data-squad-group="\${groupId}"]\`).forEach(personRow => {
+                personRow.style.display = expanding ? 'table-row' : 'none';
+            });
+        });
+    });
+
+    document.querySelectorAll('#curtoPrazoSquadRows tr[data-person-toggle]').forEach(row => {
+        row.addEventListener('click', () => {
+            const icon = row.querySelector('.toggle-icon-person');
+            const detail = row.querySelector('.person-days-detail');
+            const expanding = detail.style.display === 'none';
+            detail.style.display = expanding ? 'block' : 'none';
+            icon.textContent = expanding ? '▾' : '▸';
+        });
+    });
+
     document.getElementById('dayRows').innerHTML = stats.byDayDetail.map(({ day, events, tokens, credits, people }, i) => {
         const groupId = 'day-group-' + i;
         const optedOutCount = people.filter(([, p]) => p.optedOut).length;
@@ -810,28 +948,34 @@ async function fetchFreshEvents() {
 }
 
 const refreshBtn = document.getElementById('refreshBtn');
+async function doLiveRefresh() {
+    const status = document.getElementById('refreshStatus');
+    if (status) status.textContent = 'Buscando dados...';
+    if (refreshBtn) refreshBtn.disabled = true;
+    try {
+        embeddedEvents = excludeTestPeriod(await fetchFreshEvents());
+        annotateOrigins(embeddedEvents);
+        populateFilterOptions(embeddedEvents);
+        refresh();
+        document.getElementById('sourceInfo').textContent =
+            'Atualizado agora (' + new Date().toLocaleString('pt-BR') + ') — fonte: repositório - Foursys HUB — ' + embeddedEvents.length + ' evento(s)';
+        if (status) status.textContent = 'Atualizado com sucesso.';
+    } catch (err) {
+        if (status) status.textContent = 'Erro: ' + err.message;
+    } finally {
+        if (refreshBtn) refreshBtn.disabled = false;
+    }
+}
 if (refreshBtn) {
-    refreshBtn.addEventListener('click', async () => {
-        const status = document.getElementById('refreshStatus');
-        status.textContent = 'Buscando dados...';
-        refreshBtn.disabled = true;
-        try {
-            embeddedEvents = excludeTestPeriod(await fetchFreshEvents());
-            annotateOrigins(embeddedEvents);
-            populateFilterOptions(embeddedEvents);
-            refresh();
-            document.getElementById('sourceInfo').textContent =
-                'Atualizado agora (' + new Date().toLocaleString('pt-BR') + ') — fonte: repositório - Foursys HUB — ' + embeddedEvents.length + ' evento(s)';
-            status.textContent = 'Atualizado com sucesso.';
-        } catch (err) {
-            status.textContent = 'Erro: ' + err.message;
-        } finally {
-            refreshBtn.disabled = false;
-        }
-    });
+    refreshBtn.addEventListener('click', doLiveRefresh);
 }
 
 refresh();
+// Busca dados frescos do Worker automaticamente ao abrir a página, pra não depender
+// de clique manual em "Atualizar dados" nem mostrar o snapshot velho embutido no F5.
+if (refreshBtn) {
+    doLiveRefresh();
+}
 </script>
 </body>
 </html>`;

@@ -472,6 +472,17 @@ annotateOrigins(embeddedEvents);
 // excluidas do grafico "Eventos por Versao" pra nao confundir com releases reais.
 const EXCLUDED_VERSIONS = new Set(['1.3.0', '1.3.1', 'personal-copilot-sync']);
 
+// Mesma pessoa, e-mails diferentes (ex: usou o Hub num ambiente de cliente que detectou
+// outro e-mail de git config) — mapeia alias -> e-mail canonico, pra nao aparecer como
+// duas pessoas em nenhum grafico/tabela do relatorio.
+const EMAIL_ALIASES = {
+    'daniel.bissacot@bradesco.com.br': 'daniel.bissacot@foursys.com.br'
+};
+function canonicalEmail(email) {
+    const lower = (email || '').toLowerCase();
+    return EMAIL_ALIASES[lower] || email;
+}
+
 function aggregate(events) {
     const byStack = new Map();
     const byVersion = new Map();
@@ -486,7 +497,7 @@ function aggregate(events) {
     let volumeEventCount = 0;
 
     for (const ev of events) {
-        const email = ev.email || 'desconhecido';
+        const email = canonicalEmail(ev.email) || 'desconhecido';
         const stack = ev.stack || 'unknown';
         const tokens = Number(ev.tokens) || 0;
         const credits = Number(ev.credits) || 0;

@@ -266,6 +266,17 @@ function renderHtml(events) {
         </div>
     </div>
 
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="card-title mb-1">Fora do padrão @foursys.com.br</h2>
+                <p class="text-muted small mb-2">E-mails que apareceram na telemetria com outro domínio (ambiente de cliente detectou outro e-mail, ou erro de digitação). Fica separado do Ranking/Outros até confirmar quem é cada um.</p>
+                <div id="outroDominioEmpty" class="text-muted small py-4 text-center">Todo mundo apareceu com @foursys.com.br no período filtrado.</div>
+                <div id="outroDominioChartWrap" style="height:220px" class="mb-2 hidden-table"><canvas id="chartOutroDominio"></canvas></div>
+            </div></div>
+        </div>
+    </div>
+
     <div id="squadDetailModal" class="squad-detail-overlay" style="display:none">
         <div class="squad-detail-content">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -481,6 +492,13 @@ const EMAIL_ALIASES = {
 function canonicalEmail(email) {
     const lower = (email || '').toLowerCase();
     return EMAIL_ALIASES[lower] || email;
+}
+
+// Todo mundo deveria aparecer como @foursys.com.br — quem não bate (bradesco.com.br,
+// foursys.com sem ".br", etc.) vai pra um card separado em vez de entrar no Ranking/Outros,
+// já que não dá pra saber com certeza quem é quem sem confirmar caso a caso.
+function isFoursysEmail(email) {
+    return (email || '').toLowerCase().endsWith('@foursys.com.br');
 }
 
 function aggregate(events) {
@@ -711,15 +729,20 @@ function renderDashboard(events) {
         });
     }
 
+    // Ranking/Outros só consideram @foursys.com.br — quem tem outro domínio vai pro card
+    // "Fora do padrão" separado (ver mais abaixo), não entra misturado aqui.
+    const foursysByPerson = stats.byPerson.filter(([email]) => isFoursysEmail(email));
+    const outroDominioByPerson = stats.byPerson.filter(([email]) => !isFoursysEmail(email));
+
     // Ranking = comparação de magnitude entre pessoas (top 10 por dias de acesso no período).
-    const topPeople = stats.byPerson.slice(0, 10);
+    const topPeople = foursysByPerson.slice(0, 10);
     renderPersonPieChart('personRank', 'chartPersonRank', topPeople);
 
     // Lista completa (todo mundo, não só top 10) só aparece dentro do popup — mantém a
     // página principal do relatório mais curta, igual ao botão "quem não acessou".
     document.getElementById('personRankViewAllBtn').onclick = () => {
-        document.getElementById('squadDetailTitle').textContent = \`Ranking de Pessoas — \${stats.byPerson.length} pessoa(s)\`;
-        document.getElementById('squadDetailBody').innerHTML = stats.byPerson.map(([email, p]) => {
+        document.getElementById('squadDetailTitle').textContent = \`Ranking de Pessoas — \${foursysByPerson.length} pessoa(s)\`;
+        document.getElementById('squadDetailBody').innerHTML = foursysByPerson.map(([email, p]) => {
             const lastSeen = p.lastSeen ? p.lastSeen.slice(0, 10).split('-').reverse().join('/') : '—';
             return \`
                 <div class="squad-person-row" style="cursor:default">
@@ -812,7 +835,7 @@ function renderDashboard(events) {
     const rosterEmails = new Set(
         [...CURTO_PRAZO_ROSTER, ...LONGO_PRAZO_ROSTER].map(p => p.email.toLowerCase())
     );
-    const outrosByPerson = stats.byPerson.filter(([email]) => !rosterEmails.has(email.toLowerCase()));
+    const outrosByPerson = foursysByPerson.filter(([email]) => !rosterEmails.has(email.toLowerCase()));
     const outrosEmpty = document.getElementById('outrosEmpty');
     const outrosChartWrap = document.getElementById('outrosChartWrap');
     if (outrosByPerson.length > 0) {
@@ -822,6 +845,21 @@ function renderDashboard(events) {
     } else {
         outrosEmpty.classList.remove('hidden-table');
         outrosChartWrap.classList.add('hidden-table');
+    }
+
+    // Fora do padrão @foursys.com.br: gente que apareceu na telemetria com outro domínio
+    // (ex: ambiente de cliente detectou outro e-mail, ou erro de digitação no domínio).
+    // Fica isolado aqui em vez de entrar no Ranking/Outros, porque não dá pra saber com
+    // certeza quem é essa pessoa sem confirmar caso a caso.
+    const outroDominioEmpty = document.getElementById('outroDominioEmpty');
+    const outroDominioChartWrap = document.getElementById('outroDominioChartWrap');
+    if (outroDominioByPerson.length > 0) {
+        outroDominioEmpty.classList.add('hidden-table');
+        outroDominioChartWrap.classList.remove('hidden-table');
+        renderPersonPieChart('outroDominio', 'chartOutroDominio', outroDominioByPerson);
+    } else {
+        outroDominioEmpty.classList.remove('hidden-table');
+        outroDominioChartWrap.classList.add('hidden-table');
     }
 
     function openPersonDetail(email, p) {

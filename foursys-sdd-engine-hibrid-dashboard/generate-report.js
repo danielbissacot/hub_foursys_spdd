@@ -234,12 +234,7 @@ function renderHtml(events) {
             </div>
             <p class="text-muted small mb-2">Em quantos dias diferentes cada pessoa usou o Hub no período filtrado (frequência de acesso, não volume de trabalho), do maior para o menor (top 10). O mesmo filtro de e-mail acima também se aplica à tabela "Uso por Dia" logo abaixo.</p>
             <div style="height:260px" class="mb-3"><canvas id="chartPersonRank"></canvas></div>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
-                    <thead><tr><th>Pessoa</th><th>Dias de acesso</th><th>Último acesso</th></tr></thead>
-                    <tbody id="personRankRows"></tbody>
-                </table>
-            </div>
+            <div id="personRankRows"></div>
         </div>
     </div>
 
@@ -472,6 +467,11 @@ function annotateOrigins(events) {
 
 annotateOrigins(embeddedEvents);
 
+// Versoes de build/dev que nunca foram lancadas no Hub (1.3.0/1.3.1) ou eventos de outra
+// ferramenta que vazaram nesse campo (personal-copilot-sync, nao e versao do Hub) —
+// excluidas do grafico "Eventos por Versao" pra nao confundir com releases reais.
+const EXCLUDED_VERSIONS = new Set(['1.3.0', '1.3.1', 'personal-copilot-sync']);
+
 function aggregate(events) {
     const byStack = new Map();
     const byVersion = new Map();
@@ -526,7 +526,9 @@ function aggregate(events) {
         s.credits += credits;
 
         const version = ev.version || 'desconhecida';
-        byVersion.set(version, (byVersion.get(version) || 0) + 1);
+        if (!EXCLUDED_VERSIONS.has(version)) {
+            byVersion.set(version, (byVersion.get(version) || 0) + 1);
+        }
 
         if (day) {
             byDay.set(day, (byDay.get(day) || 0) + 1);
@@ -705,11 +707,13 @@ function renderDashboard(events) {
     document.getElementById('personRankRows').innerHTML = stats.byPerson.map(([email, p]) => {
         const lastSeen = p.lastSeen ? p.lastSeen.slice(0, 10).split('-').reverse().join('/') : '—';
         return \`
-            <tr data-email="\${escapeHtml(email.toLowerCase())}">
-                <td>\${escapeHtml(email)}</td>
-                <td>\${p.days.size}</td>
-                <td>\${lastSeen}</td>
-            </tr>\`;
+            <div class="squad-person-row" data-email="\${escapeHtml(email.toLowerCase())}" style="cursor:default">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>\${escapeHtml(email)}</span>
+                    <span class="text-muted small">\${p.days.size} dia(s)</span>
+                </div>
+                <div class="text-muted small">Último acesso: \${lastSeen}</div>
+            </div>\`;
     }).join('');
 
     // Curto/Longo Prazo: quantas pessoas de cada Squad Tribo usaram o Hub no período
@@ -970,7 +974,7 @@ document.querySelectorAll('[data-toggle-table]').forEach(btn => {
 document.getElementById('personFilter').addEventListener('input', (e) => {
     const term = e.target.value.trim().toLowerCase();
 
-    document.querySelectorAll('#personRankRows tr').forEach(row => {
+    document.querySelectorAll('#personRankRows > div').forEach(row => {
         row.style.display = !term || row.dataset.email.includes(term) ? '' : 'none';
     });
 

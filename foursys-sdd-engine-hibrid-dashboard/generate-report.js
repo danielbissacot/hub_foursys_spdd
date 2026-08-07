@@ -232,9 +232,9 @@ function renderHtml(events) {
               <h2 class="card-title mb-0">Ranking de Pessoas</h2>
               <input type="search" id="personFilter" class="form-control form-control-sm" style="max-width:220px" placeholder="Filtrar por e-mail...">
             </div>
-            <p class="text-muted small mb-2">Em quantos dias diferentes cada pessoa usou o Hub no período filtrado (frequência de acesso, não volume de trabalho), do maior para o menor (top 10). O mesmo filtro de e-mail acima também se aplica à tabela "Uso por Dia" logo abaixo.</p>
+            <p class="text-muted small mb-2">Em quantos dias diferentes cada pessoa usou o Hub no período filtrado (frequência de acesso, não volume de trabalho), do maior para o menor (top 10). O filtro de e-mail acima também se aplica à tabela "Uso por Dia" logo abaixo.</p>
             <div style="height:260px" class="mb-3"><canvas id="chartPersonRank"></canvas></div>
-            <div id="personRankRows"></div>
+            <button id="personRankViewAllBtn" class="btn btn-outline-secondary btn-sm">📋 Ver lista completa</button>
         </div>
     </div>
 
@@ -704,17 +704,23 @@ function renderDashboard(events) {
     const topPeople = stats.byPerson.slice(0, 10);
     renderPersonPieChart('personRank', 'chartPersonRank', topPeople);
 
-    document.getElementById('personRankRows').innerHTML = stats.byPerson.map(([email, p]) => {
-        const lastSeen = p.lastSeen ? p.lastSeen.slice(0, 10).split('-').reverse().join('/') : '—';
-        return \`
-            <div class="squad-person-row" data-email="\${escapeHtml(email.toLowerCase())}" style="cursor:default">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>\${escapeHtml(email)}</span>
-                    <span class="text-muted small">\${p.days.size} dia(s)</span>
-                </div>
-                <div class="text-muted small">Último acesso: \${lastSeen}</div>
-            </div>\`;
-    }).join('');
+    // Lista completa (todo mundo, não só top 10) só aparece dentro do popup — mantém a
+    // página principal do relatório mais curta, igual ao botão "quem não acessou".
+    document.getElementById('personRankViewAllBtn').onclick = () => {
+        document.getElementById('squadDetailTitle').textContent = \`Ranking de Pessoas — \${stats.byPerson.length} pessoa(s)\`;
+        document.getElementById('squadDetailBody').innerHTML = stats.byPerson.map(([email, p]) => {
+            const lastSeen = p.lastSeen ? p.lastSeen.slice(0, 10).split('-').reverse().join('/') : '—';
+            return \`
+                <div class="squad-person-row" style="cursor:default">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>\${escapeHtml(email)}</span>
+                        <span class="text-muted small">\${p.days.size} dia(s)</span>
+                    </div>
+                    <div class="text-muted small">Último acesso: \${lastSeen}</div>
+                </div>\`;
+        }).join('');
+        document.getElementById('squadDetailModal').style.display = 'flex';
+    };
 
     // Curto/Longo Prazo: quantas pessoas de cada Squad Tribo usaram o Hub no período
     // filtrado (não soma de dias — "cobertura" do squad), cruzando o roster fixo com
@@ -973,10 +979,6 @@ document.querySelectorAll('[data-toggle-table]').forEach(btn => {
 
 document.getElementById('personFilter').addEventListener('input', (e) => {
     const term = e.target.value.trim().toLowerCase();
-
-    document.querySelectorAll('#personRankRows > div').forEach(row => {
-        row.style.display = !term || row.dataset.email.includes(term) ? '' : 'none';
-    });
 
     document.querySelectorAll('.day-header-row').forEach(headerRow => {
         const groupId = headerRow.dataset.dayToggle;

@@ -110,6 +110,17 @@ function renderHtml(events) {
   .form-control { background: var(--page) !important; border-color: var(--border) !important; color: var(--text-primary) !important; }
   .form-control::placeholder { color: var(--text-muted); }
   .badge.bg-secondary { background: #555 !important; }
+  .squad-detail-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 1050;
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .squad-detail-content {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    max-width: 640px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 1.25rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+  .squad-person-row { cursor: pointer; padding: .5rem .25rem; border-bottom: 1px solid var(--gridline); }
+  .squad-person-row:hover { background: rgba(255,107,0,.06); }
 </style>
 </head>
 <body>
@@ -232,19 +243,31 @@ function renderHtml(events) {
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-              <h2 class="card-title mb-0">Curto Prazo — Acessos por Squad Tribo</h2>
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="card-title mb-1">Curto Prazo — Acessos por Squad Tribo</h2>
+                <p class="text-muted small mb-2">Quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado (os filtros de data no topo da página também valem aqui). Clique numa fatia pra ver as pessoas do squad e os dias exatos de acesso.</p>
+                <div style="height:220px" class="mb-2"><canvas id="chartCurtoPrazoSquad"></canvas></div>
+            </div></div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="card-title mb-1">Longo Prazo — Acessos por Squad Tribo</h2>
+                <p class="text-muted small mb-2">Mesma lógica do Curto Prazo, com o roster de Longo Prazo.</p>
+                <div id="longoPrazoEmpty" class="text-muted small py-4 text-center">Aguardando lista de pessoas do Longo Prazo.</div>
+                <div id="longoPrazoChartWrap" style="height:220px" class="mb-2 hidden-table"><canvas id="chartLongoPrazoSquad"></canvas></div>
+            </div></div>
+        </div>
+    </div>
+
+    <div id="squadDetailModal" class="squad-detail-overlay" style="display:none">
+        <div class="squad-detail-content">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 id="squadDetailTitle" class="h5 mb-0"></h3>
+                <button id="squadDetailClose" class="btn btn-outline-secondary btn-sm">Fechar ✕</button>
             </div>
-            <p class="text-muted small mb-2">Quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado (os filtros de data no topo da página também valem aqui), considerando só o roster de Curto Prazo. Clique no nome do squad pra ver as pessoas, e no nome da pessoa pra ver os dias exatos de acesso.</p>
-            <canvas id="chartCurtoPrazoSquad" height="140" class="mb-3"></canvas>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
-                    <thead><tr><th>Squad Tribo</th><th>Pessoas usando</th></tr></thead>
-                    <tbody id="curtoPrazoSquadRows"></tbody>
-                </table>
-            </div>
+            <div id="squadDetailBody"></div>
         </div>
     </div>
 
@@ -341,6 +364,10 @@ const CURTO_PRAZO_ROSTER = [
     { nome: 'Yago Do Nascimento Ferreira', squad: 'Visão Sacado', email: 'yago.ferreira@foursys.com.br' },
     { nome: 'Yuri Cesar Almeida Dos Santos', squad: 'Visão Sacado', email: 'yuri.almeida@foursys.com.br' },
 ];
+
+// Roster de Longo Prazo — ainda nao recebido. Preencher no mesmo formato do
+// CURTO_PRAZO_ROSTER acima ({ nome, squad, email }) quando a lista chegar.
+const LONGO_PRAZO_ROSTER = [];
 
 // Cruza o roster (nome + squad) com stats.byPerson (chave = e-mail vindo da telemetria).
 // Por squad: quantas pessoas do roster usaram o Hub pelo menos 1 vez (no periodo filtrado)
@@ -651,63 +678,87 @@ function renderDashboard(events) {
             </tr>\`;
     }).join('');
 
-    // Curto Prazo: quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado
-    // (não soma de dias — "cobertura" do squad), cruzando o roster fixo com stats.byPerson.
-    const curtoPrazoBySquad = aggregateBySquad(CURTO_PRAZO_ROSTER, stats.byPerson);
-    upsertChart('curtoPrazoSquad', 'chartCurtoPrazoSquad', {
-        type: 'bar',
-        data: {
-            labels: curtoPrazoBySquad.map(([squad]) => squad),
-            datasets: [
-                { label: 'Usando', data: curtoPrazoBySquad.map(([, v]) => v.usedPeople), backgroundColor: cssVar('--status-good'), maxBarThickness: 24 },
-                { label: 'Ainda não usou', data: curtoPrazoBySquad.map(([, v]) => v.totalPeople - v.usedPeople), backgroundColor: TEXT_MUTED, maxBarThickness: 24 }
-            ]
-        },
-        options: STACKED_HBAR_OPTS
-    });
+    // Curto/Longo Prazo: quantas pessoas de cada Squad Tribo usaram o Hub no período
+    // filtrado (não soma de dias — "cobertura" do squad), cruzando o roster fixo com
+    // stats.byPerson. Pizza mostra só quem está usando (fatia = usedPeople); clicar na
+    // fatia abre o modal com a lista de pessoas daquele squad e, clicando na pessoa, os
+    // dias exatos de acesso.
+    function renderSquadPieChart(chartKey, canvasId, bySquad) {
+        upsertChart(chartKey, canvasId, {
+            type: 'pie',
+            data: {
+                labels: bySquad.map(([squad, v]) => \`\${squad} (\${v.usedPeople}/\${v.totalPeople})\`),
+                datasets: [{
+                    data: bySquad.map(([, v]) => v.usedPeople),
+                    backgroundColor: bySquad.map((_, i) => colorFor(i)),
+                    borderColor: cssVar('--surface'),
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: TEXT_MUTED, boxWidth: 12, font: { size: 11 } } },
+                    datalabels: { color: '#fff', font: { weight: '600' }, formatter: (val) => val > 0 ? val : '' }
+                },
+                onClick: (evt, elements) => {
+                    if (!elements.length) { return; }
+                    openSquadDetail(bySquad[elements[0].index]);
+                }
+            }
+        });
+    }
 
-    document.getElementById('curtoPrazoSquadRows').innerHTML = curtoPrazoBySquad.map(([squad, v], i) => {
-        const squadGroupId = 'squad-group-' + i;
-        const headerRow = \`
-            <tr class="day-header-row" data-squad-toggle="\${squadGroupId}" style="cursor:pointer">
-                <td><span class="toggle-icon">▸</span> \${escapeHtml(squad)}</td>
-                <td>\${v.usedPeople} de \${v.totalPeople}</td>
-            </tr>\`;
-        const personRows = v.people.map(p => {
+    const curtoPrazoBySquad = aggregateBySquad(CURTO_PRAZO_ROSTER, stats.byPerson);
+    renderSquadPieChart('curtoPrazoSquad', 'chartCurtoPrazoSquad', curtoPrazoBySquad);
+
+    // Longo Prazo: roster ainda nao recebido — some o placeholder e mostra o grafico so
+    // quando LONGO_PRAZO_ROSTER (perto do CURTO_PRAZO_ROSTER, no topo do arquivo) tiver gente.
+    const longoPrazoEmpty = document.getElementById('longoPrazoEmpty');
+    const longoPrazoChartWrap = document.getElementById('longoPrazoChartWrap');
+    if (LONGO_PRAZO_ROSTER.length > 0) {
+        longoPrazoEmpty.classList.add('hidden-table');
+        longoPrazoChartWrap.classList.remove('hidden-table');
+        const longoPrazoBySquad = aggregateBySquad(LONGO_PRAZO_ROSTER, stats.byPerson);
+        renderSquadPieChart('longoPrazoSquad', 'chartLongoPrazoSquad', longoPrazoBySquad);
+    } else {
+        longoPrazoEmpty.classList.remove('hidden-table');
+        longoPrazoChartWrap.classList.add('hidden-table');
+    }
+
+    function openSquadDetail([squad, v]) {
+        document.getElementById('squadDetailTitle').textContent = \`\${squad} — \${v.usedPeople} de \${v.totalPeople} usando\`;
+        document.getElementById('squadDetailBody').innerHTML = v.people.map(p => {
             const hasAccess = p.days.length > 0;
             const datesLabel = p.days.map(d => d.split('-').reverse().join('/')).join(', ');
             return \`
-            <tr class="day-person-row hidden-table" data-squad-group="\${squadGroupId}" \${hasAccess ? 'data-person-toggle="true" style="cursor:pointer"' : ''}>
-                <td class="ps-4 text-muted">\${hasAccess ? '<span class="toggle-icon-person">▸</span> ' : ''}\${escapeHtml(p.nome)}
+                <div class="squad-person-row" \${hasAccess ? 'data-person-toggle="true"' : ''}>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>\${hasAccess ? '<span class="toggle-icon-person">▸</span> ' : ''}\${escapeHtml(p.nome)}</span>
+                        <span class="text-muted small">\${hasAccess ? p.days.length + ' dia(s)' : 'sem acesso no período'}</span>
+                    </div>
                     \${hasAccess ? \`<div class="person-days-detail text-muted small mt-1" style="display:none">Dias de acesso: \${datesLabel}</div>\` : ''}
-                </td>
-                <td class="text-muted small">\${hasAccess ? p.days.length + ' dia(s)' : 'sem acesso no período'}</td>
-            </tr>\`;
+                </div>\`;
         }).join('');
-        return headerRow + personRows;
-    }).join('');
-
-    document.querySelectorAll('[data-squad-toggle]').forEach(row => {
-        row.addEventListener('click', () => {
-            const groupId = row.dataset.squadToggle;
-            const icon = row.querySelector('.toggle-icon');
-            const expanding = icon.textContent === '▸';
-            icon.textContent = expanding ? '▾' : '▸';
-            document.querySelectorAll(\`[data-squad-group="\${groupId}"]\`).forEach(personRow => {
-                personRow.style.display = expanding ? 'table-row' : 'none';
+        document.querySelectorAll('#squadDetailBody [data-person-toggle]').forEach(row => {
+            row.addEventListener('click', () => {
+                const icon = row.querySelector('.toggle-icon-person');
+                const detail = row.querySelector('.person-days-detail');
+                const expanding = detail.style.display === 'none';
+                detail.style.display = expanding ? 'block' : 'none';
+                icon.textContent = expanding ? '▾' : '▸';
             });
         });
-    });
+        document.getElementById('squadDetailModal').style.display = 'flex';
+    }
 
-    document.querySelectorAll('#curtoPrazoSquadRows tr[data-person-toggle]').forEach(row => {
-        row.addEventListener('click', () => {
-            const icon = row.querySelector('.toggle-icon-person');
-            const detail = row.querySelector('.person-days-detail');
-            const expanding = detail.style.display === 'none';
-            detail.style.display = expanding ? 'block' : 'none';
-            icon.textContent = expanding ? '▾' : '▸';
-        });
-    });
+    document.getElementById('squadDetailClose').onclick = () => {
+        document.getElementById('squadDetailModal').style.display = 'none';
+    };
+    document.getElementById('squadDetailModal').onclick = (e) => {
+        if (e.target.id === 'squadDetailModal') { e.currentTarget.style.display = 'none'; }
+    };
 
     document.getElementById('dayRows').innerHTML = stats.byDayDetail.map(({ day, events, tokens, credits, people }, i) => {
         const groupId = 'day-group-' + i;

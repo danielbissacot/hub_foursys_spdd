@@ -233,7 +233,7 @@ function renderHtml(events) {
               <input type="search" id="personFilter" class="form-control form-control-sm" style="max-width:220px" placeholder="Filtrar por e-mail...">
             </div>
             <p class="text-muted small mb-2">Em quantos dias diferentes cada pessoa usou o Hub no período filtrado (frequência de acesso, não volume de trabalho), do maior para o menor (top 10). O mesmo filtro de e-mail acima também se aplica à tabela "Uso por Dia" logo abaixo.</p>
-            <canvas id="chartPersonRank" height="140" class="mb-3"></canvas>
+            <div style="height:260px" class="mb-3"><canvas id="chartPersonRank"></canvas></div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-sm">
                     <thead><tr><th>Pessoa</th><th>Dias de acesso</th><th>Último acesso</th></tr></thead>
@@ -244,19 +244,27 @@ function renderHtml(events) {
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card h-100"><div class="card-body">
                 <h2 class="card-title mb-1">Curto Prazo — Acessos por Squad Tribo</h2>
-                <p class="text-muted small mb-2">Quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado (os filtros de data no topo da página também valem aqui). Clique numa fatia pra ver as pessoas do squad e os dias exatos de acesso.</p>
+                <p class="text-muted small mb-2">Quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado. Clique numa fatia pra ver as pessoas do squad e os dias exatos de acesso.</p>
                 <div style="height:220px" class="mb-2"><canvas id="chartCurtoPrazoSquad"></canvas></div>
             </div></div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card h-100"><div class="card-body">
                 <h2 class="card-title mb-1">Longo Prazo — Acessos por Squad Tribo</h2>
                 <p class="text-muted small mb-2">Mesma lógica do Curto Prazo, com o roster de Longo Prazo.</p>
                 <div id="longoPrazoEmpty" class="text-muted small py-4 text-center">Aguardando lista de pessoas do Longo Prazo.</div>
                 <div id="longoPrazoChartWrap" style="height:220px" class="mb-2 hidden-table"><canvas id="chartLongoPrazoSquad"></canvas></div>
+            </div></div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="card-title mb-1">Outros</h2>
+                <p class="text-muted small mb-2">Pessoas que usaram o Hub e não estão nos rosters de Curto/Longo Prazo — sem agrupamento por squad. Clique numa fatia pra ver os dias exatos de acesso.</p>
+                <div id="outrosEmpty" class="text-muted small py-4 text-center">Ninguém fora dos rosters no período filtrado.</div>
+                <div id="outrosChartWrap" style="height:220px" class="mb-2 hidden-table"><canvas id="chartOutros"></canvas></div>
             </div></div>
         </div>
     </div>
@@ -654,19 +662,41 @@ function renderDashboard(events) {
         ? '<span class="badge bg-secondary">Sim</span>'
         : '<span class="badge" style="background:var(--status-good)">Não</span>';
 
-    // Ranking = comparação de magnitude entre pessoas (nominal categórica: a ordem dos
-    // nomes não carrega significado, só o valor) — por isso 1 hue só (slot-1 da paleta),
-    // sem legenda, igual ao restante da paleta categórica já validada nesta página contra
-    // a superfície #252526 (ver comentário no <style> acima).
+    // Pizza por pessoa (sem agrupamento de squad): 1 fatia por pessoa, clique na fatia
+    // mostra os dias exatos de acesso dela no modal (openPersonDetail, definido mais abaixo
+    // junto com openSquadDetail — precisa existir antes do clique acontecer, não antes desta
+    // chamada, já que é só registrado como callback do Chart.js).
+    function renderPersonPieChart(chartKey, canvasId, peopleEntries) {
+        upsertChart(chartKey, canvasId, {
+            type: 'pie',
+            data: {
+                labels: peopleEntries.map(([email, p]) => \`\${email} (\${p.days.size})\`),
+                datasets: [{
+                    data: peopleEntries.map(([, p]) => p.days.size),
+                    backgroundColor: peopleEntries.map((_, i) => colorFor(i)),
+                    borderColor: cssVar('--surface'),
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: TEXT_MUTED, boxWidth: 12, font: { size: 10 } } },
+                    datalabels: { color: '#fff', font: { weight: '600' }, formatter: (val) => val > 0 ? val : '' }
+                },
+                onClick: (evt, elements) => {
+                    if (!elements.length) { return; }
+                    const [email, p] = peopleEntries[elements[0].index];
+                    openPersonDetail(email, p);
+                }
+            }
+        });
+    }
+
+    // Ranking = comparação de magnitude entre pessoas (top 10 por dias de acesso no período).
     const topPeople = stats.byPerson.slice(0, 10);
-    upsertChart('personRank', 'chartPersonRank', {
-        type: 'bar',
-        data: {
-            labels: topPeople.map(([email]) => email),
-            datasets: [{ label: 'Dias de acesso', data: topPeople.map(([, p]) => p.days.size), backgroundColor: cssVar('--s-orange'), borderRadius: 4, maxBarThickness: 16 }]
-        },
-        options: HBAR_OPTS_BASE
-    });
+    renderPersonPieChart('personRank', 'chartPersonRank', topPeople);
 
     document.getElementById('personRankRows').innerHTML = stats.byPerson.map(([email, p]) => {
         const lastSeen = p.lastSeen ? p.lastSeen.slice(0, 10).split('-').reverse().join('/') : '—';
@@ -725,6 +755,30 @@ function renderDashboard(events) {
     } else {
         longoPrazoEmpty.classList.remove('hidden-table');
         longoPrazoChartWrap.classList.add('hidden-table');
+    }
+
+    // Outros: quem usou o Hub no período e não está em nenhum dos dois rosters — sem
+    // squad conhecido, então mostra direto por pessoa (mesma pizza do Ranking acima).
+    const rosterEmails = new Set(
+        [...CURTO_PRAZO_ROSTER, ...LONGO_PRAZO_ROSTER].map(p => p.email.toLowerCase())
+    );
+    const outrosByPerson = stats.byPerson.filter(([email]) => !rosterEmails.has(email.toLowerCase()));
+    const outrosEmpty = document.getElementById('outrosEmpty');
+    const outrosChartWrap = document.getElementById('outrosChartWrap');
+    if (outrosByPerson.length > 0) {
+        outrosEmpty.classList.add('hidden-table');
+        outrosChartWrap.classList.remove('hidden-table');
+        renderPersonPieChart('outros', 'chartOutros', outrosByPerson);
+    } else {
+        outrosEmpty.classList.remove('hidden-table');
+        outrosChartWrap.classList.add('hidden-table');
+    }
+
+    function openPersonDetail(email, p) {
+        const datesLabel = [...p.days].sort().map(d => d.split('-').reverse().join('/')).join(', ');
+        document.getElementById('squadDetailTitle').textContent = \`\${email} — \${p.days.size} dia(s) de acesso\`;
+        document.getElementById('squadDetailBody').innerHTML = \`<div class="text-muted small">\${datesLabel || 'Sem acesso no período'}</div>\`;
+        document.getElementById('squadDetailModal').style.display = 'flex';
     }
 
     function openSquadDetail([squad, v]) {

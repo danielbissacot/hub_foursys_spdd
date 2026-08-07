@@ -249,6 +249,7 @@ function renderHtml(events) {
                 <h2 class="card-title mb-1">Curto Prazo — Acessos por Squad Tribo</h2>
                 <p class="text-muted small mb-2">Quantas pessoas de cada Squad Tribo usaram o Hub no período filtrado. Clique numa fatia pra ver as pessoas do squad e os dias exatos de acesso.</p>
                 <div style="height:220px" class="mb-2"><canvas id="chartCurtoPrazoSquad"></canvas></div>
+                <button id="curtoPrazoNaoAcessouBtn" class="btn btn-outline-secondary btn-sm">👥 Ver quem não acessou</button>
             </div></div>
         </div>
         <div class="col-lg-4">
@@ -257,6 +258,7 @@ function renderHtml(events) {
                 <p class="text-muted small mb-2">Mesma lógica do Curto Prazo, com o roster de Longo Prazo.</p>
                 <div id="longoPrazoEmpty" class="text-muted small py-4 text-center">Aguardando lista de pessoas do Longo Prazo.</div>
                 <div id="longoPrazoChartWrap" style="height:220px" class="mb-2 hidden-table"><canvas id="chartLongoPrazoSquad"></canvas></div>
+                <button id="longoPrazoNaoAcessouBtn" class="btn btn-outline-secondary btn-sm hidden-table">👥 Ver quem não acessou</button>
             </div></div>
         </div>
         <div class="col-lg-4">
@@ -349,7 +351,6 @@ const CURTO_PRAZO_ROSTER = [
     { nome: 'Gabriel Handriel Kelm', squad: 'REGISDUP', email: 'gabriel.kelm@foursys.com.br' },
     { nome: 'Guilherme Pereira', squad: 'AGENDAREC', email: 'guilherme.pereira@foursys.com.br' },
     { nome: 'Joao Pedro da Silva Pereira dos Santos', squad: 'JORNAUTD0', email: 'joao.pereira@foursys.com.br' },
-    { nome: 'Jose Renato Sena Marques', squad: 'ESTAUTCOD0', email: 'jose.sena@foursys.com.br' },
     { nome: 'Leonardo Arantes Di Nizo', squad: 'AGENDAREC', email: 'leonardo.nizo@foursys.com.br' },
     { nome: 'Leonardo Gabriel De Oliveira', squad: 'HABMGTSERV', email: 'leonardo.gabriel@foursys.com.br' },
     { nome: 'Leticia Aparecida De Souza Scalco', squad: 'ESTAUTCOD0', email: 'leticia.souza@foursys.com.br' },
@@ -391,7 +392,7 @@ function aggregateBySquad(roster, byPersonEntries) {
         const s = bySquad.get(person.squad);
         s.totalPeople += 1;
         if (days.length > 0) { s.usedPeople += 1; }
-        s.people.push({ nome: person.nome, email: person.email, days });
+        s.people.push({ nome: person.nome, email: person.email, days, version: p ? p.lastVersion : '' });
     }
     for (const s of bySquad.values()) { s.people.sort((a, b) => b.days.length - a.days.length); }
     return [...bySquad.entries()].sort((a, b) => b[1].usedPeople - a[1].usedPeople);
@@ -492,9 +493,12 @@ function aggregate(events) {
         const day = (ev.ts || '').slice(0, 10);
         const isVolumeEvent = !CLICK_ONLY_EVENTS.has(ev.event);
 
-        if (!byPerson.has(email)) byPerson.set(email, { events: 0, tokens: 0, credits: 0, lastSeen: '', optedOut: false, days: new Set() });
+        if (!byPerson.has(email)) byPerson.set(email, { events: 0, tokens: 0, credits: 0, lastSeen: '', lastVersion: '', optedOut: false, days: new Set() });
         const p = byPerson.get(email);
-        if (ev.ts && ev.ts > p.lastSeen) p.lastSeen = ev.ts;
+        // lastVersion segue o mesmo evento mais recente que define lastSeen — assim
+        // "versão que a pessoa está usando" é sempre a da última vez que ela apareceu,
+        // não a primeira nem uma mistura de versões antigas e novas.
+        if (ev.ts && ev.ts > p.lastSeen) { p.lastSeen = ev.ts; p.lastVersion = ev.version || p.lastVersion; }
         if (ev.event === 'telemetry_opted_out') p.optedOut = true;
 
         const typeLabel = EVENT_TYPE_LABELS[ev.event] || ev.event || 'desconhecido';
@@ -740,21 +744,46 @@ function renderDashboard(events) {
         });
     }
 
+    // Lista, achatada, de quem tem 0 dias de acesso em todos os squads de um roster —
+    // usado pelo botão "Ver quem não acessou" (modal sem drill-down, já é a lista final).
+    function openNaoAcessouModal(bySquad, rosterLabel) {
+        const semAcesso = bySquad.flatMap(([squad, v]) =>
+            v.people.filter(p => p.days.length === 0).map(p => ({ ...p, squad }))
+        );
+        document.getElementById('squadDetailTitle').textContent = \`\${rosterLabel} — \${semAcesso.length} pessoa(s) sem acesso\`;
+        document.getElementById('squadDetailBody').innerHTML = semAcesso.length
+            ? semAcesso.map(p => \`
+                <div class="squad-person-row" style="cursor:default">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>\${escapeHtml(p.nome)}</span>
+                        <span class="text-muted small">\${escapeHtml(p.squad)}</span>
+                    </div>
+                    <div class="text-muted small">\${escapeHtml(p.email)}</div>
+                </div>\`).join('')
+            : '<div class="text-muted small">Todo mundo do roster já acessou no período filtrado.</div>';
+        document.getElementById('squadDetailModal').style.display = 'flex';
+    }
+
     const curtoPrazoBySquad = aggregateBySquad(CURTO_PRAZO_ROSTER, stats.byPerson);
     renderSquadPieChart('curtoPrazoSquad', 'chartCurtoPrazoSquad', curtoPrazoBySquad);
+    document.getElementById('curtoPrazoNaoAcessouBtn').onclick = () => openNaoAcessouModal(curtoPrazoBySquad, 'Curto Prazo');
 
     // Longo Prazo: roster ainda nao recebido — some o placeholder e mostra o grafico so
     // quando LONGO_PRAZO_ROSTER (perto do CURTO_PRAZO_ROSTER, no topo do arquivo) tiver gente.
     const longoPrazoEmpty = document.getElementById('longoPrazoEmpty');
     const longoPrazoChartWrap = document.getElementById('longoPrazoChartWrap');
+    const longoPrazoNaoAcessouBtn = document.getElementById('longoPrazoNaoAcessouBtn');
     if (LONGO_PRAZO_ROSTER.length > 0) {
         longoPrazoEmpty.classList.add('hidden-table');
         longoPrazoChartWrap.classList.remove('hidden-table');
+        longoPrazoNaoAcessouBtn.classList.remove('hidden-table');
         const longoPrazoBySquad = aggregateBySquad(LONGO_PRAZO_ROSTER, stats.byPerson);
         renderSquadPieChart('longoPrazoSquad', 'chartLongoPrazoSquad', longoPrazoBySquad);
+        longoPrazoNaoAcessouBtn.onclick = () => openNaoAcessouModal(longoPrazoBySquad, 'Longo Prazo');
     } else {
         longoPrazoEmpty.classList.remove('hidden-table');
         longoPrazoChartWrap.classList.add('hidden-table');
+        longoPrazoNaoAcessouBtn.classList.add('hidden-table');
     }
 
     // Outros: quem usou o Hub no período e não está em nenhum dos dois rosters — sem
@@ -776,8 +805,11 @@ function renderDashboard(events) {
 
     function openPersonDetail(email, p) {
         const datesLabel = [...p.days].sort().map(d => d.split('-').reverse().join('/')).join(', ');
+        const versionLabel = p.lastVersion ? \`Versão do Hub: \${escapeHtml(p.lastVersion)}\` : 'Versão do Hub: desconhecida';
         document.getElementById('squadDetailTitle').textContent = \`\${email} — \${p.days.size} dia(s) de acesso\`;
-        document.getElementById('squadDetailBody').innerHTML = \`<div class="text-muted small">\${datesLabel || 'Sem acesso no período'}</div>\`;
+        document.getElementById('squadDetailBody').innerHTML = \`
+            <div class="text-muted small mb-2">\${versionLabel}</div>
+            <div class="text-muted small">\${datesLabel || 'Sem acesso no período'}</div>\`;
         document.getElementById('squadDetailModal').style.display = 'flex';
     }
 
@@ -786,13 +818,14 @@ function renderDashboard(events) {
         document.getElementById('squadDetailBody').innerHTML = v.people.map(p => {
             const hasAccess = p.days.length > 0;
             const datesLabel = p.days.map(d => d.split('-').reverse().join('/')).join(', ');
+            const versionLabel = p.version ? \`Versão do Hub: \${escapeHtml(p.version)}\` : 'Versão do Hub: desconhecida';
             return \`
                 <div class="squad-person-row" \${hasAccess ? 'data-person-toggle="true"' : ''}>
                     <div class="d-flex justify-content-between align-items-center">
                         <span>\${hasAccess ? '<span class="toggle-icon-person">▸</span> ' : ''}\${escapeHtml(p.nome)}</span>
                         <span class="text-muted small">\${hasAccess ? p.days.length + ' dia(s)' : 'sem acesso no período'}</span>
                     </div>
-                    \${hasAccess ? \`<div class="person-days-detail text-muted small mt-1" style="display:none">Dias de acesso: \${datesLabel}</div>\` : ''}
+                    \${hasAccess ? \`<div class="person-days-detail text-muted small mt-1" style="display:none">\${versionLabel}<br>Dias de acesso: \${datesLabel}</div>\` : ''}
                 </div>\`;
         }).join('');
         document.querySelectorAll('#squadDetailBody [data-person-toggle]').forEach(row => {

@@ -1,166 +1,248 @@
 ---
-name: springboot-service-bus
-description: Implementa mensageria assíncrona com Azure Service Bus em Spring Boot com Arquitetura Hexagonal. Use como alternativa ao Kafka para mensageria point-to-point (Queue) ou publish-subscribe (Topic), com suporte a DLQ e retry automático.
+name: 'springboot-service-bus'
+description: "Implementa mensageria corporativa com Azure Service Bus no padrão Hexagonal. Cobre ServiceBusSenderClient para envio, @ServiceBusListener para recebimento, filas, tópicos/assinaturas, Dead Letter Queue, sessões e retry automático. Use quando a história precisar de mensageria confiável com garantias de entrega, ordem ou sessão — distinto do Kafka para streaming de alto volume."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
-# Spring Boot — Azure Service Bus
+# Skill: springboot-service-bus
 
-Implemente mensageria assíncrona com Azure Service Bus seguindo Arquitetura Hexagonal. Ideal para integração com sistemas Azure nativos ou quando Kafka não está disponível.
+Guia completo para implementar **mensageria com Azure Service Bus** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
 
-## Quando Usar Service Bus vs Kafka
+> **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer mensageria corporativa com garantias de entrega via Azure Service Bus.
 
-| Critério | Service Bus | Kafka |
-|----------|-------------|-------|
-| Volume | Moderado (< 1M msg/dia) | Alto (> 1M msg/dia) |
-| Retenção | Até 14 dias | Longo prazo configurável |
-| Entidade | Queue (point-to-point) / Topic (pub-sub) | Topic (sempre pub-sub) |
-| Gerenciamento | Fully managed Azure | Confluent Cloud / self-managed |
+---
 
-## Dependência (pom.xml)
+## Quando usar
+
+- Integração entre serviços com garantias de entrega (at-least-once).
+- Processamento ordenado por sessão (ex: eventos de um mesmo cliente em sequência).
+- Filas com prazo de vida (TTL), agendamento de mensagens, Dead Letter Queue nativa.
+- Quando o barramento corporativo Azure é o padrão da empresa (vs Kafka para streaming de volume).
+
+## Quando não usar
+
+- Streaming de alto volume e baixa latência → use `springboot-kafka`.
+- Comunicação síncrona → use `springboot-feign-client` ou `springboot-rest-client`.
+
+---
+
+## Estrutura de Arquivos (Hexagonal)
+
+```
+adapter/output/servicebus/
+├── <Dominio>ServiceBusSenderAdapter.java   ← Implementa OutputPort de envio
+└── dto/
+    └── <Dominio>Message.java               ← Record da mensagem
+
+adapter/input/servicebus/
+└── <Dominio>ServiceBusConsumer.java        ← @ServiceBusListener — aciona UseCase
+```
+
+---
+
+## Implementação
+
+### 1. Dependência (pom.xml)
 
 ```xml
+<dependency>
+    <groupId>com.azure.spring</groupId>
+    <artifactId>spring-cloud-azure-starter-servicebus-jms</artifactId>
+</dependency>
+<!-- Ou para uso direto do SDK sem JMS: -->
 <dependency>
     <groupId>com.azure.spring</groupId>
     <artifactId>spring-cloud-azure-starter-servicebus</artifactId>
 </dependency>
 ```
 
-## Configuração
+---
+
+### 2. Configuração (application.yml)
 
 ```yaml
 spring:
   cloud:
     azure:
       servicebus:
-        connection-string: ${SERVICEBUS_CONNECTION_STRING}
-        entity-name: ${SERVICEBUS_QUEUE_NAME}
+        connection-string: ${AZURE_SERVICEBUS_CONNECTION_STRING}
         entity-type: queue  # ou topic
 
-# Retry automático
-spring.cloud.azure.servicebus.producer.retry.max-retries: 3
-spring.cloud.azure.servicebus.consumer.max-concurrent-calls: 10
+servicebus:
+  queues:
+    pagamento-entrada: ${SERVICEBUS_QUEUE_PAGAMENTO_ENTRADA:pagamento-entrada}
+    pagamento-saida: ${SERVICEBUS_QUEUE_PAGAMENTO_SAIDA:pagamento-saida}
+    dlq-suffix: "$DeadLetterQueue"
+  max-concurrent-calls: 1
+  max-auto-lock-renew-duration: 5m
 ```
 
-## OutputPort (Hexagonal)
+---
+
+### 3. Mensagem (Record Java 21)
 
 ```java
-// port/output/MensageriaOutputPort.java
-public interface MensageriaOutputPort {
-    void publicar(Object evento);
-    void publicarComDelay(Object evento, Duration delay);
+// FILEPATH: adapter/output/servicebus/dto/PagamentoMessage.java
+public record PagamentoMessage(
+    String messageId,          // UUID para correlação e idempotência
+    String codigoOperacao,
+    BigDecimal valor,          // SEMPRE BigDecimal
+    String contaOrigem,
+    String tipo,               // CREDITO | DEBITO
+    LocalDateTime enviadoEm
+) {
+    public static PagamentoMessage of(Pagamento pagamento) {
+        return new PagamentoMessage(
+            UUID.randomUUID().toString(),
+            pagamento.codigoOperacao(),
+            pagamento.valor(),
+            pagamento.contaOrigem(),
+            pagamento.tipo().name(),
+            LocalDateTime.now()
+        );
+    }
 }
 ```
 
-## Producer Adapter
+---
+
+### 4. Sender (OutputPort)
 
 ```java
-// adapter/output/servicebus/ServiceBusProducerAdapter.java
+// FILEPATH: adapter/output/servicebus/PagamentoServiceBusSenderAdapter.java
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ServiceBusProducerAdapter implements MensageriaOutputPort {
+public class PagamentoServiceBusSenderAdapter implements PagamentoEnvioOutputPort {
 
     private final ServiceBusSenderClient senderClient;
-    private final ObjectMapper objectMapper;
+
+    @Value("${servicebus.queues.pagamento-saida}")
+    private String filaDestino;
 
     @Override
-    public void publicar(Object evento) {
-        try {
-            String payload = objectMapper.writeValueAsString(evento);
-            ServiceBusMessage message = new ServiceBusMessage(payload)
-                    .setContentType("application/json")
-                    .setMessageId(UUID.randomUUID().toString());
+    public void enviarPagamento(Pagamento pagamento) {
+        var mensagem = PagamentoMessage.of(pagamento);
+        var serviceBusMessage = new ServiceBusMessage(serializarJson(mensagem))
+            .setMessageId(mensagem.messageId())
+            .setCorrelationId(mensagem.codigoOperacao())
+            .setContentType("application/json");
 
-            senderClient.sendMessage(message);
-            log.info("Mensagem publicada: tipo={}, id={}", evento.getClass().getSimpleName(), message.getMessageId());
-        } catch (JsonProcessingException e) {
-            throw new MensageriaException("Falha ao serializar evento: " + e.getMessage(), e);
-        }
+        senderClient.sendMessage(serviceBusMessage);
+        log.info("Mensagem enviada ao Service Bus. operacao={} messageId={}",
+            mensagem.codigoOperacao(), mensagem.messageId());
     }
 
-    @Override
-    public void publicarComDelay(Object evento, Duration delay) {
+    private String serializarJson(Object objeto) {
         try {
-            String payload = objectMapper.writeValueAsString(evento);
-            ServiceBusMessage message = new ServiceBusMessage(payload)
-                    .setScheduledEnqueueTime(OffsetDateTime.now().plus(delay));
-            senderClient.scheduleMessage(message, message.getScheduledEnqueueTime());
-        } catch (JsonProcessingException e) {
-            throw new MensageriaException("Falha ao serializar evento com delay", e);
+            return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .writeValueAsString(objeto);
+        } catch (JsonProcessingException ex) {
+            throw new SerializacaoException("Falha ao serializar mensagem", ex);
         }
     }
 }
 ```
 
-## Consumer (InputPort via @ServiceBusListener)
+---
+
+### 5. Consumer com @ServiceBusListener
 
 ```java
-// adapter/input/consumer/PedidoCriadoConsumer.java
+// FILEPATH: adapter/input/servicebus/PagamentoServiceBusConsumer.java
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class PedidoCriadoConsumer {
+public class PagamentoServiceBusConsumer {
 
-    private final ProcessarPedidoInputPort processarPedidoUseCase;
-    private final ObjectMapper objectMapper;
+    private final ProcessarPagamentoInputPort processarPagamentoUseCase;
 
-    @ServiceBusListener(destination = "${servicebus.queue.pedidos}")
-    public void consumir(ServiceBusReceivedMessageContext context) {
-        ServiceBusReceivedMessage message = context.getMessage();
+    @ServiceBusListener(
+        destination = "${servicebus.queues.pagamento-entrada}",
+        concurrency = "${servicebus.max-concurrent-calls}"
+    )
+    public void processar(ServiceBusReceivedMessageContext context) {
+        var mensagem = context.getMessage();
         try {
-            PedidoCriadoEvent evento = objectMapper.readValue(
-                    message.getBody().toString(), PedidoCriadoEvent.class);
+            var payload = deserializarJson(mensagem.getBody().toString(), PagamentoMessage.class);
+            log.info("Mensagem recebida. operacao={} messageId={}", payload.codigoOperacao(), payload.messageId());
 
-            log.info("Mensagem recebida: id={}, tipo=PedidoCriadoEvent", message.getMessageId());
-            processarPedidoUseCase.executar(evento);
+            processarPagamentoUseCase.processar(payload.codigoOperacao(), payload.valor());
             context.complete();
 
-        } catch (Exception e) {
-            log.error("Falha ao processar mensagem id={}: {}", message.getMessageId(), e.getMessage());
-            context.abandon();  // Devolve para fila — retry automático até maxDeliveryCount
+        } catch (PagamentoInvalidoException ex) {
+            log.error("Mensagem inválida — enviando para DLQ. messageId={}", mensagem.getMessageId());
+            context.deadLetter(new DeadLetterOptions()
+                .setDeadLetterReason("PAYLOAD_INVALIDO")
+                .setDeadLetterErrorDescription(ex.getMessage()));
+
+        } catch (Exception ex) {
+            log.error("Erro temporário — abandonando para retry. messageId={}", mensagem.getMessageId());
+            context.abandon();
         }
     }
 }
 ```
 
-## Dead Letter Queue (DLQ)
+---
+
+### 6. Configuração do Client (Bean)
 
 ```java
-// Mensagens que ultrapassam maxDeliveryCount vão para DLQ automaticamente.
-// Consumer dedicado para DLQ:
-@ServiceBusListener(destination = "${servicebus.queue.pedidos}/$deadletterqueue")
-public void consumirDLQ(ServiceBusReceivedMessageContext context) {
-    ServiceBusReceivedMessage message = context.getMessage();
-    log.error("DLQ: mensagem não processada após {} tentativas. id={}",
-            message.getDeliveryCount(), message.getMessageId());
-    // Registrar no banco de dados para análise manual
-    dlqRegistroOutputPort.registrar(message.getMessageId(), message.getBody().toString(),
-            message.getDeadLetterReason());
-    context.complete();
-}
-```
-
-## Bean Configuration
-
-```java
+// FILEPATH: config/ServiceBusConfig.java
 @Configuration
 public class ServiceBusConfig {
 
     @Value("${spring.cloud.azure.servicebus.connection-string}")
     private String connectionString;
 
-    @Value("${spring.cloud.azure.servicebus.entity-name}")
-    private String entityName;
+    @Value("${servicebus.queues.pagamento-saida}")
+    private String filaPagamentoSaida;
 
     @Bean
-    public ServiceBusSenderClient serviceBusSenderClient() {
+    public ServiceBusSenderClient pagamentoSenderClient() {
         return new ServiceBusClientBuilder()
-                .connectionString(connectionString)
-                .sender()
-                .queueName(entityName)
-                .buildClient();
+            .connectionString(connectionString)
+            .sender()
+            .queueName(filaPagamentoSaida)
+            .buildClient();
     }
 }
 ```
+
+---
+
+## Sessões (Processamento Ordenado)
+
+Para garantir ordem por cliente/conta:
+```java
+serviceBusMessage.setSessionId(pagamento.contaOrigem()); // agrupa por conta
+```
+
+O consumer deve habilitar `sessionEnabled = true` para processar sessões em ordem.
+
+---
+
+## Segurança
+
+- **NUNCA** exponha a `connection-string` em logs.
+- Use **Managed Identity** em produção.
+- Valide o `messageId` para idempotência antes de acionar o UseCase.
+
+---
+
+## Checklist de Implementação
+
+- [ ] Dependência `spring-cloud-azure-starter-servicebus` adicionada
+- [ ] `AZURE_SERVICEBUS_CONNECTION_STRING` como variável de ambiente
+- [ ] Nomes de filas/tópicos configurados como variáveis de ambiente
+- [ ] Mensagem como Record Java 21 com `messageId` UUID
+- [ ] Adapter sender implementando `OutputPort`
+- [ ] Consumer com `@ServiceBusListener` e tratamento de DLQ
+- [ ] `@Bean` do `ServiceBusSenderClient` em `config/`
+- [ ] `@Bean` do Adapter registrado em `config/`
+- [ ] Idempotência via `messageId` antes de acionar UseCase
+- [ ] Testes unitários com mock do `ServiceBusSenderClient` (cobertura ≥ 95%)
+- [ ] Nenhum dado PII em logs de mensagem

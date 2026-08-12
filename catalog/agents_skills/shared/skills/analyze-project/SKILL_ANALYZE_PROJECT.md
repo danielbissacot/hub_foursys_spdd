@@ -79,6 +79,28 @@ Verificar se existe: src/app/domains/
       └── features/       → DUPE pattern detectado
 ```
 
+### Passo 4 — Levantar Estrutura Real Já Existente (OBRIGATÓRIO)
+
+Depois de identificar a stack, procure de verdade no projeto (não infira) por pacotes, módulos, classes, componentes ou domínios já existentes com nome relacionado ao que será trabalhado na sessão. Isso é diferente do Passo 1-3 (que só identificam a stack/framework) — aqui o objetivo é listar caminhos reais que já existem no repositório, pra evitar que fases seguintes (Plan/Tasks) inventem nome de pacote/módulo novo quando já existe um real.
+
+```
+Java: extraia o pacote base REAL de uma destas fontes, nesta ordem — nunca invente, nunca herde de exemplo de skill:
+  1. Tag <groupId> do pom.xml (ou "group =" do build.gradle)
+  2. Se não conclusivo, a declaração "package ..." do topo de uma classe já existente em src/main/java/
+Depois liste as subpastas de domínio já presentes dentro desse pacote base.
+
+Angular / Node.js: extraia o nome/scope REAL do pacote npm (campo "name" do package.json, ex: "@empresa/app") — nunca invente, nunca herde de exemplo de skill.
+  Depois liste os domínios/componentes/módulos/controllers/services já existentes em src/app/ (ou src/app/domains/ se Vertical Slice) ou src/.
+
+Android: extraia o applicationId/namespace REAL do app/build.gradle.kts (ou pacote do AndroidManifest.xml).
+iOS: extraia o Bundle Identifier REAL do Info.plist/configurações do target.
+COBOL: identifique o prefixo/código REAL usado nos PROGRAM-ID já existentes.
+```
+
+**Checagem obrigatória (qualquer stack)**: compare o identificador encontrado (pacote Java, scope npm, applicationId, Bundle ID, prefixo COBOL...) com o nome da empresa/cliente dona do projeto. Se o identificador extraído da fonte real não bater com "foursys" (ou qualquer outro nome usado como exemplo em alguma skill), **use o identificador real encontrado — nunca o nome de exemplo**. Se não for possível determinar (projeto sem nenhum arquivo de configuração/código ainda), pergunte ao usuário qual é o identificador base antes de prosseguir — nunca assuma um nome de empresa.
+
+Se o projeto estiver vazio (feature realmente nova, sem nada relacionado ainda), diga isso explicitamente — não é erro, só não invente um caminho como se já existisse.
+
 ## Saída Esperada (Relatório de Stack)
 
 ```markdown
@@ -94,6 +116,14 @@ Verificar se existe: src/app/domains/
 | Cache | Redis |
 | Storage | Azure Blob Storage |
 | Testes | JUnit 5 + Mockito |
+
+## Estrutura Real Já Existente
+
+> Esta lista — não a tabela acima — é a referência de nomenclatura pra fases seguintes (Plan/Tasks). Nunca use um pacote/componente de exemplo de alguma skill como se fosse o pacote real do projeto.
+
+- Identificador base real: `<groupId/scope npm/applicationId/Bundle ID/prefixo COBOL — o que for aplicável à stack>` (ou "não identificado — perguntei ao usuário" / "projeto sem domínios relacionados ainda")
+- Fonte usada pra confirmar: `pom.xml <groupId>` | `build.gradle` | `package.json <name>` | `AndroidManifest.xml` | `Info.plist` | `classe/arquivo existente: <caminho>` | `perguntado ao usuário`
+- Domínios/módulos existentes relacionados: `<caminho real 1>`, `<caminho real 2>`, ...
 
 ## Skills Ativas para esta Sessão
 

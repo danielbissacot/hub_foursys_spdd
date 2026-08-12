@@ -1,35 +1,46 @@
 ---
-name: springboot-mongodb
-description: Use para implementar persistência com MongoDB usando Spring Data MongoDB em projetos Spring Boot com arquitetura hexagonal. Use quando precisar realizar operações CRUD, queries complexas, transações, ou implementar repositories MongoDB seguindo padrões de desempenho e indexação.
+name: 'springboot-mongodb'
+description: "Implementa persistência NoSQL com MongoDB no padrão Hexagonal. Cobre @Document entities, MongoRepository, índices, aggregations, TTL automático e mapeamento entre entidades de domínio e documentos MongoDB. Use quando a história requer armazenamento de documentos flexíveis, dados não-estruturados ou coleções com esquema variável."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
-# Spring Boot MongoDB
+# Skill: springboot-mongodb
 
-Este skill fornece instruções detalhadas para implementar persistência com MongoDB usando Spring Data MongoDB em projetos Spring Boot seguindo arquitetura hexagonal e boas práticas de performance.
+Guia completo para implementar **persistência MongoDB** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
 
-## Quando usar este skill
+> **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer armazenamento em MongoDB.
 
-Use este skill quando:
-- Precisar persistir dados no MongoDB
-- Implementar repositories e queries customizadas
-- Configurar e usar transações MongoDB
-- Seguir arquitetura hexagonal com camada de persistência isolada
-- Implementar paginação eficiente
-- Criar índices para otimização de queries
-- Trabalhar com queries complexas usando JSON ou SpEL
+---
 
-## Pré-Requisitos
+## Quando usar
 
-- **JDK 17** ou superior
-- **Maven**
-- **Spring Boot 3.x.x**
-- **MongoDB 4.4** ou superior (para suporte a transações)
+- A história persiste dados com estrutura variável ou hierárquica (documentos aninhados).
+- Alta taxa de leitura/escrita com flexibilidade de esquema.
+- Dados de auditoria, logs de eventos, catálogos, configurações dinâmicas.
 
-## Dependências necessárias
+## Quando não usar
 
-Adicione a seguinte dependência no `pom.xml`:
+- Transações complexas com múltiplas coleções e integridade ACID forte → considere PostgreSQL.
+- Dados altamente relacionais com JOINs frequentes.
+
+---
+
+## Estrutura de Arquivos (Hexagonal)
+
+```
+adapter/output/repository/
+├── <Dominio>MongoRepositoryAdapter.java   ← Implementa OutputPort
+├── <Dominio>MongoRepository.java          ← Interface MongoRepository (Spring Data)
+└── entity/
+    └── <Dominio>Document.java             ← @Document (entidade MongoDB)
+```
+
+---
+
+## Implementação
+
+### 1. Dependência (pom.xml)
 
 ```xml
 <dependency>
@@ -38,235 +49,182 @@ Adicione a seguinte dependência no `pom.xml`:
 </dependency>
 ```
 
-## Configuração de Conexão
+---
 
-Configure a conexão MongoDB no `application.yml`:
+### 2. Configuração (application.yml)
 
 ```yaml
 spring:
   data:
     mongodb:
-      uri: ${MONGO_URI:mongodb://localhost:27017}
-      database: ${MONGO_DATABASE:seu_database}
-      # Para conexão com autenticação
-      # uri: mongodb://username:password@host:27017/database?authSource=admin
+      uri: ${MONGODB_URI:mongodb://localhost:27017/foursys}
+      database: ${MONGODB_DATABASE:foursys}
+      auto-index-creation: false  # índices gerenciados via @Document
 ```
 
-## Estrutura na Arquitetura Hexagonal
+---
 
-Para implementação de persistência MongoDB em arquitetura hexagonal, siga os princípios de isolamento entre camadas:
-
-### Persistência (Output)
-- **OutputPort** (`port/output/`): Define contratos em linguagem de domínio para persistência
-- **Repository Adapter** (`adapter/output/mongodb/repository/`): Implementa OutputPort usando MongoDB
-- **Entity/Document** (`adapter/output/mongodb/entity/`): Documentos MongoDB com anotações
-- **Mapper** (`adapter/output/mongodb/mapper/`): Traduz entre entidades de domínio e documentos MongoDB
-
-**📖 Consulte**: [references/MONGODB_REPOSITORY_INTEGRATION.md](references/MONGODB_REPOSITORY_INTEGRATION.md) para estrutura detalhada com exemplos
-
-## MongoDB Repository vs MongoTemplate
-
-### MongoDB Repository (Preferível)
-
-✅ **Use MongoDB Repository quando:**
-- Operações CRUD simples
-- Queries derivadas de nomes de métodos
-- Paginação e ordenação padrão
-- Queries customizadas com @Query
+### 3. Entidade (Document)
 
 ```java
-public interface AccountRepository extends MongoRepository<AccountDocument, String> {
-    Optional<AccountDocument> findByAccountNumber(String accountNumber);
-    
-    @Query("{ 'status': ?0, 'balance': { $gte: ?1 } }")
-    List<AccountDocument> findActiveAccountsWithMinBalance(String status, BigDecimal minBalance);
-}
+// FILEPATH: adapter/output/repository/entity/PagamentoDocument.java
+@Document(collection = "pagamentos")
+@TypeAlias("pagamento")
+@CompoundIndex(name = "idx_conta_data", def = "{'contaOrigem': 1, 'criadoEm': -1}")
+public record PagamentoDocument(
+
+    @Id
+    String id,
+
+    @Indexed(unique = true)
+    String codigoOperacao,
+
+    BigDecimal valor,
+
+    @Indexed
+    String contaOrigem,
+
+    @ToString.Exclude  // PII — nunca logue
+    String contaDestino,
+
+    String status,
+
+    @CreatedDate
+    LocalDateTime criadoEm,
+
+    @LastModifiedDate
+    LocalDateTime atualizadoEm
+) {}
 ```
 
-**📖 Consulte**: [references/MONGODB_REPOSITORY_INTEGRATION.md](references/MONGODB_REPOSITORY_INTEGRATION.md) para detalhes
-
-### MongoTemplate (Para casos complexos)
-
-⚠️ **Use MongoTemplate apenas quando:**
-- Agregações complexas
-- Operações bulk customizadas
-- Queries dinâmicas construídas em runtime
-- Operações que o Repository não suporta
-
-```java
-@Component
-public class CustomAccountRepository {
-    private final MongoTemplate mongoTemplate;
-    
-    public List<AccountDocument> complexAggregation() {
-        Aggregation aggregation = Aggregation.newAggregation(
-            Aggregation.match(Criteria.where("status").is("ACTIVE")),
-            Aggregation.group("type").sum("balance").as("total"),
-            Aggregation.sort(Sort.by(Sort.Direction.DESC, "total"))
-        );
-        return mongoTemplate.aggregate(aggregation, "accounts", AccountDocument.class)
-            .getMappedResults();
-    }
-}
-```
-
-**📖 Consulte**: [references/MONGODB_TEMPLATE_USAGE.md](references/MONGODB_TEMPLATE_USAGE.md) para detalhes
-
-## Queries com @Query - JSON e SpEL
-
-O Spring Data MongoDB suporta queries usando JSON MongoDB e expressões SpEL:
-
-### JSON Query Simples
-```java
-@Query("{ 'status': ?0 }")
-List<AccountDocument> findByStatus(String status);
-```
-
-### JSON Query com SpEL
-```java
-@Query("{ 'createdAt': { $gte: ?#{[0]}, $lte: ?#{[1]} } }")
-List<AccountDocument> findByDateRange(LocalDateTime start, LocalDateTime end);
-
-@Query("{ 'balance': { $gte: ?#{#minBalance} } }")
-List<AccountDocument> findByMinimumBalance(@Param("minBalance") BigDecimal minBalance);
-```
-
-### Query com projeção
-```java
-@Query(value = "{ 'status': ?0 }", fields = "{ 'accountNumber': 1, 'name': 1 }")
-List<AccountDocument> findAccountSummaryByStatus(String status);
-```
-
-**📖 Consulte**: [references/MONGODB_QUERY_METHODS.md](references/MONGODB_QUERY_METHODS.md) para exemplos avançados
-
-## Transações MongoDB
-
-O MongoDB suporta transações multi-documento a partir da versão 4.0 (replica sets) e 4.2 (sharded clusters).
-
-### Configuração
-
+Habilitar auditoria:
 ```java
 @Configuration
-@EnableMongoRepositories(basePackages = "com.empresa.adapter.output.mongodb")
-public class MongoConfig {
-    
-    @Bean
-    MongoTransactionManager transactionManager(MongoDatabaseFactory dbFactory) {
-        return new MongoTransactionManager(dbFactory);
+@EnableMongoAuditing
+public class MongoConfig {}
+```
+
+---
+
+### 4. Repository Interface (Spring Data)
+
+```java
+// FILEPATH: adapter/output/repository/PagamentoMongoRepository.java
+public interface PagamentoMongoRepository extends MongoRepository<PagamentoDocument, String> {
+
+    Optional<PagamentoDocument> findByCodigoOperacao(String codigoOperacao);
+
+    List<PagamentoDocument> findByContaOrigemAndStatusOrderByCriadoEmDesc(
+        String contaOrigem, String status
+    );
+
+    @Query("{ 'contaOrigem': ?0, 'valor': { $gte: ?1 } }")
+    List<PagamentoDocument> buscarPorContaEValorMinimo(String contaOrigem, BigDecimal valorMinimo);
+}
+```
+
+---
+
+### 5. Adapter (OutputPort)
+
+```java
+// FILEPATH: adapter/output/repository/PagamentoMongoRepositoryAdapter.java
+@Component
+@RequiredArgsConstructor
+public class PagamentoMongoRepositoryAdapter implements PagamentoRepositoryOutputPort {
+
+    private final PagamentoMongoRepository repository;
+
+    @Override
+    public Pagamento salvar(Pagamento pagamento) {
+        var document = toDocument(pagamento);
+        var salvo = repository.save(document);
+        return toDomain(salvo);
+    }
+
+    @Override
+    public Optional<Pagamento> buscarPorCodigoOperacao(String codigoOperacao) {
+        return repository.findByCodigoOperacao(codigoOperacao).map(this::toDomain);
+    }
+
+    private PagamentoDocument toDocument(Pagamento pagamento) {
+        return new PagamentoDocument(
+            pagamento.id(),
+            pagamento.codigoOperacao(),
+            pagamento.valor(),
+            pagamento.contaOrigem(),
+            pagamento.contaDestino(),
+            pagamento.status().name(),
+            pagamento.criadoEm(),
+            null
+        );
+    }
+
+    private Pagamento toDomain(PagamentoDocument doc) {
+        return new Pagamento(
+            doc.id(),
+            doc.codigoOperacao(),
+            doc.valor(),
+            doc.contaOrigem(),
+            doc.contaDestino(),
+            StatusPagamento.valueOf(doc.status()),
+            doc.criadoEm()
+        );
     }
 }
 ```
 
-### Uso com @Transactional
+---
+
+### 6. TTL Automático (documentos com expiração)
 
 ```java
-@Service
-public class TransferUseCase {
-    
-    @Transactional  // Requer MongoTransactionManager
-    public void transferFunds(String fromAccount, String toAccount, BigDecimal amount) {
-        // Todas operações dentro desta transação
-        accountRepository.debit(fromAccount, amount);
-        accountRepository.credit(toAccount, amount);
-        transactionHistoryRepository.save(new Transaction(...));
-    }
+// Para documentos que expiram automaticamente (ex: tokens, sessões, filas temporárias):
+@Document(collection = "tokens_temporarios")
+public record TokenTemporarioDocument(
+    @Id String id,
+    String token,
+    @Indexed(expireAfterSeconds = 0)   // TTL controlado pelo campo abaixo
+    LocalDateTime expiraEm
+) {}
+```
+
+---
+
+### 7. Aggregation Pipeline
+
+```java
+// FILEPATH: adapter/output/repository/PagamentoMongoRepositoryAdapter.java (método adicional)
+public Map<String, BigDecimal> totalPorStatus() {
+    var aggregation = Aggregation.newAggregation(
+        Aggregation.group("status").sum("valor").as("total"),
+        Aggregation.project("total").and("_id").as("status")
+    );
+    return mongoTemplate.aggregate(aggregation, "pagamentos", StatusTotalResult.class)
+        .getMappedResults()
+        .stream()
+        .collect(Collectors.toMap(StatusTotalResult::status, StatusTotalResult::total));
 }
 ```
 
-**⚠️ Importante:**
-- Transações requerem replica set ou sharded cluster
-- Transações têm impacto em performance
-- Use apenas quando necessário (consistência crítica)
+---
 
-**📖 Consulte**: [references/MONGODB_TRANSACTIONS.md](references/MONGODB_TRANSACTIONS.md) para detalhes e boas práticas
+## Segurança PII
 
-## Paginação - Boas Práticas
+- Use `@ToString.Exclude` nos campos sensíveis (conta, CPF, token).
+- Nunca retorne documentos completos diretamente no controller — use DTOs de resposta.
+- Coleções com dados PII devem ter TTL configurado quando aplicável.
 
-### Paginação Básica (Repository)
+---
 
-```java
-public interface AccountRepository extends MongoRepository<AccountDocument, String> {
-    Page<AccountDocument> findByStatus(String status, Pageable pageable);
-}
+## Checklist de Implementação
 
-// Uso
-Pageable pageable = PageRequest.of(0, 20, Sort.by("createdAt").descending());
-Page<AccountDocument> page = accountRepository.findByStatus("ACTIVE", pageable);
-```
-
-### Paginação Eficiente (Cursor-based)
-
-⚠️ **Evite offset em grandes datasets:**
-```java
-// ❌ Ineficiente para páginas altas
-PageRequest.of(1000, 20); // Skip de 20.000 documentos!
-```
-
-✅ **Use cursor-based pagination:**
-```java
-@Query("{ '_id': { $gt: ?0 }, 'status': ?1 }")
-List<AccountDocument> findByStatusAfterCursor(
-    String lastId, 
-    String status, 
-    Pageable pageable
-);
-```
-
-**📖 Consulte**: [references/MONGODB_PAGINATION.md](references/MONGODB_PAGINATION.md) para estratégias avançadas
-
-## Indexação - Boas Práticas
-
-⚠️ **SEMPRE crie índices para campos consultados frequentemente!**
-
-**Quando criar uma query, sempre analiser se índice é necessário e avisar o usuário:**
-
-```java
-// ✅ Exemplo: Query com índice necessário
-@Query("{ 'status': ?0, 'balance': { $gte: ?1 } }")
-List<AccountDocument> findByStatusAndMinBalance(String status, BigDecimal minBalance);
-
-// ⚠️ AVISO: Esta query requer índice composto em (status, balance) para performance ideal!
-// Criar índice: db.accounts.createIndex({ "status": 1, "balance": 1 })
-```
-
-## Boas Práticas Gerais
-
-### 1. Evite fetch desnecessário
-```java
-// ❌ Evite trazer documentos completos
-List<AccountDocument> findAll();
-
-// ✅ Use projeções
-@Query(value = "{}", fields = "{ 'accountNumber': 1, 'name': 1 }")
-List<AccountDocument> findAllSummary();
-```
-
-### 2. Use batch operations
-```java
-// ✅ Inserções em lote
-accountRepository.saveAll(accounts);
-```
-
-### 3. Limite resultados
-```java
-List<AccountDocument> findTop10ByStatusOrderByBalanceDesc(String status);
-```
-
-### 4. Crie índices para campos consultados frequentemente
-
-## Referências Detalhadas
-
-- **[MONGODB_REPOSITORY_INTEGRATION.md](references/MONGODB_REPOSITORY_INTEGRATION.md)** - Implementação completa com arquitetura hexagonal
-- **[MONGODB_TEMPLATE_USAGE.md](references/MONGODB_TEMPLATE_USAGE.md)** - MongoTemplate para queries complexas
-- **[MONGODB_QUERY_METHODS.md](references/MONGODB_QUERY_METHODS.md)** - Queries customizadas com @Query, JSON e SpEL
-- **[MONGODB_TRANSACTIONS.md](references/MONGODB_TRANSACTIONS.md)** - Configuração e boas práticas de transações
-- **[MONGODB_PAGINATION.md](references/MONGODB_PAGINATION.md)** - Estratégias eficientes de paginação
-
-## Links Oficiais
-
-- [Spring Data MongoDB - Template Operations](https://docs.spring.io/spring-data/mongodb/reference/mongodb/template-query-operations.html)
-- [Spring Data MongoDB - CRUD Operations](https://docs.spring.io/spring-data/mongodb/reference/mongodb/template-crud-operations.html)
-- [Spring Data MongoDB - Transactions](https://docs.spring.io/spring-data/mongodb/reference/mongodb/client-session-transactions.html)
-- [Spring Data MongoDB - Repositories](https://docs.spring.io/spring-data/mongodb/reference/mongodb/repositories/repositories.html)
-- [Spring Data MongoDB - Query Methods](https://docs.spring.io/spring-data/mongodb/reference/mongodb/repositories/query-methods.html)
-- [Spring Data MongoDB - JSON/SpEL Queries](https://docs.spring.io/spring-data/mongodb/reference/mongodb/repositories/query-methods.html#mongodb.repositories.queries.json-spel)
+- [ ] Dependência `spring-boot-starter-data-mongodb` adicionada
+- [ ] URI configurada como variável de ambiente
+- [ ] `@Document` com `@CompoundIndex` para queries principais
+- [ ] `@CreatedDate` e `@LastModifiedDate` com `@EnableMongoAuditing`
+- [ ] `auto-index-creation: false` (índices via código)
+- [ ] Adapter implementando `OutputPort` com mapeamento domain ↔ document
+- [ ] `@Bean` do Adapter registrado em `config/`
+- [ ] Nenhum campo PII exposto em `@ToString` ou logs
+- [ ] Testes unitários com `@DataMongoTest` (cobertura ≥ 95%)

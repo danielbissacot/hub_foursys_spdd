@@ -1,42 +1,75 @@
 ---
-name: springboot-blob-storage
-description: Implementa upload, download e remoção de arquivos no Azure Blob Storage em Spring Boot com Arquitetura Hexagonal. Use para features de gestão de documentos, imagens, arquivos de lote ou qualquer armazenamento de objetos em nuvem.
+name: 'springboot-blob-storage'
+description: "Implementa upload, download e gerenciamento de arquivos no Azure Blob Storage no padrão Hexagonal. Cobre BlobServiceClient, geração de SAS token, presigned URLs, streaming de arquivos grandes e adapter de armazenamento como OutputPort. Use quando a história precisar persistir ou servir arquivos binários (PDFs, imagens, documentos, exports)."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
-# Spring Boot — Azure Blob Storage
+# Skill: springboot-blob-storage
 
-Implemente armazenamento de arquivos no Azure Blob Storage seguindo Arquitetura Hexagonal. Credenciais via variável de ambiente ou CSI Driver — nunca hardcoded.
+Guia completo para implementar **armazenamento de arquivos no Azure Blob Storage** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
 
-## Regras Críticas
+> **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer persistência ou servição de arquivos binários.
 
-- **Credenciais via ambiente**: connection string ou SAS token via variável de ambiente ou CSI Driver.
-- **Nomes de arquivo**: sanitize nomes antes de armazenar (sem path traversal: `../`, `/` no nome).
-- **Content-Type**: sempre definir explicitamente — nunca deixar como `application/octet-stream` padrão.
-- **Tamanho máximo**: valide no controller antes de enviar ao blob (não confie no Azure como única validação).
+---
 
-## Dependência (pom.xml)
+## Quando usar
+
+- Upload de documentos por usuários (PDFs, imagens, planilhas).
+- Geração e armazenamento de relatórios, extratos, comprovantes.
+- Exports de dados em arquivos para download.
+- Armazenamento de evidências e arquivos de auditoria.
+
+## Quando não usar
+
+- Armazenamento de dados estruturados → use MongoDB ou PostgreSQL.
+- Arquivos temporários de processamento em memória → use `byte[]` ou `InputStream` diretamente.
+
+---
+
+## Estrutura de Arquivos (Hexagonal)
+
+```
+adapter/output/storage/
+└── AzureBlobStorageAdapter.java        ← Implementa ArquivoStorageOutputPort
+
+config/
+└── BlobStorageConfig.java              ← Configura BlobServiceClient
+```
+
+---
+
+## Implementação
+
+### 1. Dependência (pom.xml)
 
 ```xml
 <dependency>
     <groupId>com.azure</groupId>
     <artifactId>azure-storage-blob</artifactId>
-    <version>12.25.0</version>
+    <version>12.26.0</version>
 </dependency>
 ```
 
-## Configuração
+---
+
+### 2. Configuração (application.yml)
 
 ```yaml
 azure:
   storage:
     blob:
       connection-string: ${AZURE_STORAGE_CONNECTION_STRING}
-      container-name: ${AZURE_STORAGE_CONTAINER_NAME}
+      container-name: ${AZURE_STORAGE_CONTAINER:foursys-documentos}
+      sas-token-expiry-hours: ${AZURE_STORAGE_SAS_EXPIRY_HOURS:1}
 ```
 
+---
+
+### 3. Configuração do Client (BlobStorageConfig)
+
 ```java
+// FILEPATH: config/BlobStorageConfig.java
 @Configuration
 public class BlobStorageConfig {
 
@@ -47,111 +80,124 @@ public class BlobStorageConfig {
     private String containerName;
 
     @Bean
-    public BlobContainerClient blobContainerClient() {
+    public BlobServiceClient blobServiceClient() {
         return new BlobServiceClientBuilder()
-                .connectionString(connectionString)
-                .buildClient()
-                .getBlobContainerClient(containerName);
+            .connectionString(connectionString)
+            .buildClient();
+    }
+
+    @Bean
+    public BlobContainerClient blobContainerClient(BlobServiceClient blobServiceClient) {
+        var container = blobServiceClient.getBlobContainerClient(containerName);
+        if (!container.exists()) {
+            container.create();
+        }
+        return container;
     }
 }
 ```
 
-## OutputPort (Hexagonal)
+---
+
+### 4. OutputPort (Interface de Domínio)
 
 ```java
-// port/output/ArmazenamentoOutputPort.java
-public interface ArmazenamentoOutputPort {
-    String armazenar(byte[] conteudo, String nomeArquivo, String contentType);
-    byte[] recuperar(String identificador);
-    void remover(String identificador);
-    String gerarUrlTemporaria(String identificador, Duration validade);
+// FILEPATH: port/output/ArquivoStorageOutputPort.java
+public interface ArquivoStorageOutputPort {
+    String upload(String nomeArquivo, InputStream conteudo, long tamanho, String contentType);
+    InputStream download(String nomeArquivo);
+    String gerarUrlTemporaria(String nomeArquivo, Duration validade);
+    void excluir(String nomeArquivo);
 }
 ```
 
-## Adapter de Implementação
+---
+
+### 5. Adapter (OutputPort)
 
 ```java
-// adapter/output/blob/BlobStorageAdapter.java
+// FILEPATH: adapter/output/storage/AzureBlobStorageAdapter.java
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class BlobStorageAdapter implements ArmazenamentoOutputPort {
+public class AzureBlobStorageAdapter implements ArquivoStorageOutputPort {
 
     private final BlobContainerClient containerClient;
 
+    @Value("${azure.storage.blob.sas-token-expiry-hours}")
+    private int sasExpiryHours;
+
     @Override
-    public String armazenar(byte[] conteudo, String nomeArquivo, String contentType) {
-        String identificador = UUID.randomUUID() + "-" + sanitizar(nomeArquivo);
-        BlobClient blobClient = containerClient.getBlobClient(identificador);
-
-        BlobHttpHeaders headers = new BlobHttpHeaders().setContentType(contentType);
-        blobClient.upload(BinaryData.fromBytes(conteudo), true);
-        blobClient.setHttpHeaders(headers);
-
-        log.info("Arquivo armazenado: identificador={}, tamanho={}bytes", identificador, conteudo.length);
-        return identificador;
+    public String upload(String nomeArquivo, InputStream conteudo, long tamanho, String contentType) {
+        var blobClient = containerClient.getBlobClient(nomeArquivo);
+        blobClient.upload(conteudo, tamanho, true); // overwrite = true
+        log.info("Arquivo enviado para Blob Storage. nome={} tamanho={}bytes", nomeArquivo, tamanho);
+        return blobClient.getBlobUrl();
     }
 
     @Override
-    public byte[] recuperar(String identificador) {
-        BlobClient blobClient = containerClient.getBlobClient(identificador);
+    public InputStream download(String nomeArquivo) {
+        var blobClient = containerClient.getBlobClient(nomeArquivo);
         if (!blobClient.exists()) {
-            throw new ArquivoNaoEncontradoException("Arquivo não encontrado: " + identificador);
+            throw new ArquivoNaoEncontradoException("Arquivo não encontrado: " + nomeArquivo);
         }
-        return blobClient.downloadContent().toBytes();
+        return blobClient.openInputStream();
     }
 
     @Override
-    public void remover(String identificador) {
-        containerClient.getBlobClient(identificador).deleteIfExists();
-        log.info("Arquivo removido: identificador={}", identificador);
+    public String gerarUrlTemporaria(String nomeArquivo, Duration validade) {
+        var blobClient = containerClient.getBlobClient(nomeArquivo);
+        var expiry = OffsetDateTime.now().plus(validade);
+        var permission = new BlobSasPermission().setReadPermission(true);
+        var sasValues = new BlobServiceSasSignatureValues(expiry, permission);
+        return blobClient.getBlobUrl() + "?" + blobClient.generateSas(sasValues);
     }
 
     @Override
-    public String gerarUrlTemporaria(String identificador, Duration validade) {
-        BlobSasPermission permission = new BlobSasPermission().setReadPermission(true);
-        BlobServiceSasSignatureValues values = new BlobServiceSasSignatureValues(
-                OffsetDateTime.now().plus(validade), permission);
-        return containerClient.getBlobClient(identificador).generateSas(values);
-    }
-
-    private String sanitizar(String nomeArquivo) {
-        return nomeArquivo.replaceAll("[^a-zA-Z0-9._-]", "_");
+    public void excluir(String nomeArquivo) {
+        var blobClient = containerClient.getBlobClient(nomeArquivo);
+        blobClient.deleteIfExists();
+        log.info("Arquivo excluído do Blob Storage. nome={}", nomeArquivo);
     }
 }
 ```
 
-## Controller (Adapter de Entrada)
+---
+
+### 6. Padrão de Nomenclatura de Arquivos
 
 ```java
-// adapter/input/controller/ArquivoController.java
-@RestController
-@RequestMapping("/v1/arquivos")
-@RequiredArgsConstructor
-public class ArquivoController {
-
-    private final UploadArquivoInputPort uploadArquivoUseCase;
-    private final DownloadArquivoInputPort downloadArquivoUseCase;
-
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public ArquivoResponse upload(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) throw new ArquivoInvalidoException("Arquivo vazio");
-        if (file.getSize() > 10 * 1024 * 1024) throw new ArquivoInvalidoException("Tamanho máximo: 10MB");
-
-        return uploadArquivoUseCase.executar(new UploadArquivoCommand(
-                file.getOriginalFilename(),
-                file.getContentType(),
-                unchecked(file::getBytes)
-        ));
-    }
-
-    @GetMapping("/{identificador}")
-    public ResponseEntity<byte[]> download(@PathVariable String identificador) {
-        byte[] conteudo = downloadArquivoUseCase.executar(identificador);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + identificador + "\"")
-                .body(conteudo);
-    }
-}
+// Use prefixos para organizar por domínio/tenant:
+String nomeArquivo = String.format("%s/%s/%s_%s.%s",
+    centroDeCusto,          // ex: "financeiro"
+    codigoOperacao,         // ex: "OP-2024-001"
+    tipo,                   // ex: "comprovante"
+    UUID.randomUUID(),      // evita colisão
+    extensao                // ex: "pdf"
+);
+// Resultado: "financeiro/OP-2024-001/comprovante_uuid.pdf"
 ```
+
+---
+
+## Segurança
+
+- **NUNCA** exponha a `connection-string` completa em logs ou respostas de API.
+- URLs temporárias (SAS) devem ter validade mínima necessária (padrão: 1h).
+- Use **Managed Identity** (MSI) em produção em vez de connection string quando possível.
+- Valide tipo MIME e tamanho máximo antes do upload no UseCase.
+
+---
+
+## Checklist de Implementação
+
+- [ ] Dependência `azure-storage-blob` adicionada ao `pom.xml`
+- [ ] `AZURE_STORAGE_CONNECTION_STRING` como variável de ambiente (nunca hardcoded)
+- [ ] `BlobServiceClient` e `BlobContainerClient` configurados como `@Bean`
+- [ ] `ArquivoStorageOutputPort` definida na camada de porta
+- [ ] Adapter implementando a `OutputPort` com `BlobContainerClient`
+- [ ] Nomenclatura de arquivos com prefixo de domínio + UUID
+- [ ] SAS token com validade configurável via `application.yml`
+- [ ] `@Bean` do Adapter registrado em `config/`
+- [ ] Validação de tipo MIME e tamanho no UseCase (não no Adapter)
+- [ ] Testes unitários com mock do `BlobContainerClient` (cobertura ≥ 95%)

@@ -1,95 +1,129 @@
 ---
 name: angular-http
-description: Implemente busca de dados HTTP no Angular v20+ usando resource(), httpResource() e HttpClient. Use para chamadas de API, carregamento de dados com signals, tratamento de requisição/resposta e interceptors. Acione em busca de dados, integração com APIs, estados de carregamento, tratamento de erros ou conversão de HTTP baseado em Observable para padrões baseados em signal.
+description: Implemente busca de dados HTTP no Angular v20+ usando resource(), httpResource() e HttpClient. Cobre declaração reativa, request builder com parâmetros dinâmicos, refresh, abort, tratamento de erros tipados, o HttpClient tradicional (mutações POST/PUT/DELETE) e interceptors. Use httpResource() como primeira opção para GET em componentes; HttpClient em services para mutações e lógica RxJS complexa.
 metadata:
-  version: "0.0.1"
+  version: "0.2.0"
 ---
 
 # Angular HTTP e Busca de Dados
 
-Busque dados no Angular usando `resource()`, `httpResource()` baseado em signals e o tradicional `HttpClient`.
+Busque dados no Angular usando `httpResource()`/`resource()` baseados em signals, e o `HttpClient` tradicional para mutações e lógica RxJS complexa.
 
-## httpResource() - Signal-Based HTTP
+> `httpResource()` é a **primeira opção** para HTTP em componentes Angular. Use `HttpClient` diretamente em services para mutações (POST/PUT/DELETE) ou lógica com múltiplos operadores RxJS.
 
-`httpResource()` encapsula o HttpClient com um gerenciamento de estado baseado em signals:
+---
+
+## Quando usar cada um
+
+- **`httpResource()`**: buscar dados (GET) a partir de um componente, especialmente com parâmetros reativos (IDs, filtros, queries que mudam).
+- **`resource()`**: mesma ideia, para fontes assíncronas não-HTTP.
+- **`HttpClient`** (em service, via `inject()`): mutações do usuário (POST/PUT/DELETE), lógica com `switchMap`/`combineLatest`/retry customizado.
+
+---
+
+## httpResource() — busca simples
 
 ```typescript
-import { Component, signal } from '@angular/core';
-import { httpResource } from '@angular/common/http';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+import { httpResource } from '@angular/core';
 
 @Component({
-  selector: 'app-user-profile',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (userResource.isLoading()) {
-      <p>Carregando...</p>
-    } @else if (userResource.error()) {
-      <p>Erro: {{ userResource.error()?.message }}</p>
-      <button (click)="userResource.reload()">Recarregar</button>
-    } @else if (userResource.hasValue()) {
-      <h1>{{ userResource.value().name }}</h1>
-      <p>{{ userResource.value().email }}</p>
+    @if (produto.isLoading()) { <span>Carregando...</span> }
+    @if (produto.error()) { <span>Erro ao carregar produto</span> }
+    @if (produto.value(); as p) {
+      <h1>{{ p.nome }}</h1>
+      <p>R$ {{ p.preco | currency:'BRL' }}</p>
     }
-  `,
+  `
 })
-export class UserProfileComponent {
-  userId = signal('123');
-  
-  // Recurso HTTP reativo - refaz a requisição quando userId muda
-  userResource = httpResource<User>(() => `/api/users/${this.userId()}`);
+export class ProdutoComponent {
+  readonly produtoId = input.required<number>();
+
+  // Reativo: re-busca automaticamente quando produtoId muda
+  protected readonly produto = httpResource<Produto>(
+    () => `/api/produtos/${this.produtoId()}`
+  );
 }
 ```
 
-### httpResource Options
+### httpResource() com parâmetros, headers e cancelamento condicional
 
 ```typescript
-// Requisição GET simples
-userResource = httpResource<User>(() => `/api/users/${this.userId()}`);
-
-// Com todos os parametros da requisição
-userResource = httpResource<User>(() => ({
-  url: `/api/users/${this.userId()}`,
-  method: 'GET',
-  headers: { 'Authorization': `Bearer ${this.token()}` },
-  params: { include: 'profile' },
+// Request builder completo
+protected readonly pedidos = httpResource<Pedido[]>(() => ({
+  url: '/api/pedidos',
+  params: {
+    status: this.filtroStatus(),
+    page: this.pagina(),
+    size: 20
+  },
+  headers: {
+    'X-Correlation-Id': crypto.randomUUID()
+  }
 }));
 
-// Com valor default
-usersResource = httpResource<User[]>(() => '/api/users', {
-  defaultValue: [],
-});
-
-// Pular requisição quando params for undefined
-userResource = httpResource<User>(() => {
-  const id = this.userId();
-  return id ? `/api/users/${id}` : undefined;
-});
+// Condicional — undefined cancela a requisição (não busca se filtro vazio)
+protected readonly busca = httpResource<Produto[]>(() =>
+  this.termo().length >= 3
+    ? `/api/produtos/busca?q=${this.termo()}`
+    : undefined
+);
 ```
 
-### Resource State
+### Refresh manual
 
 ```typescript
-// Status signals
-userResource.value()      // Valor atual ou undefined
-userResource.hasValue()   // Boolean - possui valor resolvido
-userResource.error()      // Erro ou undefined
-userResource.isLoading()  // Boolean - está carregando
-userResource.status()     // 'idle' | 'loading' | 'reloading' | 'resolved' | 'error' | 'local'
+protected readonly usuario = httpResource<Usuario>(() => `/api/me`);
 
-// Ações
-userResource.reload()     // Disparar reload manualmente
-userResource.set(value)   // Definir valor local
-userResource.update(fn)   // Atualizar valor local
+protected atualizar() {
+  this.usuario.reload();
+}
 ```
 
-## resource() - Dados Assíncronos Genéricos
+### Tipos de Estado
 
-Para operações assíncronas não-HTTP ou lógica de fetch personalizada:
+| Propriedade | Tipo | Descrição |
+|---|---|---|
+| `.value()` | `T \| undefined` | Dado retornado (undefined enquanto carrega ou em erro) |
+| `.isLoading()` | `boolean` | `true` durante requisição em andamento |
+| `.error()` | `unknown` | Erro lançado pelo loader (null se nenhum) |
+| `.status()` | `ResourceStatus` | `Idle`, `Loading`, `Refreshing`, `Resolved`, `Error`, `Local` |
+| `.hasValue()` | `boolean` | Possui valor resolvido |
+
+### Padrão com valor inicial (evitar undefined)
+
+```typescript
+protected readonly itens = httpResource<Produto[]>({
+  request: () => `/api/produtos`,
+  defaultValue: []  // valor antes do carregamento — itens.value() nunca é undefined
+});
+```
+
+### Integração com Formulário Reativo / busca com debounce
+
+```typescript
+@Component({...})
+export class BuscaComponent {
+  protected readonly termo = signal('');
+  private readonly termoBusca = computed(() => this.termo());
+
+  protected readonly resultados = httpResource<Produto[]>(() =>
+    this.termoBusca().length >= 3
+      ? `/api/produtos/busca?q=${encodeURIComponent(this.termoBusca())}`
+      : undefined
+  );
+
+  protected onInput(event: Event) {
+    this.termo.set((event.target as HTMLInputElement).value);
+  }
+}
+```
+
+## resource() — Dados Assíncronos Genéricos (não-HTTP)
+
+Para operações assíncronas que não são HTTP ou fetch personalizado:
 
 ```typescript
 import { resource, signal } from '@angular/core';
@@ -97,15 +131,14 @@ import { resource, signal } from '@angular/core';
 @Component({...})
 export class SearchComponent {
   query = signal('');
-  
+
   searchResource = resource({
-    // Params reativos - dispara reload quando mudam
+    // Params reativos — dispara reload quando mudam
     params: () => ({ q: this.query() }),
-    
-    // Função loader assíncrona
+
+    // Função loader assíncrona: recebe { params, abortSignal }
     loader: async ({ params, abortSignal }) => {
       if (!params.q) return [];
-      
       const response = await fetch(`/api/search?q=${params.q}`, {
         signal: abortSignal,
       });
@@ -115,7 +148,7 @@ export class SearchComponent {
 }
 ```
 
-### Resource com valor padrão
+### resource() com valor padrão e carregamento condicional
 
 ```typescript
 todosResource = resource({
@@ -126,20 +159,14 @@ todosResource = resource({
     return res.json();
   },
 });
-
 // value() retorna Todo[] (nunca undefined)
-```
 
-### Carregamento Condicional
-
-```typescript
 const userId = signal<string | null>(null);
 
 userResource = resource({
   params: () => {
     const id = userId();
-    // Retorne undefined para pular o carregamento
-    return id ? { id } : undefined;
+    return id ? { id } : undefined;  // undefined pula o carregamento
   },
   loader: async ({ params }) => {
     return fetch(`/api/users/${params.id}`).then(r => r.json());
@@ -148,9 +175,11 @@ userResource = resource({
 // Status é 'idle' quando params retorna undefined
 ```
 
-## HttpClient - Abordagem Tradicional
+> **Atenção à tipagem do `loader`**: o parâmetro é sempre desestruturado como `{ params, abortSignal }` (ou `{ request, abortSignal }` em `httpResource`), nunca como as chaves de domínio direto (ex: nunca `loader: ({ meuCampo }) => ...`). Se `params`/`request` não tiverem um tipo genérico explícito no `resource<T, R>(...)`, declare o tipo do parâmetro do `loader` manualmente para evitar erro de compilação `TS7031` (binding element implicitamente `any`).
 
-Para cenários complexos ou quando precisar de operadores Observable:
+## HttpClient — Abordagem Tradicional
+
+Para mutações (POST/PUT/DELETE) ou cenários com operadores Observable:
 
 ```typescript
 import { Component, inject } from '@angular/core';
@@ -160,13 +189,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 @Component({...})
 export class UsersComponent {
   private http = inject(HttpClient);
-  
+
   // Converter Observable para Signal
   users = toSignal(
     this.http.get<User[]>('/api/users'),
     { initialValue: [] }
   );
-  
+
   // Ou use Observable diretamente
   users$ = this.http.get<User[]>('/api/users');
 }
@@ -233,13 +262,13 @@ import { inject } from '@angular/core';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const token = authService.token();
-  
+
   if (token) {
     req = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` },
     });
   }
-  
+
   return next(req);
 };
 
@@ -293,23 +322,17 @@ export const appConfig: ApplicationConfig = {
 ```typescript
 @Component({
   template: `
-    @if (userResource.error(); as error) {
-      <div class="error">
-        <p>{{ getErrorMessage(error) }}</p>
-        <button (click)="userResource.reload()">Recarregar</button>
-      </div>
+    @if (produto.error(); as err) {
+      @if (isHttpErrorResponse(err) && err.status === 404) {
+        <app-empty-state mensagem="Produto não encontrado" />
+      } @else {
+        <app-error-state mensagem="Erro inesperado" />
+      }
     }
   `,
 })
-export class UserComponent {
-  userResource = httpResource<User>(() => `/api/users/${this.userId()}`);
-  
-  getErrorMessage(error: unknown): string {
-    if (error instanceof HttpErrorResponse) {
-      return error.error?.message || `Erro ${error.status}: ${error.statusText}`;
-    }
-    return 'Ocorreu um erro inesperado';
-  }
+export class ProdutoComponent {
+  produto = httpResource<Produto>(() => `/api/produtos/${this.produtoId()}`);
 }
 ```
 
@@ -349,9 +372,9 @@ getUser(id: string) {
         <app-data [data]="dataResource.value()" />
       }
       @case ('error') {
-        <app-error 
-          [error]="dataResource.error()" 
-          (retry)="dataResource.reload()" 
+        <app-error
+          [error]="dataResource.error()"
+          (retry)="dataResource.reload()"
         />
       }
     }
@@ -359,11 +382,24 @@ getUser(id: string) {
 })
 export class DataComponent {
   query = signal('');
-  dataResource = httpResource<Data[]>(() => 
+  dataResource = httpResource<Data[]>(() =>
     this.query() ? `/api/search?q=${this.query()}` : undefined
   );
 }
 ```
+
+## Checklist de Uso
+
+- [ ] `httpResource()` como primeira opção para GET em componentes
+- [ ] Request builder (`() => url` ou `() => ({ url, params, headers })`) para parâmetros reativos
+- [ ] `undefined` para cancelar requisição condicionalmente
+- [ ] `defaultValue` para evitar `undefined` inicial
+- [ ] `.isLoading()`, `.error()`, `.value()` usados no template
+- [ ] `.reload()` para refresh manual
+- [ ] `resource()` para lógica assíncrona não-HTTP
+- [ ] Parâmetro do `loader` sempre `{ params/request, abortSignal }` — nunca desestruturar campo de domínio direto sem tipar
+- [ ] `HttpClient` (via `inject()`) para mutações POST/PUT/DELETE
+- [ ] `ChangeDetectionStrategy.OnPush` no componente
 
 Para padrões avançados, veja:
 
@@ -373,4 +409,3 @@ Para padrões avançados, veja:
 - [File Upload](references/file-upload.MD)
 - [Request Cancellation](references/request-cancellation.MD)
 - [Testing HTTP](references/testing-http.MD)
-

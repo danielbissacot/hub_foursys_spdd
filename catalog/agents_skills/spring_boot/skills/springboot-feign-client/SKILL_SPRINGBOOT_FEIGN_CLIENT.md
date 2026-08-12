@@ -1,454 +1,231 @@
 ---
-name: springboot-feign-client
-description: Implementa integrações REST usando OpenFeign em projetos Spring Boot com arquitetura hexagonal. Use quando precisar criar clients HTTP declarativos, configurar circuit breakers, fallbacks, ou integrar com APIs REST externas seguindo padrões de resiliência.
+name: 'springboot-feign-client'
+description: "Implementa integração com APIs externas via Feign Client declarativo no padrão Hexagonal. Cobre configuração @FeignClient, DTOs de request/response, tratamento de erros com decoder customizado, circuit breaker Resilience4j e retry policy. Use quando a história precisar consumir uma API REST externa como OutputPort da camada de infraestrutura."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
-# Spring Boot Feign Client
+# Skill: springboot-feign-client
 
-Este skill fornece instruções detalhadas para implementar integrações REST usando OpenFeign em projetos Spring Boot seguindo arquitetura hexagonal e padrões de resiliência.
+Guia completo para implementar adapters de saída via **Feign Client** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
 
-## Quando usar este skill
+> **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer chamada a API externa via Feign.
 
-Use este skill quando:
-- Precisar integrar com APIs REST externas
-- Implementar clients HTTP declarativos
-- Configurar estratégias de fallback e circuit breaker
-- Seguir arquitetura hexagonal com anti-corruption layer (ACL)
-- Implementar resiliência em chamadas HTTP
+---
 
-## Dependências necessárias
+## Quando usar
 
-Adicione as seguintes dependências no `pom.xml`:
+- A história precisa consumir uma API REST externa (sistema legado, microsserviço, parceiro, gateway).
+- A integração é mapeada como **AIE (Arquivo de Interface Externa)** no APOIO APF.
+- A chamada é síncrona e declarativa — se for reativa, prefira `RestClient` ou `WebClient`.
+
+## Quando não usar
+
+- Chamadas HTTP simples pontuais sem necessidade de declaratividade → use `springboot-rest-client`.
+- Mensageria assíncrona → use `springboot-kafka` ou `springboot-service-bus`.
+- Chamadas dentro do mesmo serviço (loop interno).
+
+---
+
+## Estrutura de Arquivos (Hexagonal)
+
+```
+adapter/output/client/
+├── <NomeDoSistema>Client.java          ← Interface @FeignClient
+├── dto/
+│   ├── <Recurso>Request.java           ← Record request
+│   └── <Recurso>Response.java          ← Record response
+└── config/
+    └── <NomeDoSistema>FeignConfig.java ← Configuração de autenticação/headers
+```
+
+---
+
+## Implementação
+
+### 1. Dependência (pom.xml)
 
 ```xml
 <dependency>
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-openfeign</artifactId>
 </dependency>
-
 <dependency>
-    <groupId>io.github.openfeign</groupId>
-    <artifactId>feign-httpclient5</artifactId>
-</dependency>
-
-<!-- MapStruct para mapeamento de objetos -->
-<dependency>
-    <groupId>org.mapstruct</groupId>
-    <artifactId>mapstruct</artifactId>
-    <version>1.5.5.Final</version>
-</dependency>
-
-<!-- Opcional: para fallback com Circuit Breaker -->
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+    <groupId>io.github.resilience4j</groupId>
+    <artifactId>resilience4j-spring-boot3</artifactId>
 </dependency>
 ```
 
-## Estrutura na Arquitetura em camadas / MVC
+Habilitar no Spring Boot Application:
+```java
+@EnableFeignClients
+@SpringBootApplication
+public class Application {}
+```
 
-Para integrações com APIs externas usando Feign em arquitetura em camadas ou MVC consulte [references/MVC_FEIGN_INTEGRATION.md](REFERENCES/MVC_FEIGN_INTEGRATION.MD) para estrutura detalhada com exemplos
+---
 
-## Estrutura na Arquitetura Hexagonal
-
-Para integrações com APIs externas usando Feign em arquitetura hexagonal, siga os princípios de isolamento entre camadas:
-
-- **OutputPort** (`port/output/`): Define contratos em linguagem de domínio
-- **Adapter** (`adapter/output/client/`): Implementa OutputPort usando Feign
-- **FeignClient** (`adapter/output/client/`): Interface declarativa HTTP
-- **Mapper/ACL** (`adapter/output/client/mapper/`): Traduz entre API externa e domínio
-- **DTOs** (`adapter/output/client/dto/`): Estruturas da API externa
-
-**📖 Consulte**: [references/HEXAGONAL_FEIGN_INTEGRATION.md](REFERENCES/HEXAGONAL_FEIGN_INTEGRATION.MD) para estrutura detalhada com exemplos
-
-## Passo 1: Configuração do Feign Client
-
-Crie a classe de configuração em `config/`:
+### 2. Interface @FeignClient
 
 ```java
-package com.empresa.projeto.adapter.config;
-
-import feign.Client;
-import feign.Contract;
-import feign.Retryer;
-import feign.codec.Decoder;
-import feign.codec.Encoder;
-import feign.httpclient5.ApacheHttp5Client;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.classic.HttpClient;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.core5.http.io.SocketConfig;
-import org.apache.hc.core5.util.Timeout;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.cloud.openfeign.support.SpringMvcContract;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.util.concurrent.TimeUnit;
-
-@Slf4j
-@Configuration
-@EnableFeignClients(basePackages = "com.empresa.projeto.adapter.output.client")
-public class FeignClientConfig {
-
-    @Bean
-    @ConditionalOnProperty(name = "app.http.client.type", havingValue = "feign", matchIfMissing = true)
-    public Client feignHttpClient5() {
-        // Pool de conexões HTTP/2
-        PoolingHttpClientConnectionManager connectionManager =
-            PoolingHttpClientConnectionManagerBuilder.create()
-                .setMaxConnTotal(500)
-                .setMaxConnPerRoute(100)
-                .setDefaultSocketConfig(SocketConfig.custom()
-                    .setSoTimeout(Timeout.ofSeconds(30))
-                    .build())
-                .build();
-
-        // Cliente HTTP 5 com configurações avançadas
-        CloseableHttpClient httpClient = HttpClients.custom()
-            .setConnectionManager(connectionManager)
-            .setDefaultRequestConfig(RequestConfig.custom()
-                .setConnectTimeout(Timeout.ofSeconds(5))
-                .setResponseTimeout(Timeout.ofSeconds(30))
-                .setConnectionRequestTimeout(Timeout.ofSeconds(2))
-                .build())
-            .addRequestInterceptorFirst((request, entity, context) -> {
-                log.info("Feign request: {} {}", request.getMethod(), request.getRequestUri());
-            })
-            .addResponseInterceptorLast((response, entity, context) -> {
-                log.info("Feign response: {}", response.getCode());
-            })
-            .evictIdleConnections(5L, TimeUnit.MINUTES)
-            .build();
-
-        return new ApacheHttp5Client(httpClient);
-    }
-
-    @Bean
-    public Contract feignContract() {
-        return new SpringMvcContract();
-    }
-
-    @Bean
-    public Decoder feignDecoder() {
-        return new JacksonDecoder();
-    }
-
-    @Bean
-    public Encoder feignEncoder() {
-        return new JacksonEncoder();
-    }
-
-    @Bean
-    public Retryer feignRetryer() {
-        // Retry: 3 tentativas, começando com 500ms e aumentando até 2000ms
-        return new Retryer.Default(500, 2000, 3);
-    }
-}
-```
-
-**Propriedades no application.yml:**
-
-As configurações devem ser ajustadas conforme o ambiente:
-
-### Desenvolvimento / Teste (application-dev.yml)
-
-```yaml
-app:
-  http:
-    client:
-      type: feign
-
-  usuario-api:
-    url: ${USUARIO_API_URL:http://localhost:8081}
-
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 15000
-        readTimeout: 60000
-        loggerLevel: full
-  httpclient:
-    enabled: true
-    max-connections: 50
-    max-connections-per-route: 10
-```
-
-### Teste de Carga (application-loadtest.yml)
-
-```yaml
-app:
-  usuario-api:
-    url: ${USUARIO_API_URL}
-
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 5000
-        readTimeout: 30000
-        loggerLevel: basic
-  httpclient:
-    enabled: true
-    max-connections: 200
-    max-connections-per-route: 50
-    connection-timer-repeat: 30000
-```
-
-### Produção (application-prod.yml)
-
-```yaml
-app:
-  usuario-api:
-    url: ${USUARIO_API_URL}
-
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 3000
-        readTimeout: 15000
-        loggerLevel: none
-        retryer: com.empresa.config.CustomRetryer
-  httpclient:
-    enabled: true
-    max-connections: 500
-    max-connections-per-route: 100
-    connection-timer-repeat: 30000
-  circuitbreaker:
-    enabled: true
-```
-
-## Passo 2: Criar DTOs da API Externa
-
-Crie os DTOs em `adapter/output/client/dto/`:
-
-```java
-package com.empresa.projeto.adapter.output.client.dto.response;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UsuarioApiResponse {
-    
-    @JsonProperty("id")
-    private Long id;
-    
-    @JsonProperty("cpf")
-    private String cpf;
-    
-    @JsonProperty("nome_completo")  // Campo diferente do domínio
-    private String nomeCompleto;
-    
-    @JsonProperty("email")
-    private String email;
-}
-```
-
-```java
-package com.empresa.projeto.adapter.output.client.dto.request;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CriarUsuarioRequest {
-    
-    @JsonProperty("cpf")
-    private String cpf;
-    
-    @JsonProperty("nome_completo")
-    private String nomeCompleto;
-    
-    @JsonProperty("email")
-    private String email;
-}
-```
-
-## Passo 3: Criar a Interface Feign (FeignClient)
-
-```java
-package com.empresa.projeto.adapter.output.client;
-
-import com.empresa.projeto.adapter.output.client.dto.request.CriarUsuarioRequest;
-import com.empresa.projeto.adapter.output.client.dto.response.UsuarioApiResponse;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-
-/**
- * Interface Feign Client para API de usuários
- * Usa DTOs da API externa (não de domínio)
- */
+// FILEPATH: adapter/output/client/PagamentoClient.java
 @FeignClient(
-    name = "usuario-api",
-    url = "${app.usuario-api.url}",
-    configuration = FeignClientConfig.class,
-    fallback = UsuarioApiFallback.class  // Opcional: estratégia de fallback
+    name = "pagamento-service",
+    url = "${integrations.pagamento.url}",
+    configuration = PagamentoFeignConfig.class
 )
-public interface UsuarioApiFeignClient {
-    
-    @GetMapping("/api/v1/usuarios/{cpf}")
-    UsuarioApiResponse buscarPorCpf(@PathVariable("cpf") String cpf);
-    
-    @PostMapping("/api/v1/usuarios")
-    UsuarioApiResponse criar(@RequestBody CriarUsuarioRequest request);
+public interface PagamentoClient {
+
+    @PostMapping("/v1/pagamentos")
+    PagamentoResponse realizarPagamento(@RequestBody PagamentoRequest request);
+
+    @GetMapping("/v1/pagamentos/{id}")
+    PagamentoResponse buscarPagamento(@PathVariable("id") String id);
 }
 ```
 
-## Estratégia de Fallback (Opcional)
+---
 
-**⚠️ IMPORTANTE**: Só implemente fallback se previamente alinhado com o usuário ou especificado nos requisitos.
-
-### Quando usar fallback:
-- APIs com instabilidade conhecida
-- Necessidade de degradação graciosa
-- Cache ou dados default são aceitáveis
-- Alinhado com requisitos de negócio
-
-### Implementação do Fallback:
+### 3. DTOs (Records Java 21)
 
 ```java
-package com.empresa.projeto.adapter.output.client;
+// FILEPATH: adapter/output/client/dto/PagamentoRequest.java
+public record PagamentoRequest(
+    @NotBlank String codigoOperacao,
+    @NotNull BigDecimal valor,        // SEMPRE BigDecimal para valores monetários
+    @NotBlank String contaOrigem,
+    @NotBlank String contaDestino
+) {}
 
-import com.empresa.projeto.adapter.output.client.dto.request.CriarUsuarioRequest;
-import com.empresa.projeto.adapter.output.client.dto.response.UsuarioApiResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+// FILEPATH: adapter/output/client/dto/PagamentoResponse.java
+public record PagamentoResponse(
+    String protocolo,
+    String status,
+    LocalDateTime dataProcessamento
+) {}
+```
 
-/**
- * Fallback para UsuarioApiFeignClient
- * Retorna respostas padrão quando a API falha
- */
-@Slf4j
-@Component
-public class UsuarioApiFallback implements UsuarioApiFeignClient {
-    
+---
+
+### 4. Configuração de Autenticação
+
+```java
+// FILEPATH: adapter/output/client/config/PagamentoFeignConfig.java
+@Configuration
+public class PagamentoFeignConfig implements RequestInterceptor {
+
+    @Value("${integrations.pagamento.api-key}")
+    private String apiKey;
+
     @Override
-    public UsuarioApiResponse buscarPorCpf(String cpf) {
-        log.warn("Fallback acionado para buscarPorCpf: {}", cpf);
-        // Retorna null ou resposta default
-        return null;
-    }
-    
-    @Override
-    public UsuarioApiResponse criar(CriarUsuarioRequest request) {
-        log.warn("Fallback acionado para criar usuário: {}", request.getCpf());
-        // Pode lançar exceção ou retornar resposta indicando falha
-        throw new RuntimeException("API de usuários indisponível");
+    public void apply(RequestTemplate template) {
+        template.header("Authorization", "Bearer " + apiKey);
+        template.header("Content-Type", "application/json");
+        template.header("X-Correlation-Id", UUID.randomUUID().toString());
     }
 }
 ```
 
-### Configurar Circuit Breaker com Resilience4j:
+---
 
-O Circuit Breaker deve ser habilitado em **produção** (veja configuração acima).
+### 5. Decoder de Erros
 
-Adicione a configuração do Resilience4j no `application-prod.yml`:
+```java
+// FILEPATH: adapter/output/client/config/PagamentoFeignConfig.java (adicionar ao bean)
+@Bean
+public ErrorDecoder errorDecoder() {
+    return (methodKey, response) -> switch (response.status()) {
+        case 400 -> new PagamentoInvalidoException("Dados inválidos para pagamento");
+        case 404 -> new PagamentoNaoEncontradoException("Pagamento não encontrado");
+        case 422 -> new PagamentoRecusadoException("Pagamento recusado pela instituição");
+        default  -> new IntegracaoException("Erro inesperado na integração de pagamento: " + response.status());
+    };
+}
+```
+
+---
+
+### 6. Circuit Breaker + Retry (application.yml)
 
 ```yaml
 resilience4j:
   circuitbreaker:
     instances:
-      usuario-api:
+      pagamento-service:
         registerHealthIndicator: true
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
         permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 10s
+        waitDurationInOpenState: 5s
         failureRateThreshold: 50
-        eventConsumerBufferSize: 10
-  timelimiter:
+        recordExceptions:
+          - feign.FeignException$InternalServerError
+          - feign.RetryableException
+        ignoreExceptions:
+          - br.com.suaempresa.exception.PagamentoInvalidoException
+          - br.com.suaempresa.exception.PagamentoNaoEncontradoException
+  retry:
     instances:
-      usuario-api:
-        timeoutDuration: 15s
+      pagamento-service:
+        maxAttempts: 3
+        waitDuration: 500ms
+        retryExceptions:
+          - feign.RetryableException
 
-feign:
-  circuitbreaker:
-    enabled: true
+integrations:
+  pagamento:
+    url: ${PAGAMENTO_SERVICE_URL:http://localhost:8081}
+    api-key: ${PAGAMENTO_API_KEY}
 ```
 
-## Tratamento de Erros
+---
 
-### Exceções comuns do Feign:
-
-```java
-try {
-    // chamada Feign
-} catch (FeignException.BadRequest e) {
-    // 400 - Requisição inválida
-} catch (FeignException.Unauthorized e) {
-    // 401 - Não autorizado
-} catch (FeignException.Forbidden e) {
-    // 403 - Proibido
-} catch (FeignException.NotFound e) {
-    // 404 - Não encontrado
-} catch (FeignException.InternalServerError e) {
-    // 500 - Erro no servidor
-} catch (FeignException e) {
-    // Outros erros HTTP
-}
-```
-
-### Error Decoder customizado (opcional):
+### 7. Adapter que usa o Feign Client (OutputPort)
 
 ```java
-package com.empresa.projeto.adapter.output.config;
+// FILEPATH: adapter/output/client/PagamentoClientAdapter.java
+@Component
+@RequiredArgsConstructor
+public class PagamentoClientAdapter implements PagamentoOutputPort {
 
-import feign.Response;
-import feign.codec.ErrorDecoder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+    private final PagamentoClient pagamentoClient;
 
-@Configuration
-public class FeignErrorConfig {
-    
-    @Bean
-    public ErrorDecoder errorDecoder() {
-        return new CustomErrorDecoder();
-    }
-    
-    static class CustomErrorDecoder implements ErrorDecoder {
-        private final ErrorDecoder defaultDecoder = new Default();
-        
-        @Override
-        public Exception decode(String methodKey, Response response) {
-            switch (response.status()) {
-                case 404:
-                    return new RuntimeException("Recurso não encontrado");
-                case 503:
-                    return new RuntimeException("Serviço temporariamente indisponível");
-                default:
-                    return defaultDecoder.decode(methodKey, response);
-            }
-        }
+    @Override
+    @CircuitBreaker(name = "pagamento-service")
+    @Retry(name = "pagamento-service")
+    public PagamentoResultado realizarPagamento(Pagamento pagamento) {
+        var request = new PagamentoRequest(
+            pagamento.codigoOperacao(),
+            pagamento.valor(),
+            pagamento.contaOrigem(),
+            pagamento.contaDestino()
+        );
+        var response = pagamentoClient.realizarPagamento(request);
+        return new PagamentoResultado(response.protocolo(), response.status());
     }
 }
 ```
 
+---
+
+## Segurança PII
+
+- **NUNCA** logue `Authorization` headers, tokens, senhas ou chaves de API.
+- Use `@ToString.Exclude` em campos sensíveis nos DTOs quando usar Lombok.
+- Mascare CPF/conta nos logs: `***.***.***-XX`.
+
+---
+
+## Checklist de Implementação
+
+- [ ] Dependência `spring-cloud-starter-openfeign` adicionada ao `pom.xml`
+- [ ] `@EnableFeignClients` na classe principal
+- [ ] Interface `@FeignClient` criada em `adapter/output/client/`
+- [ ] DTOs como Records Java 21 com Bean Validation
+- [ ] `FeignConfig` com interceptor de autenticação
+- [ ] `ErrorDecoder` mapeando exceções de domínio
+- [ ] Circuit Breaker + Retry configurados em `application.yml`
+- [ ] Adapter implementando o `OutputPort` usando o Feign Client
+- [ ] `@Bean` do Adapter registrado em `config/`
+- [ ] Testes unitários com `@MockBean` do client (cobertura ≥ 95%)
+- [ ] Nenhum dado PII logado

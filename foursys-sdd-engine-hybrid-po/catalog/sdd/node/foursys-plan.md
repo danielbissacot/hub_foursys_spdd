@@ -23,6 +23,11 @@ Sua função é inspecionar a História de Negócio e a Constituição do projet
 
 ### ✅ FLUXO DE EXECUÇÃO OBRIGATÓRIO
 
+#### ETAPA 0: Levantamento do Projeto Real (OBRIGATÓRIA, antes da Etapa 1)
+Antes de avaliar a história, procure no projeto Node.js/NestJS aberto se já existem módulos, controllers, services ou entidades relacionados ao domínio da história (busque em `src/` por nome de domínio/entidade parecido, não só no texto da história). Liste o que encontrar, com caminho real. Use isso como base da especificação técnica — só proponha módulo/arquivo novo para o que a busca não encontrar.
+
+**Checagem obrigatória do nome/escopo real**: extraia o nome real do projeto e o scope do pacote npm (campo `name` do `package.json`, ex: `@empresa/api`). Compare com qualquer nome de empresa citado em exemplo de skill — nunca use um nome de exemplo como se fosse o scope real deste projeto. Se não for possível determinar, pergunte ao usuário antes de prosseguir — nunca presuma.
+
 #### ETAPA 1: Avaliação de Maturidade da História
 Audite o texto usando os 5 pilares (20 pontos cada):
 1. **Estrutura (20pts):** Segue o padrão "Como [ator], quero [ação] para [valor]" com objetivo claro?

@@ -3,6 +3,67 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as vscode from 'vscode';
 
+/**
+ * Template do technical_spec.md. Toda instrucao e titulo (#) ou citacao (>) de proposito:
+ * isTechSpecUnfilled() descarta essas linhas, entao qualquer texto normal que sobrar e,
+ * necessariamente, coisa que o usuario escreveu. Nao ha exemplo de pacote/stack aqui —
+ * exemplo concreto vaza pro codigo gerado (foi assim que 'br.com.foursys' virou pacote
+ * inventado num projeto real); descobrir a estrutura real e trabalho da Etapa 0 do playbook.
+ */
+export const TECH_SPEC_TEMPLATE = `# Especificação Técnica
+
+## ⛔ Não cole aqui resultado gerado por skill
+
+> Conteúdo produzido por skill não descreve o SEU projeto — e a IA pode acabar
+> copiando os exemplos que vêm nele como se fossem código real do seu sistema.
+>
+> Precisa usar uma skill? Use ela no lugar certo:
+> - na aba **Catálogo** da barra lateral do Hub, ou
+> - no chat, com \`@foursys_sdd_po /skill <nome>\`
+
+## Não tem regra técnica a definir?
+
+> **Deixe em branco.** O Hub analisa o projeto sozinho e descobre a estrutura real.
+> Em branco é melhor do que preenchido com exemplo ou com relatório.
+
+---
+
+## ✍️ Escreva a partir da linha abaixo
+
+> Só o que estiver **depois** de \`RESPOSTA:\` é usado. Pode escrever livremente:
+> regra técnica, restrição, decisão que já foi tomada, o que não pode ser mexido.
+> Não precisa apagar as instruções acima.
+
+RESPOSTA:
+`;
+
+/** Frases do template ANTIGO (versoes <= 1.2.5). Sem isto, quem ja tem o arquivo criado
+ *  pela versao antiga e nunca preencheu seria tratado como "preenchido". */
+const LEGACY_TECH_SPEC_MARKERS = [
+    'Cole aqui o detalhamento técnico',
+    'exemplos de código, yml, estrutura de pacotes',
+    'Este arquivo é lido pela fase Plan',
+];
+
+/**
+ * True quando o technical_spec.md so tem o template (novo ou antigo), sem nada escrito.
+ * Nesse caso o arquivo nao e injetado no prompt: mandar um template vazio so gasta contexto
+ * e, pior, oferece o texto de exemplo pra IA copiar como se fosse dado do projeto.
+ */
+export function isTechSpecUnfilled(content: string): boolean {
+    const escrito = content
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0)
+        .filter(l => !l.startsWith('#'))                 // titulos do template
+        .filter(l => !l.startsWith('>'))                 // instrucoes (citacao)
+        .filter(l => !l.startsWith('<!--'))              // comentarios
+        .filter(l => !/^[-*_]{3,}$/.test(l))             // linha horizontal
+        .filter(l => l !== 'RESPOSTA:')                  // marcador do campo vazio
+        .filter(l => !LEGACY_TECH_SPEC_MARKERS.some(m => l.includes(m)));
+    return escrito.length === 0;
+}
+
 export function getMcpConfigPath(): string {
     if (process.platform === 'win32') {
         return path.join(process.env['APPDATA'] || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User', 'mcp.json');
@@ -220,8 +281,7 @@ export async function createBlankUserStory(
 
     const techSpecPath = path.join(targetDocPath, 'technical_spec.md');
     if (!fs.existsSync(techSpecPath)) {
-        const techTemplate = `# Technical Specification (opcional)\n\nCole aqui o detalhamento técnico: classes, endpoints, contratos de API,\nexemplos de código, yml, estrutura de pacotes, análise de impacto.\n\nEste arquivo é lido pela fase Plan. Mantenha apenas a história de negócio em user_story.md.\n`;
-        fs.writeFileSync(techSpecPath, techTemplate);
+        fs.writeFileSync(techSpecPath, TECH_SPEC_TEMPLATE);
     }
     return targetDocPath;
 }

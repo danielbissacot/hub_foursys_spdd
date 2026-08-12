@@ -15,6 +15,8 @@ import {
     ensureNewStorySlug,
     importPoStory,
     createBlankUserStory,
+    isTechSpecUnfilled,
+    TECH_SPEC_TEMPLATE,
 } from '../src/utils';
 
 function createFakeContext(): vscode.ExtensionContext {
@@ -309,6 +311,42 @@ describe('utils.ts', () => {
 
             const techSpec = fs.readFileSync(path.join(docPath, 'technical_spec.md'), 'utf8');
             assert.strictEqual(techSpec, 'conteudo tecnico ja preenchido');
+        });
+    });
+
+    describe('isTechSpecUnfilled', () => {
+        it('template novo recem-criado conta como em branco', () => {
+            assert.strictEqual(isTechSpecUnfilled(TECH_SPEC_TEMPLATE), true);
+        });
+
+        it('template ANTIGO (<= 1.2.5) nunca preenchido tambem conta como em branco', () => {
+            const antigo = '# Technical Specification (opcional)\n\n' +
+                'Cole aqui o detalhamento técnico: classes, endpoints, contratos de API,\n' +
+                'exemplos de código, yml, estrutura de pacotes, análise de impacto.\n\n' +
+                'Este arquivo é lido pela fase Plan. Mantenha apenas a história de negócio em user_story.md.\n';
+            assert.strictEqual(isTechSpecUnfilled(antigo), true);
+        });
+
+        it('arquivo vazio conta como em branco', () => {
+            assert.strictEqual(isTechSpecUnfilled(''), true);
+            assert.strictEqual(isTechSpecUnfilled('\n\n   \n'), true);
+        });
+
+        it('texto escrito depois de RESPOSTA: conta como preenchido', () => {
+            const preenchido = TECH_SPEC_TEMPLATE + '\nUsar a fila de liquidacao existente, nao criar outra.\n';
+            assert.strictEqual(isTechSpecUnfilled(preenchido), false);
+        });
+
+        it('texto escrito por cima do template antigo conta como preenchido', () => {
+            const antigoPreenchido = '# Technical Specification (opcional)\n\n' +
+                'Cole aqui o detalhamento técnico: classes, endpoints, contratos de API,\n\n' +
+                'O endpoint /v1/contratos ja existe e nao pode mudar de assinatura.\n';
+            assert.strictEqual(isTechSpecUnfilled(antigoPreenchido), false);
+        });
+
+        it('so titulo e instrucao, sem resposta, ainda conta como em branco', () => {
+            const soEstrutura = '# Especificação Técnica\n\n## Tem?\n\n> Deixe em branco.\n\n---\n\nRESPOSTA:\n';
+            assert.strictEqual(isTechSpecUnfilled(soEstrutura), true);
         });
     });
 });

@@ -10,6 +10,7 @@ import {
     UserStoryBlock, listPendingPoStories, importPoStory, createBlankUserStory
 } from './utils';
 import { trackEvent } from './telemetry';
+import { ensureFoursysAccess } from './access-gate';
 import { MEND_EXTENSION_ID as MEND_EXT_ID, MEND_LICENSE_KEY } from './mend-config';
 
 const FIGMA_EXT_ID = 'figma.figma-vscode-extension';
@@ -77,6 +78,12 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             localResourceRoots: [this._context.extensionUri]
         };
 
+        // Primeiro contato do dia: abrir o Hub (clicar no ícone) já pede o e-mail, em vez de
+        // deixar a pessoa clicar num botão pra só então descobrir que está bloqueada.
+        // Fire-and-forget: a sidebar renderiza normal enquanto isso — cada ação tem sua própria
+        // checagem abaixo, então nada executa sem passar pela trava.
+        void ensureFoursysAccess(this._context);
+
         const updateWebview = () => {
             const activeFolder = vscode.window.activeTextEditor
                 ? vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)?.uri.fsPath
@@ -136,6 +143,15 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         this._context.subscriptions.push(screensWatcher);
 
         webviewView.webview.onDidReceiveMessage(async data => {
+            // Trava única pra todos os botões. Os que chamam vscode.commands.executeCommand já
+            // seriam pegos pelo registerGated do extension.ts, mas os locais (Sync, SelectStack,
+            // RunSkill:, ...) não — então a checagem fica aqui, antes do switch, valendo pra todos.
+            // Fora da trava só o que é pura navegação de UI: trocar de aba e recarregar a janela
+            // não executam nada do Hub, e bloquear isso só deixaria a tela travada sem motivo.
+            const acao = typeof data.value === 'string' ? data.value : '';
+            const puraUI = acao === 'ReloadWindow' || acao.startsWith('SwitchTab:');
+            if (!puraUI && !await ensureFoursysAccess(this._context)) { return; }
+
             switch (data.value) {
                 case 'Sync':
                     await this._syncHub(webviewView);
@@ -153,11 +169,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'SelectStoryFile':
                     await this._selectStoryFile();
-                    updateWebview();
+                    // debouncedUpdate (não updateWebview direto): _selectStoryFile grava em
+                    // doc_projeto/**/*.md, que o docWatcher também detecta — usar a mesma função
+                    // debounced evita dois reloads completos do sidebar em sequência (flicker).
+                    debouncedUpdate();
                     break;
                 case 'SwitchStory':
                     await this._switchStory();
-                    updateWebview();
+                    debouncedUpdate();
                     break;
                 case 'Plan':
                     vscode.commands.executeCommand('foursys.plan');
@@ -186,7 +205,8 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'AddMockup':
                     await vscode.commands.executeCommand('foursys.addMockup');
-                    updateWebview();
+                    // idem: addMockup grava em doc_projeto/**/screens/, coberto pelo screensWatcher.
+                    debouncedUpdate();
                     break;
                 case 'QaExportXray':
                     vscode.commands.executeCommand('foursys.qaExportXray');

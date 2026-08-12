@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getStackConfig } from './stack-registry';
 import { loadPlaybookForStack } from './catalog-loader';
+import { isTechSpecUnfilled } from '../utils';
 
 export const DOC_FOLDER = 'doc_projeto';
 export const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de workspace em 60%
@@ -108,6 +109,19 @@ export function resolveOutputAndContextFiles(
             contextFiles = [path.join(docPath, 'discovery.md'), path.join(docPath, 'prd.md')];
             break;
     }
+
+    // technical_spec.md so entra no contexto se a pessoa escreveu algo nele. Em branco (template
+    // novo ou o antigo de versoes <= 1.2.5) ele e descartado: injetar template vazio gasta
+    // contexto a toa e ainda oferece o texto de exemplo pra IA copiar como se fosse dado real
+    // do projeto — a descoberta da estrutura real e trabalho da Etapa 0 do playbook.
+    contextFiles = contextFiles.filter(file => {
+        if (path.basename(file) !== 'technical_spec.md') { return true; }
+        try {
+            return !isTechSpecUnfilled(fs.readFileSync(file, 'utf8'));
+        } catch {
+            return false;
+        }
+    });
 
     return { outputPath, contextFiles };
 }

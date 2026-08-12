@@ -2,7 +2,7 @@
   "name": "foursys-sdd-engine-hybrid-po",
   "displayName": "Foursys SDD Engine Hybrid PO",
   "description": "Motor SDD + Product Owner Agent — Discovery, PRD e User Stories com pipeline business-first.",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "publisher": "foursys",
   "repository": {
     "type": "git",
@@ -83,7 +83,8 @@
       { "command": "foursys.poDiscovery",         "title": "Foursys: PO — Iniciar Discovery" },
       { "command": "foursys.telemetry.optOut",    "title": "Foursys: Desativar Telemetria" },
       { "command": "foursys.telemetry.setEmail",  "title": "Foursys: Definir/Atualizar E-mail de Telemetria" },
-      { "command": "foursys.syncPersonalCopilot", "title": "Foursys: Sincronizar Skills Nativas do Copilot (VS Code/IntelliJ/CLI)" }
+      { "command": "foursys.syncPersonalCopilot", "title": "Foursys: Sincronizar Skills Nativas do Copilot (VS Code/IntelliJ/CLI)" },
+      { "command": "foursys.unlockAccess",        "title": "Foursys: Liberar Acesso" }
     ],
     "configuration": {
       "title": "Foursys SDD",

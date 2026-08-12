@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { AIClient } from './ai-client';
+import { ensureFoursysAccess, unlockAccessWithCode } from './access-gate';
 import { loadPlaybookForStack, findCatalogPath, detectTechnology, resolveSkillMdFile } from './engine/catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
 import { POPanelProvider } from './po-panel-provider';
@@ -88,6 +89,17 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const agentes = vscode.chat.createChatParticipant('foursys_sdd_po', async (request, _chatContext, response, token) => {
+        // O chat participant nao passa por registerGated: quem digita "@foursys_sdd_po /plan"
+        // chega aqui direto, sem executar comando nenhum. Precisa da propria trava.
+        if (!await ensureFoursysAccess(context)) {
+            response.markdown(
+                '🔒 O Foursys SDD Hub é de uso interno da Foursys e precisa de um e-mail `@foursys.com.br`.\n\n' +
+                'Se você é da Foursys e está em ambiente de cliente, peça o código de liberação ao time do Hub ' +
+                'e rode **Foursys: Liberar Acesso** na paleta de comandos.'
+            );
+            return;
+        }
+
         let referencesContext = '';
         for (const ref of request.references) {
             if (ref.value instanceof vscode.Uri) {
@@ -105,6 +117,15 @@ export function activate(context: vscode.ExtensionContext) {
 
     const commandToken = () => new vscode.CancellationTokenSource().token;
 
+    // Todo comando do Hub passa pela trava de acesso antes de executar. Ficam de fora só os de
+    // telemetria (privacidade: a pessoa precisa poder desativar mesmo sem acesso liberado) e o
+    // próprio comando de liberação.
+    const registerGated = (id: string, handler: (...args: unknown[]) => unknown) =>
+        vscode.commands.registerCommand(id, async (...args: unknown[]) => {
+            if (!await ensureFoursysAccess(context)) { return; }
+            return handler(...args);
+        });
+
     // Comandos que só disparam executeSDDPhase(fase) sem nenhuma lógica adicional.
     const SIMPLE_PHASE_COMMANDS: [string, string][] = [
         ['foursys.constitution', 'constitution'],
@@ -117,12 +138,12 @@ export function activate(context: vscode.ExtensionContext) {
         ['foursys.qaReport', 'qa-report'],
     ];
     for (const [commandId, phase] of SIMPLE_PHASE_COMMANDS) {
-        context.subscriptions.push(vscode.commands.registerCommand(commandId, () =>
+        context.subscriptions.push(registerGated(commandId, () =>
             executeSDDPhase(phase, '', '', null, commandToken(), context, outputChannel)
         ));
     }
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.qaExportXray', async () => {
+    context.subscriptions.push(registerGated('foursys.qaExportXray', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
         const casesPath = path.join(resolveStoryDocPath(rootPath, context), 'qa', 'casos_teste.md');
@@ -205,7 +226,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.setXrayToken', async () => {
+    context.subscriptions.push(registerGated('foursys.setXrayToken', async () => {
         const token = await vscode.window.showInputBox({
             title: 'Foursys — Token de API do Xray',
             prompt: 'Cole o Bearer token de API do Jira/Xray (será armazenado com segurança)',
@@ -218,7 +239,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.implement', async () => {
+    context.subscriptions.push(registerGated('foursys.implement', async () => {
         const stackId = getActiveStackId(context);
         const config = getStackConfig(stackId);
         const rootPath = getWorkspaceRoot();
@@ -228,7 +249,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession1', async () => {
+    context.subscriptions.push(registerGated('foursys.implementSession1', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
         vscode.commands.executeCommand('workbench.action.chat.open', {
@@ -236,7 +257,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.implementSession2', async () => {
+    context.subscriptions.push(registerGated('foursys.implementSession2', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
         vscode.commands.executeCommand('workbench.action.chat.open', {
@@ -246,7 +267,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Mend Advise é passivo — escaneia automaticamente e exibe CVEs no painel Problems.
     // Abre o Problems panel como ação principal; tenta comandos de scan explícitos antes (versões futuras).
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.runMend', async () => {
+    context.subscriptions.push(registerGated('foursys.runMend', async () => {
         const scanCandidates = ['mend.scanWorkspace', 'mend.scan', 'mend.runScan'];
         for (const cmd of scanCandidates) {
             try {
@@ -265,7 +286,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Comando de troca manual de stack via QuickPick
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.selectStack', async () => {
+    context.subscriptions.push(registerGated('foursys.selectStack', async () => {
         const stacks = getAllStacks();
         const items = stacks.map(s => ({ label: s.displayName, description: s.id, stackId: s.id }));
         const picked = await vscode.window.showQuickPick(items, {
@@ -281,7 +302,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Comando de seleção de Design System (usado pela sidebar Angular)
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.selectDesignSystem', async () => {
+    context.subscriptions.push(registerGated('foursys.selectDesignSystem', async () => {
         const DS_OPTIONS = [
             { label: 'Bradesco Liquid (Foursys)', id: 'bradesco-liquid' },
             { label: 'Angular Material',          id: 'material'        },
@@ -302,7 +323,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Comando para adicionar/substituir mockup de tela em doc_projeto/screens/
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.addMockup', async () => {
+    context.subscriptions.push(registerGated('foursys.addMockup', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
         const files = await vscode.window.showOpenDialog({
@@ -322,7 +343,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Configura o MCP do Figma automaticamente no mcp.json do VS Code (sem restart necessário)
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.setupFigmaMcp', async () => {
+    context.subscriptions.push(registerGated('foursys.setupFigmaMcp', async () => {
         const mcpPath = getMcpConfigPath();
         try {
             let cfg: Record<string, unknown> = { inputs: [], servers: {} };
@@ -350,7 +371,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Abre Copilot Chat com prompt que usa o Figma MCP para analisar o design
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.importFromFigma', async () => {
+    context.subscriptions.push(registerGated('foursys.importFromFigma', async () => {
         if (!checkFigmaMcpConfigured()) {
             vscode.window.showWarningMessage('MCP do Figma não configurado. Use o botão "⚙️ Figma MCP" na sidebar.');
             return;
@@ -435,21 +456,25 @@ Este design é o mockup da User Story em ${userStoryRelPath}`;
     }));
 
     // Comando: Abrir PO Panel (WebviewPanel central)
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.openPOPanel', () =>
+    context.subscriptions.push(registerGated('foursys.openPOPanel', () =>
         POPanelProvider.openOrReveal(context)
     ));
 
     // Comando: Iniciar Discovery (abre template .md no editor)
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.poDiscovery', () =>
+    context.subscriptions.push(registerGated('foursys.poDiscovery', () =>
         POPanelProvider._abrirTemplateDiscovery()
     ));
 
     // Telemetria de uso (opt-in, ver PRIVACY.md)
+    // Sem trava de proposito: desativar telemetria e uma escolha de privacidade, nao pode
+    // depender de ter acesso liberado. O mesmo vale pro comando de liberacao logo abaixo —
+    // se ele fosse travado, ninguem conseguiria se liberar.
     context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.optOut', () => optOutTelemetry(context)));
     context.subscriptions.push(vscode.commands.registerCommand('foursys.telemetry.setEmail', () => setTelemetryEmail(context)));
+    context.subscriptions.push(vscode.commands.registerCommand('foursys.unlockAccess', () => unlockAccessWithCode(context)));
 
     // Skills nativas do Copilot (opcional, aditivo — nao substitui o @foursys_sdd_po)
-    context.subscriptions.push(vscode.commands.registerCommand('foursys.syncPersonalCopilot', () => syncPersonalCopilot(context, outputChannel)));
+    context.subscriptions.push(registerGated('foursys.syncPersonalCopilot', () => syncPersonalCopilot(context, outputChannel)));
 }
 
 async function executeSDDPhase(

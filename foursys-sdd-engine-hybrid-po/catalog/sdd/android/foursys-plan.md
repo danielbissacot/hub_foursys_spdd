@@ -4,6 +4,12 @@ Com base na User Story e especificação técnica, gere o **Plano de Implementa�
 
 ## Estrutura Obrigatória do Plano
 
+### 0. Levantamento do Projeto Real (OBRIGATÓRIO, antes de tudo)
+
+Antes de montar o plano, procure no projeto Android aberto se já existem pastas/arquivos em `feature/[nome]/domain`, `data` ou `presentation` relacionados à feature da história (busque por nome de domínio/feature parecido, não só no texto da história). Liste o que encontrar, com caminho real, e use como base — só proponha arquivo novo pra camada/feature que a busca não encontrar.
+
+**Checagem obrigatória do pacote real**: extraia o `applicationId`/`namespace` real do `app/build.gradle.kts` (ou o pacote declarado no `AndroidManifest.xml`). Compare com qualquer pacote citado em exemplo de skill — nunca use um pacote de exemplo como se fosse o real deste projeto. Se não for possível determinar, pergunte ao usuário antes de prosseguir — nunca presuma.
+
 ### 1. Tabela de Impactos Sistêmicos
 
 Liste TODOS os arquivos globais que serão criados ou modificados:

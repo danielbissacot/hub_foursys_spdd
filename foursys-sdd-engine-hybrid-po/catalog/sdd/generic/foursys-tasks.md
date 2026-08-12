@@ -50,8 +50,8 @@ Cada tarefa deve ser:
 
 ### 🌐 Impactos Sistêmicos (OBRIGATÓRIO)
 > [!CAUTION]
-> **ESTA SEÇÃO É OBRIGATÓRIA.** Se você não gerar esta tabela, sua resposta será rejeitada por violação de governança.
-> Identifique todos os arquivos globais que precisam de alteração ANTES das tarefas de codificação.
+> **ESTA SEÇÃO É OBRIGATÓRIA** — mas "obrigatória" significa sempre presente, não sempre preenchida.
+> Identifique só os arquivos globais que você tem certeza que precisam de alteração. Se não houver nenhum impacto sistêmico real, escreva explicitamente "Nenhum impacto sistêmico identificado" — não invente linha só pra tabela não ficar vazia.
 
 | Arquivo Global | Impacto Previsto | Modificação Necessária |
 |----------------|------------------|------------------------|

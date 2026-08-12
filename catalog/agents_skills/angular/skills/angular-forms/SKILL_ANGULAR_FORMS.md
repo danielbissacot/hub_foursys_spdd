@@ -1,446 +1,206 @@
 ---
-name: angular-forms
-description: Constrói formulários baseados em Signal no Angular v21+ usando a nova API Signal Forms. Indicado para criação de formulários com two-way binding automático, validação baseada em schema, gerenciamento de estado de campos e formulários dinâmicos. Acione em implementação de formulário, adição de validação, criação de formulários multi-etapa ou campos condicionais. Signal Forms são experimentais, mas recomendados para novos projetos Angular.
+name: 'angular-forms'
+description: "Guia completo para formulários Angular v20+ com Reactive Forms e Signal-based Forms (v21+). Cobre FormControl com Signals, FormGroup, validadores síncronos e assíncronos, tipagem estrita, formulários dinâmicos, feedback de erros ao usuário e acessibilidade WCAG AA. Use para qualquer formulário em componentes Angular standalone."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
-# Angular Signal Forms
+# Skill: angular-forms
 
-Construa formulários reativos e com tipagem estática usando a API Signal Forms do Angular. Signal Forms fornecem two-way binding automático, validação baseada em schema e estado reativo dos campos.
+Guia completo para **formulários Angular v20+** com Reactive Forms e Signal-based Forms.
 
-**Nota:** Signal Forms são experimentais no Angular v21. Para aplicações em produção que exigem estabilidade, veja [references/reactive-forms](references/reactive-forms.MD) e [references/typed-reactive-forms](references/typed-reactive-forms.MD) para padrões com Reactive Forms.
+---
 
-## Basic Setup
+## Quando usar
+
+- Qualquer formulário com validação de negócio.
+- Formulários com campos dinâmicos ou condicionais.
+- Validação assíncrona (ex: verificar disponibilidade no backend).
+
+## Quando não usar
+
+- Template-driven forms com `[(ngModel)]` — proibido em projetos Foursys SDD.
+- Formulários de uma única entrada simples → use `signal()` direto sem FormControl.
+
+---
+
+## Reactive Forms com Tipagem Estrita
 
 ```typescript
-import { Component, signal } from '@angular/core';
-import { form, FormField, required, email } from '@angular/forms/signals';
-
-interface LoginData {
-  email: string;
-  password: string;
-}
+import { FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-login',
-  imports: [FormField],
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule],
   template: `
-    <form (submit)="onSubmit($event)">
-      <label>
-        Email
-        <input type="email" [formField]="loginForm.email" />
-      </label>
-      @if (loginForm.email().touched() && loginForm.email().invalid()) {
-        <p class="error">{{ loginForm.email().errors()[0].message }}</p>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <label for="nome">Nome *</label>
+      <input id="nome" formControlName="nome" aria-describedby="nome-erro" />
+      @if (form.controls.nome.invalid && form.controls.nome.touched) {
+        <span id="nome-erro" role="alert">
+          @if (form.controls.nome.hasError('required')) { Nome é obrigatório }
+          @if (form.controls.nome.hasError('minlength')) { Mínimo 3 caracteres }
+        </span>
       }
-      
-      <label>
-        Password
-        <input type="password" [formField]="loginForm.password" />
-      </label>
-      @if (loginForm.password().touched() && loginForm.password().invalid()) {
-        <p class="error">{{ loginForm.password().errors()[0].message }}</p>
-      }
-      
-      <button type="submit" [disabled]="loginForm().invalid()">Login</button>
+
+      <button type="submit" [disabled]="form.invalid">Salvar</button>
     </form>
-  `,
+  `
 })
-export class LoginComponent {
-  // Form model - a writable signal
-  loginModel = signal<LoginData>({
-    email: '',
-    password: '',
+export class CadastroProdutoComponent {
+  protected readonly form = new FormGroup({
+    nome:  new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(3)] }),
+    valor: new FormControl<number | null>(null, { validators: [Validators.required, Validators.min(0.01)] }),
+    ativo: new FormControl(true, { nonNullable: true })
   });
-  
-  // Create form with validation schema
-  loginForm = form(this.loginModel, (schemaPath) => {
-    required(schemaPath.email, { message: 'Email é obrigatório' });
-    email(schemaPath.email, { message: 'Insira um endereço de email válido' });
-    required(schemaPath.password, { message: 'Senha é obrigatória' });
-  });
-  
-  onSubmit(event: Event) {
-    event.preventDefault();
-    if (this.loginForm().valid()) {
-      const credentials = this.loginModel();
-      console.log('Enviando:', credentials);
-    }
+
+  protected onSubmit() {
+    if (this.form.invalid) return;
+    const dados = this.form.getRawValue(); // tipado com inferência correta
+    // ...
   }
 }
 ```
 
-## Form Models
+---
 
-Form models are writable signals that serve as the single source of truth:
+## Signal-based Forms (Angular v21+ experimental)
 
 ```typescript
-// Define interface for type safety
-interface UserProfile {
-  name: string;
-  email: string;
-  age: number | null;
-  preferences: {
-    newsletter: boolean;
-    theme: 'light' | 'dark';
+// Forma nativa com Signals (experimental — verificar disponibilidade)
+import { signalForm, requiredValidator } from '@angular/forms/signals';
+
+protected readonly form = signalForm({
+  nome: signalField('', [requiredValidator()]),
+  email: signalField('', [requiredValidator(), emailValidator()])
+});
+
+// form.nome.value() — Signal<string>
+// form.nome.errors() — Signal<ValidationErrors | null>
+// form.valid() — Signal<boolean>
+```
+
+---
+
+## Validadores Customizados
+
+```typescript
+// Validador síncrono
+function cpfValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const cpf = control.value?.replace(/\D/g, '');
+    if (!cpf || cpf.length !== 11) return { cpfInvalido: true };
+    return null;
   };
 }
 
-// Create model signal with initial values
-const userModel = signal<UserProfile>({
-  name: '',
-  email: '',
-  age: null,
-  preferences: {
-    newsletter: false,
-    theme: 'light',
-  },
-});
-
-// Create form from model
-const userForm = form(userModel);
-
-// Access nested fields via dot notation
-userForm.name                    // FieldTree<string>
-userForm.preferences.theme       // FieldTree<'light' | 'dark'>
-```
-
-### Reading Values
-
-```typescript
-// Read entire model
-const data = this.userModel();
-
-// Read field value via field state
-const name = this.userForm.name().value();
-const theme = this.userForm.preferences.theme().value();
-```
-
-### Updating Values
-
-```typescript
-// Replace entire model
-this.userModel.set({
-  name: 'Alice',
-  email: 'alice@example.com',
-  age: 30,
-  preferences: { newsletter: true, theme: 'dark' },
-});
-
-// Update single field
-this.userForm.name().value.set('Bob');
-this.userForm.age().value.update(age => (age ?? 0) + 1);
-```
-
-## Field State
-
-Each field provides reactive signals for validation, interaction, and availability:
-
-```typescript
-const emailField = this.form.email();
-
-// Validation state
-emailField.valid()      // true if passes all validation
-emailField.invalid()    // true if has validation errors
-emailField.errors()     // array of error objects
-emailField.pending()    // true if async validation in progress
-
-// Interaction state
-emailField.touched()    // true after focus + blur
-emailField.dirty()      // true after user modification
-
-// Availability state
-emailField.disabled()   // true if field is disabled
-emailField.hidden()     // true if field should be hidden
-emailField.readonly()   // true if field is readonly
-
-// Value
-emailField.value()      // current field value (signal)
-```
-
-### Form-Level State
-
-The form itself is also a field with aggregated state:
-
-```typescript
-// Form is valid when all interactive fields are valid
-this.form().valid()
-
-// Form is touched when any field is touched
-this.form().touched()
-
-// Form is dirty when any field is modified
-this.form().dirty()
-```
-
-## Validation
-
-### Built-in Validators
-
-```typescript
-import { 
-  form, required, email, min, max, 
-  minLength, maxLength, pattern 
-} from '@angular/forms/signals';
-
-const userForm = form(this.userModel, (schemaPath) => {
-  // Required field
-  required(schemaPath.name, { message: 'Name is required' });
-  
-  // Email format
-  email(schemaPath.email, { message: 'Invalid email' });
-  
-  // Numeric range
-  min(schemaPath.age, 18, { message: 'Must be 18+' });
-  max(schemaPath.age, 120, { message: 'Invalid age' });
-  
-  // String/array length
-  minLength(schemaPath.password, 8, { message: 'Min 8 characters' });
-  maxLength(schemaPath.bio, 500, { message: 'Max 500 characters' });
-  
-  // Regex pattern
-  pattern(schemaPath.phone, /^\d{3}-\d{3}-\d{4}$/, {
-    message: 'Format: 555-123-4567',
-  });
-});
-```
-
-### Conditional Validation
-
-```typescript
-const orderForm = form(this.orderModel, (schemaPath) => {
-  required(schemaPath.promoCode, {
-    message: 'Promo code required for discounts',
-    when: ({ valueOf }) => valueOf(schemaPath.applyDiscount),
-  });
-});
-```
-
-### Custom Validators
-
-```typescript
-import { validate } from '@angular/forms/signals';
-
-const signupForm = form(this.signupModel, (schemaPath) => {
-  // Custom validation logic
-  validate(schemaPath.username, ({ value }) => {
-    if (value().includes(' ')) {
-      return { kind: 'noSpaces', message: 'Username cannot contain spaces' };
-    }
-    return null;
-  });
-});
-```
-
-### Cross-Field Validation
-
-```typescript
-const passwordForm = form(this.passwordModel, (schemaPath) => {
-  required(schemaPath.password);
-  required(schemaPath.confirmPassword);
-  
-  // Compare fields
-  validate(schemaPath.confirmPassword, ({ value, valueOf }) => {
-    if (value() !== valueOf(schemaPath.password)) {
-      return { kind: 'mismatch', message: 'Passwords do not match' };
-    }
-    return null;
-  });
-});
-```
-
-### Async Validation
-
-```typescript
-import { validateHttp } from '@angular/forms/signals';
-
-const signupForm = form(this.signupModel, (schemaPath) => {
-  validateHttp(schemaPath.username, {
-    request: ({ value }) => `/api/check-username?u=${value()}`,
-    onSuccess: (response: { taken: boolean }) => {
-      if (response.taken) {
-        return { kind: 'taken', message: 'Username already taken' };
-      }
-      return null;
-    },
-    onError: () => ({
-      kind: 'networkError',
-      message: 'Could not verify username',
-    }),
-  });
-});
-```
-
-## Conditional Fields
-
-### Hidden Fields
-
-```typescript
-import { hidden } from '@angular/forms/signals';
-
-const profileForm = form(this.profileModel, (schemaPath) => {
-  hidden(schemaPath.publicUrl, ({ valueOf }) => !valueOf(schemaPath.isPublic));
-});
-```
-
-```html
-@if (!profileForm.publicUrl().hidden()) {
-  <input [formField]="profileForm.publicUrl" />
+// Validador assíncrono (verificar no backend)
+function emailDisponivel(service: UsuarioService): AsyncValidatorFn {
+  return (control: AbstractControl): Observable<ValidationErrors | null> => {
+    return timer(400).pipe(  // debounce de 400ms
+      switchMap(() => service.verificarEmail(control.value)),
+      map(disponivel => disponivel ? null : { emailIndisponivel: true }),
+      catchError(() => of(null))
+    );
+  };
 }
 ```
 
-### Disabled Fields
-
+Uso:
 ```typescript
-import { disabled } from '@angular/forms/signals';
-
-const orderForm = form(this.orderModel, (schemaPath) => {
-  disabled(schemaPath.couponCode, ({ valueOf }) => valueOf(schemaPath.total) < 50);
-});
-```
-
-### Readonly Fields
-
-```typescript
-import { readonly } from '@angular/forms/signals';
-
-const accountForm = form(this.accountModel, (schemaPath) => {
-  readonly(schemaPath.username); // Always readonly
-});
-```
-
-## Form Submission
-
-```typescript
-import { submit } from '@angular/forms/signals';
-
-@Component({
-  template: `
-    <form (submit)="onSubmit($event)">
-      <input [formField]="form.email" />
-      <input [formField]="form.password" />
-      <button type="submit" [disabled]="form().invalid()">Submit</button>
-    </form>
-  `,
+email: new FormControl('', {
+  validators: [Validators.required, Validators.email],
+  asyncValidators: [emailDisponivel(this.usuarioService)],
+  updateOn: 'blur'  // validar ao sair do campo
 })
-export class LoginComponent {
-  model = signal({ email: '', password: '' });
-  form = form(this.model, (schemaPath) => {
-    required(schemaPath.email);
-    required(schemaPath.password);
-  });
-  
-  onSubmit(event: Event) {
-    event.preventDefault();
-    
-    // submit() marks all fields touched and runs callback if valid
-    submit(this.form, async () => {
-      await this.authService.login(this.model());
-    });
-  }
-}
 ```
 
-## Arrays and Dynamic Fields
+---
+
+## FormArray para campos dinâmicos
 
 ```typescript
-interface Order {
-  items: Array<{ product: string; quantity: number }>;
+protected readonly form = new FormGroup({
+  nome: new FormControl('', { nonNullable: true }),
+  telefones: new FormArray<FormControl<string>>([])
+});
+
+get telefones() {
+  return this.form.controls.telefones;
 }
 
-@Component({
-  template: `
-    @for (item of orderForm.items; track $index; let i = $index) {
-      <div>
-        <input [formField]="item.product" placeholder="Product" />
-        <input [formField]="item.quantity" type="number" />
-        <button type="button" (click)="removeItem(i)">Remove</button>
-      </div>
-    }
-    <button type="button" (click)="addItem()">Add Item</button>
-  `,
-})
-export class OrderComponent {
-  orderModel = signal<Order>({
-    items: [{ product: '', quantity: 1 }],
-  });
-  
-  orderForm = form(this.orderModel, (schemaPath) => {
-    applyEach(schemaPath.items, (item) => {
-      required(item.product, { message: 'Product required' });
-      min(item.quantity, 1, { message: 'Min quantity is 1' });
-    });
-  });
-  
-  addItem() {
-    this.orderModel.update(m => ({
-      ...m,
-      items: [...m.items, { product: '', quantity: 1 }],
-    }));
-  }
-  
-  removeItem(index: number) {
-    this.orderModel.update(m => ({
-      ...m,
-      items: m.items.filter((_, i) => i !== index),
-    }));
-  }
+adicionarTelefone() {
+  this.telefones.push(
+    new FormControl('', { nonNullable: true, validators: [Validators.pattern(/^\d{10,11}$/)] })
+  );
+}
+
+removerTelefone(index: number) {
+  this.telefones.removeAt(index);
 }
 ```
 
-## Displaying Errors
-
+Template:
 ```html
-<input [formField]="form.email" />
-
-@if (form.email().touched() && form.email().invalid()) {
-  <ul class="errors">
-    @for (error of form.email().errors(); track error) {
-      <li>{{ error.message }}</li>
-    }
-  </ul>
-}
-
-@if (form.email().pending()) {
-  <span>Validating...</span>
-}
+<div formArrayName="telefones">
+  @for (ctrl of telefones.controls; track $index; let i = $index) {
+    <input [formControlName]="i" placeholder="Telefone {{ i + 1 }}" />
+    <button type="button" (click)="removerTelefone(i)" aria-label="Remover telefone {{ i + 1 }}">-</button>
+  }
+  <button type="button" (click)="adicionarTelefone()">+ Adicionar telefone</button>
+</div>
 ```
 
-## Styling Based on State
+---
+
+## Acessibilidade WCAG AA Obrigatória
 
 ```html
+<!-- ✅ label associado via for/id + aria-describedby no erro -->
+<label for="valor">Valor *</label>
 <input
-  [formField]="form.email"
-  [class.is-invalid]="form.email().touched() && form.email().invalid()"
-  [class.is-valid]="form.email().touched() && form.email().valid()"
+  id="valor"
+  type="number"
+  formControlName="valor"
+  aria-describedby="valor-erro"
+  [attr.aria-invalid]="form.controls.valor.invalid && form.controls.valor.touched"
 />
-```
-
-## Reset Form
-
-```typescript
-async onSubmit() {
-  if (!this.form().valid()) return;
-  
-  await this.api.submit(this.model());
-  
-  // Clear interaction state
-  this.form().reset();
-  
-  // Clear values
-  this.model.set({ email: '', password: '' });
+@if (form.controls.valor.invalid && form.controls.valor.touched) {
+  <span id="valor-erro" role="alert" aria-live="polite">
+    Valor é obrigatório e deve ser maior que zero
+  </span>
 }
 ```
 
-Para padrões com Reactive Forms (production-stable), veja:
+---
 
-- [Reactive Forms](references/reactive-forms.MD)
-- [Typed Reactive Forms](references/typed-reactive-forms.MD)
-- [FormBuilder Patterns](references/formbuilder-patterns.MD)
-- [Dynamic Forms with FormArray](references/dynamic-forms.MD)
-- [Custom Validators](references/custom-validators.MD)
-- [Form State Management](references/form-state-management.MD)
-- [Error Display Pattern](references/error-display.MD)
-- [Form Submission Pattern](references/form-submission.MD)
+## Integração com Signals (toSignal)
 
+```typescript
+// Observar mudanças no formulário como Signal
+protected readonly formValue = toSignal(this.form.valueChanges, {
+  initialValue: this.form.getRawValue()
+});
+
+// Status do formulário como Signal
+protected readonly isValid = toSignal(
+  this.form.statusChanges.pipe(map(s => s === 'VALID')),
+  { initialValue: false }
+);
+```
+
+---
+
+## Checklist de Uso
+
+- [ ] `nonNullable: true` em `FormControl` quando o campo não pode ser `null`
+- [ ] Validadores síncronos definidos na criação do `FormControl`
+- [ ] Validadores assíncronos com debounce de 400ms (`timer(400).pipe(switchMap(...))`)
+- [ ] `updateOn: 'blur'` para validação assíncrona custosa
+- [ ] Verificar `form.invalid` antes de processar submit
+- [ ] `getRawValue()` (não `value`) para obter todos os campos tipados
+- [ ] `aria-describedby` apontando para span de erro
+- [ ] `role="alert"` e `aria-live="polite"` nas mensagens de erro
+- [ ] `[attr.aria-invalid]` no input quando inválido e tocado
+- [ ] `ChangeDetectionStrategy.OnPush` no componente

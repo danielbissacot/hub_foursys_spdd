@@ -1,196 +1,230 @@
 ---
-name: springboot-redis
-description: Implementa cache com Azure Cache for Redis em Spring Boot usando @Cacheable/@CachePut/@CacheEvict com CSI Driver (sem SDK no código), TTL por natureza de dado e degradação graceful. Use para features de cache, otimização de performance e redução de latência em leituras repetitivas.
+name: 'springboot-redis'
+description: "Implementa cache distribuído com Azure Cache for Redis (via CSI Driver) no padrão Hexagonal. Cobre @Cacheable, @CacheEvict, @CachePut, TTL por natureza dos dados (estático 24h / semi-estático 1h / transacional 5min), degradação graceful (required: false) e adapter de cache. Use quando a história precisar de cache para reduzir latência ou carga em banco/APIs externas."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
-# Spring Boot — Azure Cache for Redis
+# Skill: springboot-redis
 
-Implemente cache com Spring Cache abstraction conectado ao Azure Cache for Redis. Segredos gerenciados via CSI Driver — nunca via SDK no código.
+Guia completo para implementar **cache distribuído Redis** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal — Azure Cache for Redis via CSI Driver.
 
-## Regras Críticas
+> **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história especifica TTL de cache por natureza dos dados.
 
-- **Segredos via CSI Driver**: `spring.data.redis.password` deve ser lido de arquivo montado (`configtree`), nunca hardcoded.
-- **NUNCA cachear** dados financeiros sensíveis (saldo em tempo real, transações pendentes, dados PCI-DSS).
-- **Degradação graceful**: configure `required: false` — cache down não pode derrubar o serviço.
-- **Desabilitar localmente**: profile `local` sem conexão Redis (use `@Profile("!local")`).
-- **BigDecimal**: valores monetários nunca como String em cache — serialize com `GenericJackson2JsonRedisSerializer`.
+---
 
-## TTL por Natureza de Dado
+## Quando usar
 
-| Natureza | TTL | Exemplos |
-|----------|-----|---------|
-| Estático | 24h | tabelas de domínio, configurações de produto |
-| Semi-estático | 1h | dados de cliente (nome, endereço), limites operacionais |
-| Transacional | 5min | cotações, taxas, disponibilidade |
+- Dados consultados frequentemente com baixa taxa de mudança (tabelas de domínio, parâmetros).
+- Redução de latência em APIs externas com SLA alto.
+- Rate limiting ou controle de idempotência temporária.
 
-## Configuração (application.yml)
+## Quando não usar
+
+- Dados que precisam de consistência forte e imediata após escrita.
+- Cache de sessão de usuário → use Spring Session com Redis separadamente.
+
+---
+
+## TTL por Natureza dos Dados
+
+| Natureza | TTL | Exemplo |
+|---|---|---|
+| **Estático** | 24h | Parâmetros de sistema, tabelas de domínio, configurações |
+| **Semi-estático** | 1h | Limites de crédito, taxas, dados de cadastro |
+| **Transacional** | 5min | Consultas recentes, saldos, estados de workflow |
+| **Idempotência** | 24h | IDs de eventos já processados (Kafka DLQ) |
+
+---
+
+## Estrutura de Arquivos (Hexagonal)
+
+```
+adapter/output/cache/
+└── <Dominio>CacheAdapter.java          ← Implementa OutputPort de cache (opcional)
+
+config/
+└── CacheConfig.java                    ← Configuração TTLs, serialização, nomes de cache
+```
+
+---
+
+## Implementação
+
+### 1. Dependências (pom.xml)
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-cache</artifactId>
+</dependency>
+```
+
+---
+
+### 2. Configuração (application.yml)
 
 ```yaml
 spring:
-  cache:
-    type: redis
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: 6380
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       ssl:
-        enabled: true
-      password: ${REDIS_PASSWORD}  # injetado via configtree/CSI Driver
-      connect-timeout: 2000
-      timeout: 1000
-  cache:
-    redis:
-      time-to-live: 3600000  # TTL padrão 1h em ms
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
-# Desabilitar cache em local
----
-spring:
-  config:
-    activate:
-      on-profile: local
-  cache:
-    type: none
+cache:
+  ttl:
+    estatico: 86400      # 24h em segundos
+    semi-estatico: 3600  # 1h em segundos
+    transacional: 300    # 5min em segundos
 ```
 
-## Configuração de Bean
+---
+
+### 3. Configuração de Cache (CacheConfig)
 
 ```java
+// FILEPATH: config/CacheConfig.java
 @Configuration
 @EnableCaching
 public class CacheConfig {
 
-    @Bean
-    public RedisCacheConfiguration defaultCacheConfig() {
-        return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofHours(1))
-                .disableCachingNullValues()
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(
-                                new GenericJackson2JsonRedisSerializer()
-                        )
-                );
-    }
+    @Value("${cache.ttl.estatico}")
+    private long ttlEstatico;
+
+    @Value("${cache.ttl.semi-estatico}")
+    private long ttlSemiEstatico;
+
+    @Value("${cache.ttl.transacional}")
+    private long ttlTransacional;
 
     @Bean
-    public RedisCacheManagerBuilderCustomizer cacheManagerCustomizer() {
-        return builder -> builder
-                .withCacheConfiguration("usuarios",
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofHours(1)))
-                .withCacheConfiguration("cotacoes",
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofMinutes(5)))
-                .withCacheConfiguration("configuracoes",
-                        RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofHours(24)));
+    public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+        var defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+            .serializeValuesWith(RedisSerializationContext.SerializationPair
+                .fromSerializer(new GenericJackson2JsonRedisSerializer()));
+
+        return RedisCacheManager.builder(factory)
+            .withCacheConfiguration("parametros",
+                defaultConfig.entryTtl(Duration.ofSeconds(ttlEstatico)))
+            .withCacheConfiguration("limites-credito",
+                defaultConfig.entryTtl(Duration.ofSeconds(ttlSemiEstatico)))
+            .withCacheConfiguration("saldos",
+                defaultConfig.entryTtl(Duration.ofSeconds(ttlTransacional)))
+            .build();
     }
 }
 ```
 
-## Padrão de Uso nas Annotations
+---
+
+### 4. Uso com Anotações no UseCase ou Service
 
 ```java
-@Service
-public class UsuarioService {
-
-    // Leitura — cacheia o resultado; retorna do cache se já existir
-    @Cacheable(value = "usuarios", key = "#id", unless = "#result == null")
-    public UsuarioResponse buscarUsuario(String id) {
-        return outputPort.buscar(id);
-    }
-
-    // Atualização — atualiza o cache com o novo valor
-    @CachePut(value = "usuarios", key = "#result.id")
-    public UsuarioResponse atualizarUsuario(AtualizarUsuarioCommand cmd) {
-        return outputPort.atualizar(cmd);
-    }
-
-    // Remoção — invalida a entrada do cache
-    @CacheEvict(value = "usuarios", key = "#id")
-    public void removerUsuario(String id) {
-        outputPort.remover(id);
-    }
-
-    // Evict em múltiplas chaves
-    @Caching(evict = {
-            @CacheEvict(value = "usuarios", key = "#id"),
-            @CacheEvict(value = "usuarios-lista", allEntries = true)
-    })
-    public void removerComLimpeza(String id) {
-        outputPort.remover(id);
-    }
-}
-```
-
-## Adapter Hexagonal (OutputPort + Adapter)
-
-```java
-// port/output/CacheOutputPort.java
-public interface CacheOutputPort {
-    void invalidar(String cacheName, String key);
-    void invalidarTodos(String cacheName);
-}
-
-// adapter/output/cache/RedisCacheAdapter.java
+// FILEPATH: core/usecase/ConsultarParametroUseCase.java
 @Component
 @RequiredArgsConstructor
-public class RedisCacheAdapter implements CacheOutputPort {
+public class ConsultarParametroUseCase implements ConsultarParametroInputPort {
 
-    private final CacheManager cacheManager;
+    private final ParametroRepositoryOutputPort parametroRepository;
 
     @Override
-    public void invalidar(String cacheName, String key) {
-        Cache cache = cacheManager.getCache(cacheName);
-        if (cache != null) {
-            cache.evict(key);
-        }
+    @Cacheable(value = "parametros", key = "#codigoParametro", unless = "#result == null")
+    public Parametro consultar(String codigoParametro) {
+        return parametroRepository.buscarPorCodigo(codigoParametro)
+            .orElseThrow(() -> new ParametroNaoEncontradoException(codigoParametro));
     }
 
-    @Override
-    public void invalidarTodos(String cacheName) {
-        Cache cache = cacheManager.getCache(cacheName);
-        if (cache != null) {
-            cache.clear();
-        }
+    @CacheEvict(value = "parametros", key = "#parametro.codigo")
+    public void invalidarCache(Parametro parametro) {
+        // chamado após atualização
     }
 }
 ```
 
-## Degradação Graceful
+---
+
+### 5. Degradação Graceful (required = false)
+
+Para cache não-crítico — se o Redis estiver indisponível, continua sem cache:
 
 ```java
-@Configuration
-public class RedisConfig {
+@Cacheable(value = "saldos", key = "#conta", sync = true)
+public Saldo consultarSaldo(String conta) {
+    return saldoApiOutputPort.buscar(conta);
+}
 
-    @Bean
-    public CacheErrorHandler cacheErrorHandler() {
-        return new SimpleCacheErrorHandler() {
-            @Override
-            public void handleCacheGetError(RuntimeException ex, Cache cache, Object key) {
-                log.warn("Cache read error [{}:{}] — fallback to source", cache.getName(), key);
-            }
+// Em CacheConfig, configure comportamento graceful:
+@Bean
+public CacheErrorHandler cacheErrorHandler() {
+    return new SimpleCacheErrorHandler() {
+        @Override
+        public void handleCacheGetError(RuntimeException e, Cache cache, Object key) {
+            log.warn("Redis indisponível — continuando sem cache. cache={} key={}", cache.getName(), key);
+        }
+    };
+}
+```
 
-            @Override
-            public void handleCachePutError(RuntimeException ex, Cache cache, Object key, Object value) {
-                log.warn("Cache write error [{}:{}] — continuing without cache", cache.getName(), key);
-            }
-        };
+---
+
+### 6. Adapter de Cache para Idempotência
+
+```java
+// FILEPATH: adapter/output/cache/IdempotenciaCacheAdapter.java
+@Component
+@RequiredArgsConstructor
+public class IdempotenciaCacheAdapter implements IdempotenciaOutputPort {
+
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final Duration TTL_IDEMPOTENCIA = Duration.ofHours(24);
+    private static final String PREFIX = "idempotencia:";
+
+    @Override
+    public boolean jaProcessado(String eventId) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + eventId));
+    }
+
+    @Override
+    public void registrarProcessado(String eventId) {
+        redisTemplate.opsForValue().set(PREFIX + eventId, "1", TTL_IDEMPOTENCIA);
     }
 }
 ```
 
-## Anti-patterns
+---
 
-```java
-// PROIBIDO: cache de dado financeiro sensível
-@Cacheable("saldos")  // NUNCA — saldo muda a cada transação
-public BigDecimal buscarSaldo(String conta) { ... }
+## Segurança PII
 
-// PROIBIDO: TTL infinito
-RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ZERO); // NUNCA
+- **NUNCA** armazene dados PII (CPF, senha, token, conta) diretamente no Redis sem criptografia.
+- Use a chave de cache de forma que não exponha dados sensíveis: `"saldo:" + hash(conta)`.
+- Configure `requirepass` no Redis e trafegue apenas via SSL em produção.
 
-// PROIBIDO: senha hardcoded
-spring.data.redis.password=minha-senha-fixa  // NUNCA
-```
+---
+
+## Checklist de Implementação
+
+- [ ] Dependências `spring-boot-starter-data-redis` e `spring-boot-starter-cache` adicionadas
+- [ ] `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` como variáveis de ambiente
+- [ ] `@EnableCaching` em `CacheConfig`
+- [ ] TTLs definidos por natureza: estático (24h), semi-estático (1h), transacional (5min)
+- [ ] `RedisCacheManager` configurado com TTL por nome de cache
+- [ ] `CacheErrorHandler` para degradação graceful
+- [ ] `@Cacheable` / `@CacheEvict` / `@CachePut` nos pontos corretos
+- [ ] Adapter de idempotência criado se necessário
+- [ ] `@Bean` dos adapters registrado em `config/`
+- [ ] Nenhum dado PII em chaves ou valores de cache
+- [ ] Testes com `@EmbeddedRedis` ou mock do `RedisTemplate` (cobertura ≥ 95%)

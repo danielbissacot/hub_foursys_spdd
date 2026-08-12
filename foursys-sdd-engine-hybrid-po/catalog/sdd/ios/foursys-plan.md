@@ -4,6 +4,12 @@ Com base na User Story e especificação técnica, gere o **Plano de Implementa�
 
 ## Estrutura Obrigatória do Plano
 
+### 0. Levantamento do Projeto Real (OBRIGATÓRIO, antes de tudo)
+
+Antes de montar o plano, procure no projeto iOS aberto se já existem arquivos `Domain/`, `Data/`, `Presentation/` ou `Router/` relacionados à feature da história (busque por nome de domínio/feature parecido, não só no texto da história). Liste o que encontrar, com caminho real, e use como base — só proponha arquivo novo pra camada/feature que a busca não encontrar.
+
+**Checagem obrigatória do identificador real**: confirme o Bundle Identifier real do projeto (`Info.plist`/configurações do target no Xcode, ex: `com.empresa.app`) e o prefixo de nome de módulo/tipo já usado nos arquivos existentes. Compare com qualquer identificador citado em exemplo de skill — nunca use um identificador de exemplo como se fosse o real deste projeto. Se não for possível determinar, pergunte ao usuário antes de prosseguir — nunca presuma.
+
 ### 1. Tabela de Impactos Sistêmicos
 
 Liste TODOS os arquivos globais que serão criados ou modificados:

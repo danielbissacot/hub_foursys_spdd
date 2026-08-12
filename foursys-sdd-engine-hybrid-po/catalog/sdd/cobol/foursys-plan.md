@@ -23,6 +23,11 @@ Sua função é inspecionar a História de Negócio e a Constituição do projet
 
 ### ✅ FLUXO DE EXECUÇÃO OBRIGATÓRIO
 
+#### ETAPA 0: Levantamento do Projeto Real (OBRIGATÓRIA, antes da Etapa 1)
+Antes de avaliar a história, procure no projeto COBOL aberto se já existem programas, copybooks, JCLs ou variáveis relacionados ao domínio da história (busque por nome de domínio/entidade parecido nos fontes existentes, não só no texto da história). Liste o que encontrar, com caminho real. Use isso como base da especificação técnica — só proponha programa/copybook novo para o que a busca não encontrar.
+
+**Checagem obrigatória da convenção real de nomes**: identifique o prefixo/código real usado nos `PROGRAM-ID` e nomes de copybook já existentes no projeto (muitas organizações usam um prefixo de 2-4 letras ligado ao sistema/empresa). Compare com qualquer prefixo citado em exemplo de skill — nunca use um prefixo de exemplo como se fosse a convenção real deste projeto. Se não for possível determinar, pergunte ao usuário antes de prosseguir — nunca presuma.
+
 #### ETAPA 1: Avaliação de Maturidade da História
 Audite o texto usando os 5 pilares (20 pontos cada):
 1. **Estrutura (20pts):** Segue o padrão "Como [ator], quero [ação] para [valor]" com objetivo claro?

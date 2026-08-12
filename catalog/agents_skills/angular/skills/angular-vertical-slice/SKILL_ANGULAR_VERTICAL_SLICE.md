@@ -1,13 +1,13 @@
 ---
 name: angular-vertical-slice
-description: Implementa Angular Vertical Slice Architecture (padrão DUPE) com estrutura por domínio/feature. Use para projetos Angular v20+ com 3 ou mais domínios onde a estrutura por tipo de arquivo (components/, services/) gera acoplamento e dificuldade de manutenção.
+description: Implementa Angular Vertical Slice Architecture (padrão DUPE) com estrutura por domínio/feature, camadas data-access/domain obrigatórias e import boundary validável. Use para projetos Angular v20+ com 3 ou mais domínios onde a estrutura por tipo de arquivo (components/, services/) gera acoplamento e dificuldade de manutenção.
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
 # Angular — Vertical Slice Architecture (DUPE)
 
-Organize o projeto Angular por domínio e feature, não por tipo de arquivo. Cada feature é isolada com seu próprio `index.ts` como API pública.
+Organize o projeto Angular por domínio isolado, não por tipo de arquivo. Cada domínio só se comunica com outro via `src/app/shared/`. Algumas organizações validam essa estrutura estaticamente com uma lib de lint dedicada (ex.: um pacote interno tipo `lib-ng-vertical-slice`) — se o projeto já tiver uma, siga as regras dela; as regras abaixo são a linha de base quando não há.
 
 ## Quando Aplicar
 
@@ -17,52 +17,95 @@ Organize o projeto Angular por domínio e feature, não por tipo de arquivo. Cad
 
 Para projetos menores (1-2 domínios): estrutura flat tradicional é suficiente.
 
-## Estrutura DUPE
+## Estrutura de Pastas
 
-```
+```text
 src/
 ├── app/
-│   ├── app.config.ts           ← providers globais
-│   ├── app.routes.ts           ← lazy loading por domínio
-│   └── domains/
-│       ├── clientes/
-│       │   ├── features/
-│       │   │   ├── lista-clientes/
-│       │   │   │   ├── lista-clientes.component.ts
-│       │   │   │   ├── lista-clientes.component.html
-│       │   │   │   ├── lista-clientes.service.ts
-│       │   │   │   ├── lista-clientes.routes.ts
-│       │   │   │   └── index.ts              ← PUBLIC API
-│       │   │   └── detalhe-cliente/
-│       │   │       ├── detalhe-cliente.component.ts
-│       │   │       ├── detalhe-cliente.service.ts
-│       │   │       └── index.ts
-│       │   └── shared/                       ← compartilhado só no domínio
-│       │       ├── cliente.model.ts
-│       │       └── cliente-api.service.ts
-│       └── pedidos/
-│           └── features/
-│               └── criar-pedido/
-│                   └── index.ts
-└── shared/                     ← compartilhado entre domínios
-    ├── ui/                     ← componentes UI genéricos
-    └── utils/                  ← utilitários sem lógica de negócio
+│   ├── <dominio>/                      # kebab-case: ^[a-z0-9-]+$
+│   │   ├── feat-<nome>/                # Smart components, rotas, orquestração
+│   │   │   ├── pages/                  # Opcional (routed features têm pages/)
+│   │   │   ├── models/                 # Opcional
+│   │   │   └── data-access/            # Opcional — se existir, precisa de api/services/state
+│   │   ├── ui/                         # Componentes presentacionais (dumb)
+│   │   ├── data-access/
+│   │   │   ├── api/                    # Integração HTTP — trabalha só com DTOs
+│   │   │   ├── services/               # Orquestração e mapeamento DTO ↔ Model
+│   │   │   ├── state/                  # State management
+│   │   │   └── guards/                 # Opcional — guards domain-específicos
+│   │   ├── domain/
+│   │   │   └── models/
+│   │   │       └── dtos/
+│   │   ├── utils/                      # Funções utilitárias puras
+│   │   ├── pages/                      # Pages do domínio
+│   │   └── sub-<nome>/                 # Sub-domínio — mesma estrutura, não aninhável
+│   │
+│   └── shared/                         # Código compartilhado entre domínios
+│       ├── data-access/
+│       │   ├── guards/                 # Guards cross-domain (auth, roles, feature flags)
+│       │   └── interceptors/           # Interceptors HTTP globais
+│       ├── ui/
+│       └── utils/
+│
+└── app.routes.ts                       # Lazy loading por domínio
 ```
 
-## Regra de Import (Fronteira de Módulo)
+## Nomenclatura de Domínios
+
+Domínios em **kebab-case**: `^[a-z0-9-]+$`.
+
+```text
+✅  src/app/product-catalog
+✅  src/app/auth
+❌  src/app/ProductCatalog
+❌  src/app/My_Feature
+```
+
+**Nomes proibidos como domínio direto** — evitam que `Core`/`Shared`/`Features`/`Modules` genéricos contornem a Vertical Slice: `features`, `modules`, `core`.
+
+## Regra de Import (Fronteira de Domínio)
 
 ```typescript
-// CORRETO: importar pela API pública (index.ts)
-import { ListaClientesComponent } from '../lista-clientes';
+// PROIBIDO: domínio A importa direto de domínio B
+import { ClienteApiService } from '../clientes/data-access/services/cliente.service'; // ❌
+// Solução: mover ClienteApiService para src/app/shared/, ou expor via port de domínio
 
-// PROIBIDO: importar direto de arquivo interno
-import { ListaClientesComponent } from '../lista-clientes/lista-clientes.component'; // ❌
-
-// CORRETO: domínio A não importa de domínio B diretamente
-// Se precisar compartilhar: mover para src/shared/
+// PROIBIDO: ui/ importa de data-access/ ou feat-*
+// ui/ recebe dados via @Input()/input(), nunca busca dados sozinho
 ```
 
-## index.ts (Public API da Feature)
+### Matriz de Dependências
+
+| Camada | Pode importar de |
+|---|---|
+| `feat-*` | feat, ui, data-access, utils, models |
+| `pages` | pages, feat, ui, data-access, utils, models |
+| `data-access` | data-access, utils, models |
+| `domain` | domain |
+| `ui` | ui, utils, models |
+| `utils` | utils, models |
+| `shared` | shared |
+
+### Visibilidade externa do `data-access/`
+
+| Subpasta | Acessível por | Papel |
+|---|---|---|
+| `api/` | **Ninguém fora de `data-access/`** | Integração HTTP crua, trabalha só com DTOs |
+| `services/` | `feat-*`, `pages/` | Orquestra `api/` + `state/`, mapeia DTO ↔ Model |
+| `state/` | `feat-*`, `pages/` | State management, trabalha com domain models |
+| `guards/` | `pages/` (via `canActivate`) | Nunca importado por `ui/` nem `feat-*` |
+| `interceptors/` | **Ninguém** — registrado via `provideHttpClient(withInterceptors([...]))` | |
+
+## Convenção de Constants (Co-location)
+
+Não crie uma pasta `constants/` solta em domínio ou feature — co-localize pelo escopo real do dado:
+
+1. **1 arquivo isolado** → inline no mesmo arquivo
+2. **Vários arquivos dentro de 1 feature** → `feat-<nome>/feat.constants.ts`
+3. **Vários arquivos dentro de 1 domínio** → `<dominio>/utils/domain.constants.ts`
+4. **Cross-domain** → `shared/utils/app.constants.ts`
+
+## index.ts (API Pública da Feature)
 
 ```typescript
 // src/app/domains/clientes/features/lista-clientes/index.ts
@@ -79,31 +122,8 @@ export const routes: Routes = [
   {
     path: 'clientes',
     loadChildren: () =>
-      import('./domains/clientes/features/lista-clientes/lista-clientes.routes')
+      import('./clientes/feat-lista/lista.routes')
         .then(m => m.LISTA_CLIENTES_ROUTES)
-  },
-  {
-    path: 'pedidos',
-    loadChildren: () =>
-      import('./domains/pedidos/features/criar-pedido/criar-pedido.routes')
-        .then(m => m.CRIAR_PEDIDO_ROUTES)
-  }
-];
-```
-
-## Routes Locais da Feature
-
-```typescript
-// src/app/domains/clientes/features/lista-clientes/lista-clientes.routes.ts
-export const LISTA_CLIENTES_ROUTES: Routes = [
-  {
-    path: '',
-    component: ListaClientesComponent
-  },
-  {
-    path: ':id',
-    loadComponent: () =>
-      import('../detalhe-cliente').then(m => m.DetalheClienteComponent)
   }
 ];
 ```
@@ -111,7 +131,7 @@ export const LISTA_CLIENTES_ROUTES: Routes = [
 ## Componente com httpResource (v20+)
 
 ```typescript
-// src/app/domains/clientes/features/lista-clientes/lista-clientes.component.ts
+// src/app/clientes/feat-lista/lista-clientes.component.ts
 @Component({
   selector: 'app-lista-clientes',
   standalone: true,
@@ -137,15 +157,23 @@ export class ListaClientesComponent {
 
 ```typescript
 // PROIBIDO: feature importa de outro domínio
-// Em src/app/domains/pedidos/features/criar-pedido/criar-pedido.component.ts:
-import { ClienteApiService } from '../../clientes/features/lista-clientes/lista-clientes.service'; // ❌
-// Solução: mover ClienteApiService para src/shared/ ou criar port de domínio
+import { ClienteApiService } from '../../clientes/data-access/services/cliente.service'; // ❌
 
-// PROIBIDO: lógica de domínio em src/shared/
-// src/shared/calcular-desconto.ts com regra de negócio de pedidos ❌
-// Solução: mover para src/app/domains/pedidos/
+// PROIBIDO: lógica de domínio em shared/
+// shared/calcular-desconto.ts com regra de negócio de pedidos ❌
 
-// PROIBIDO: feature com múltiplas responsabilidades em um único arquivo
-// lista-clientes.component.ts com CRUD completo + lógica de filtro + formatação ❌
-// Solução: separar em lista, detalhe, criar (features distintas)
+// PROIBIDO: ui/ acessando data-access/ diretamente
+// ui/lista-clientes-card.component.ts injetando ClienteApiService ❌
+
+// PROIBIDO: pasta constants/ solta em domínio ou feature
+// src/app/clientes/constants/ ❌ — ver seção de co-location acima
 ```
+
+## Checklist de Conformidade
+
+- [ ] Domínios em kebab-case, nenhum chamado `features`/`modules`/`core`
+- [ ] `data-access/` com `api/`, `services/`, `state/` quando presente
+- [ ] `domain/models/dtos/` presente quando o domínio tem modelo próprio
+- [ ] `ui/` nunca importa de `data-access/` nem `feat-*`
+- [ ] Nenhum import cruzado entre domínios (nem entre sub-domínios)
+- [ ] Sem pasta `constants/` solta — constantes co-localizadas por escopo

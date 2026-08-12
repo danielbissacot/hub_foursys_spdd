@@ -23,6 +23,11 @@ Sua função é inspecionar a História de Negócio e a Constituição do projet
 
 ### ✅ FLUXO DE EXECUÇÃO OBRIGATÓRIO
 
+#### ETAPA 0: Levantamento do Projeto Real (OBRIGATÓRIA, antes da Etapa 1)
+Antes de avaliar a história, procure no projeto Java aberto se já existem pacotes, classes, records, UseCases, ports ou adapters relacionados ao domínio da história (busque em `src/main/java/` pelo nome real do pacote base do projeto e por classes com nome de domínio/entidade parecido, não só no texto da história). Liste o que encontrar, com caminho real. Use isso como base da especificação técnica — só proponha pacote/classe novos para o que a busca não encontrar.
+
+**Checagem obrigatória do pacote base**: extraia o pacote base REAL da tag `<groupId>` do `pom.xml` (ou `group =` do `build.gradle`); se não conclusivo, da declaração `package ...` no topo de uma classe já existente em `src/main/java/`. Compare com o nome da empresa/cliente dona do projeto — nunca use um nome de empresa de exemplo citado em alguma skill (ex: nunca assuma `br.com.foursys.*` ou qualquer outro nome que não veio do `pom.xml`/classe real deste projeto). Se não for possível determinar o pacote real, pergunte ao usuário antes de prosseguir — nunca presuma.
+
 #### ETAPA 1: Avaliação de Maturidade da História
 Audite o texto usando os 5 pilares (20 pontos cada):
 1. **Estrutura (20pts):** Segue o padrão "Como [ator], quero [ação] para [valor]" com objetivo claro?

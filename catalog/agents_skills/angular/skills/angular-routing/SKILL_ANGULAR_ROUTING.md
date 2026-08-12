@@ -1,407 +1,223 @@
 ---
-name: angular-routing
-description: Implementa routing em aplicações Angular v20+ com lazy loading, functional guards, resolvers e route parameters. Use para configurar navegação, rotas protegidas, carregamento de dados por rota e roteamento aninhado. Use em configuração de rotas, adição de authentication guards, implementação de lazy loading ou leitura de route parameters com signals.
+name: 'angular-routing'
+description: "Guia completo para roteamento Angular v20+ com lazy loading, guards baseados em função, resolvers com Signals, parâmetros reativos via input() e navegação programática. Use para configurar rotas com carregamento preguiçoso, proteção de acesso e resolução de dados antes da renderização do componente."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
 
-# Angular Routing
+# Skill: angular-routing
 
-Configura o roteamento em Angular v20+ com lazy loading, functional guards e route parameters baseados em signals.
+Guia completo para **roteamento Angular v20+** com lazy loading, guards funcionais, resolvers e Signals.
 
-## Configuração básica
+---
 
-```typescript
-// app.routes.ts
-import { Routes } from '@angular/router';
+## Quando usar
 
-export const routes: Routes = [
-  { path: '', redirectTo: '/home', pathMatch: 'full' },
-  { path: 'home', component: HomeComponent },
-  { path: 'about', component: AboutComponent },
-  { path: '**', component: NotFoundComponent },
-];
+- Qualquer feature com múltiplas telas ou views.
+- Proteção de rotas baseada em autenticação ou autorização.
+- Pré-carregamento de dados antes de renderizar o componente (`resolver`).
+- Parâmetros dinâmicos na URL (IDs, slugs, queries).
 
-// app.config.ts
-import { ApplicationConfig } from '@angular/core';
-import { provideRouter } from '@angular/router';
-import { routes } from './app.routes';
+---
 
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideRouter(routes),
-  ],
-};
-
-// app.component.ts
-import { Component } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-
-@Component({
-  selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  template: `
-    <nav>
-      <a routerLink="/home" routerLinkActive="active">Home</a>
-      <a routerLink="/about" routerLinkActive="active">About</a>
-    </nav>
-    <router-outlet />
-  `,
-})
-export class AppComponent {}
-```
-
-## Lazy Loading
-
-Carrega feature modules sob demanda:
+## Configuração de Rotas (app.routes.ts)
 
 ```typescript
 // app.routes.ts
 export const routes: Routes = [
-  { path: '', redirectTo: '/home', pathMatch: 'full' },
-  { path: 'home', component: HomeComponent },
-  
-  // Lazy load entire feature
   {
-    path: 'admin',
-    loadChildren: () => import('./admin/admin.routes').then(m => m.adminRoutes),
+    path: '',
+    redirectTo: '/home',
+    pathMatch: 'full'
   },
-  
-  // Lazy load single component
   {
-    path: 'settings',
-    loadComponent: () => import('./settings/settings.component').then(m => m.SettingsComponent),
+    path: 'home',
+    loadComponent: () => import('./home/home.component').then(m => m.HomeComponent),
+    title: 'Home'
   },
+  {
+    path: 'produtos',
+    loadComponent: () => import('./produtos/produtos.component').then(m => m.ProdutosComponent),
+    canActivate: [authGuard],
+    title: 'Produtos'
+  },
+  {
+    path: 'produtos/:id',
+    loadComponent: () => import('./produtos/produto-detalhe/produto-detalhe.component').then(m => m.ProdutoDetalheComponent),
+    resolve: { produto: produtoResolver },
+    title: route => `Produto ${route.params['id']}`
+  },
+  {
+    path: '**',
+    loadComponent: () => import('./shared/not-found/not-found.component').then(m => m.NotFoundComponent),
+    title: 'Página não encontrada'
+  }
 ];
-
-// admin/admin.routes.ts
-export const adminRoutes: Routes = [
-  { path: '', component: AdminDashboardComponent },
-  { path: 'users', component: AdminUsersComponent },
-  { path: 'settings', component: AdminSettingsComponent },
-];
 ```
 
-## Route Parameters
+---
 
-### Com Signal Inputs (Recomendado)
-
-```typescript
-// Route config
-{ path: 'users/:id', component: UserDetailComponent }
-
-// Component - use input() for route params
-import { Component, input, computed } from '@angular/core';
-
-@Component({
-  selector: 'app-user-detail',
-  template: `
-    <h1>User {{ id() }}</h1>
-  `,
-})
-export class UserDetailComponent {
-  // Route param as signal input
-  id = input.required<string>();
-  
-  // Computed based on route param
-  userId = computed(() => parseInt(this.id(), 10));
-}
-```
-
-Habilite com `withComponentInputBinding()`:
+## Guards Funcionais (não classes)
 
 ```typescript
-// app.config.ts
-import { provideRouter, withComponentInputBinding } from '@angular/router';
-
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideRouter(routes, withComponentInputBinding()),
-  ],
-};
-```
-
-### Query Parameters
-
-```typescript
-// Route: /search?q=angular&page=1
-
-@Component({...})
-export class SearchComponent {
-  // Query params as inputs
-  q = input<string>('');
-  page = input<string>('1');
-  
-  currentPage = computed(() => parseInt(this.page(), 10));
-}
-```
-
-### Usando ActivatedRoute (Alternativa)
-
-```typescript
-import { Component, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs';
-
-@Component({...})
-export class UserDetailComponent {
-  private route = inject(ActivatedRoute);
-  
-  // Convert route params to signal
-  id = toSignal(
-    this.route.paramMap.pipe(map(params => params.get('id'))),
-    { initialValue: null }
-  );
-  
-  // Query params
-  query = toSignal(
-    this.route.queryParamMap.pipe(map(params => params.get('q'))),
-    { initialValue: '' }
-  );
-}
-```
-
-## Functional Guards
-
-### Auth Guard
-
-```typescript
-// guards/auth.guard.ts
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
-
+// auth.guard.ts
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
-  
+
   if (authService.isAuthenticated()) {
     return true;
   }
-  
-  // Redirect to login with return URL
-  return router.createUrlTree(['/login'], {
-    queryParams: { returnUrl: state.url },
-  });
+
+  return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };
 
-// Usage in routes
-{
-  path: 'dashboard',
-  component: DashboardComponent,
-  canActivate: [authGuard],
+// Guard de permissão com role
+export function permissionGuard(permissao: string): CanActivateFn {
+  return () => {
+    const authService = inject(AuthService);
+    return authService.temPermissao(permissao)
+      ? true
+      : inject(Router).createUrlTree(['/acesso-negado']);
+  };
 }
 ```
 
-### Role Guard
-
+Uso na rota:
 ```typescript
-export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
-  return (route, state) => {
-    const authService = inject(AuthService);
-    const router = inject(Router);
-    
-    const userRole = authService.currentUser()?.role;
-    
-    if (userRole && allowedRoles.includes(userRole)) {
-      return true;
-    }
-    
-    return router.createUrlTree(['/unauthorized']);
-  };
-};
-
-// Usage
 {
   path: 'admin',
-  component: AdminComponent,
-  canActivate: [authGuard, roleGuard(['admin', 'superadmin'])],
+  loadComponent: () => import('./admin/admin.component').then(m => m.AdminComponent),
+  canActivate: [authGuard, permissionGuard('ADMIN')]
 }
 ```
 
-### Can Deactivate Guard
+---
+
+## Resolvers com Signals
 
 ```typescript
-export interface CanDeactivateComponent {
-  canDeactivate: () => boolean | Promise<boolean>;
-}
-
-export const unsavedChangesGuard: CanDeactivateFn<CanDeactivateComponent> = (component) => {
-  if (component.canDeactivate()) {
-    return true;
-  }
-  
-  return confirm('You have unsaved changes. Leave anyway?');
+// produto.resolver.ts
+export const produtoResolver: ResolveFn<Produto> = (route) => {
+  const produtoService = inject(ProdutoService);
+  const id = Number(route.paramMap.get('id'));
+  return produtoService.buscarPorId(id);
 };
+```
 
-// Component implementation
+No componente — receber resolve via input():
+```typescript
+@Component({
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @if (produto(); as p) {
+      <h1>{{ p.nome }}</h1>
+    }
+  `
+})
+export class ProdutoDetalheComponent {
+  // Angular v17.1+ — parâmetros de rota como input Signals via withComponentInputBinding()
+  protected readonly produto = input<Produto>();
+  protected readonly id = input<string>();  // parâmetro :id da URL
+}
+```
+
+Habilitar `withComponentInputBinding()` no `app.config.ts`:
+```typescript
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes, withComponentInputBinding())
+  ]
+};
+```
+
+---
+
+## Parâmetros de Rota como Signals
+
+```typescript
+// Com withComponentInputBinding() habilitado:
 @Component({...})
-export class EditComponent implements CanDeactivateComponent {
-  form = inject(FormBuilder).group({...});
-  
-  canDeactivate(): boolean {
-    return !this.form.dirty;
+export class ProdutoDetalheComponent {
+  // Parâmetro :id vira Signal reativo — re-executa quando muda na URL
+  protected readonly id = input.required<string>();
+
+  // httpResource reage ao id Signal automaticamente
+  protected readonly produto = httpResource<Produto>(
+    () => `/api/produtos/${this.id()}`
+  );
+}
+```
+
+---
+
+## Navegação Programática
+
+```typescript
+@Component({...})
+export class ListaComponent {
+  private readonly router = inject(Router);
+
+  irParaDetalhe(id: number) {
+    this.router.navigate(['/produtos', id]);
+  }
+
+  buscar(termo: string) {
+    this.router.navigate(['/busca'], {
+      queryParams: { q: termo },
+      queryParamsHandling: 'merge'
+    });
   }
 }
-
-// Route
-{
-  path: 'edit/:id',
-  component: EditComponent,
-  canDeactivate: [unsavedChangesGuard],
-}
 ```
 
-## Resolvers
+---
 
-Pré-carrega dados antes da ativação da rota:
-
-```typescript
-// resolvers/user.resolver.ts
-import { inject } from '@angular/core';
-import { ResolveFn } from '@angular/router';
-
-export const userResolver: ResolveFn<User> = (route) => {
-  const userService = inject(UserService);
-  const id = route.paramMap.get('id')!;
-  return userService.getById(id);
-};
-
-// Route config
-{
-  path: 'users/:id',
-  component: UserDetailComponent,
-  resolve: { user: userResolver },
-}
-
-// Component - access resolved data via input
-@Component({...})
-export class UserDetailComponent {
-  user = input.required<User>();
-}
-```
-
-## Rotas aninhadas
+## Lazy Loading de Módulo de Rotas (feature routes)
 
 ```typescript
-// Parent route with children
-export const routes: Routes = [
-  {
-    path: 'products',
-    component: ProductsLayoutComponent,
-    children: [
-      { path: '', component: ProductListComponent },
-      { path: ':id', component: ProductDetailComponent },
-      { path: ':id/edit', component: ProductEditComponent },
-    ],
-  },
+// produtos.routes.ts — rotas internas do módulo produtos
+export const produtosRoutes: Routes = [
+  { path: '', component: ProdutosListaComponent },
+  { path: ':id', component: ProdutoDetalheComponent, resolve: { produto: produtoResolver } },
+  { path: 'novo', component: ProdutoFormComponent, canActivate: [authGuard] }
 ];
 
-// ProductsLayoutComponent
-@Component({
-  imports: [RouterOutlet],
-  template: `
-    <h1>Products</h1>
-    <router-outlet /> <!-- Child routes render here -->
-  `,
-})
-export class ProductsLayoutComponent {}
-```
-
-## Navegação programática
-
-```typescript
-import { Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
-
-@Component({...})
-export class ProductComponent {
-  private router = inject(Router);
-  
-  // Navigate to route
-  goToProducts() {
-    this.router.navigate(['/products']);
-  }
-  
-  // Navigate with params
-  goToProduct(id: string) {
-    this.router.navigate(['/products', id]);
-  }
-  
-  // Navigate with query params
-  search(query: string) {
-    this.router.navigate(['/search'], {
-      queryParams: { q: query, page: 1 },
-    });
-  }
-  
-  // Navigate relative to current route
-  goToEdit() {
-    this.router.navigate(['edit'], { relativeTo: this.route });
-  }
-  
-  // Replace current history entry
-  replaceUrl() {
-    this.router.navigate(['/new-page'], { replaceUrl: true });
-  }
-}
-```
-
-## Route Data
-
-```typescript
-// Static route data
+// app.routes.ts
 {
-  path: 'admin',
-  component: AdminComponent,
-  data: {
-    title: 'Admin Dashboard',
-    roles: ['admin'],
-  },
-}
-
-// Access in component
-@Component({...})
-export class AdminComponent {
-  title = input<string>(); // From route data
-  roles = input<string[]>(); // From route data
-}
-
-// Or via ActivatedRoute
-private route = inject(ActivatedRoute);
-data = toSignal(this.route.data);
-```
-
-## Router Events
-
-```typescript
-import { Router, NavigationStart, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs';
-
-@Component({...})
-export class AppComponent {
-  private router = inject(Router);
-  
-  isNavigating = signal(false);
-  
-  constructor() {
-    this.router.events.pipe(
-      filter(e => e instanceof NavigationStart || e instanceof NavigationEnd)
-    ).subscribe(event => {
-      this.isNavigating.set(event instanceof NavigationStart);
-    });
-  }
+  path: 'produtos',
+  loadChildren: () => import('./produtos/produtos.routes').then(m => m.produtosRoutes)
 }
 ```
 
-Para padrões avançados, veja:
+---
 
-- [Route Configuration Options](references/route-configuration-options.MD)
-- [Authentication Flow](references/authentication-flow.MD)
-- [Breadcrumbs](references/breadcrumbs.MD)
-- [Tab Navigation](references/tab-navigation.MD)
-- [Modal Routes](references/modal-routes.MD)
-- [Preloading Strategies](references/preloading-strategies.MD)
-- [Route Animations](references/route-animations.MD)
-- [Scroll Position Restoration](references/scroll-position-restoration.MD)
+## RouterLink no Template
 
+```html
+<!-- Navegação declarativa -->
+<a routerLink="/produtos" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+  Produtos
+</a>
+
+<!-- Com parâmetro -->
+<a [routerLink]="['/produtos', produto().id]">{{ produto().nome }}</a>
+
+<!-- Com query params -->
+<a [routerLink]="['/busca']" [queryParams]="{ q: termo() }">Buscar</a>
+```
+
+---
+
+## Checklist de Uso
+
+- [ ] `loadComponent` para lazy loading em todas as rotas de feature
+- [ ] Guards como funções (`CanActivateFn`) — não classes com `@Injectable`
+- [ ] `withComponentInputBinding()` habilitado em `app.config.ts`
+- [ ] Parâmetros de rota como `input()` Signals no componente
+- [ ] `ResolveFn` para pré-carregamento de dados
+- [ ] `title` definido em cada rota (acessibilidade)
+- [ ] `redirectTo` na rota raiz `''`
+- [ ] Rota `**` para página 404
+- [ ] `routerLinkActive` para feedback visual na navegação

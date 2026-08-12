@@ -1,321 +1,196 @@
 ---
-name: angular-signals
-description: Implement signal-based reactive state management in Angular v20+. Use for creating reactive state with signal(), derived state with computed(), dependent state with linkedSignal(), and side effects with effect(). Triggers on state management questions, converting from BehaviorSubject/Observable patterns to signals, or implementing reactive data flows.
+name: 'angular-signals'
+description: "Guia completo para uso de Signals como primitivos de reatividade em Angular v20+. Cobre signal(), computed(), effect(), linkedSignal(), toSignal(), afterNextRender() e integração com httpResource(). Use quando precisar de estado local reativo, derivações computadas ou efeitos colaterais em componentes Angular v17+."
 metadata:
-  version: "0.0.1"
+  version: "0.1.0"
 ---
- 
-# Angular Signals
 
-Signals são o primitivo reativo do Angular para gerenciamento de estado. Eles fornecem reatividade síncrona e de granularidade fina.
+# Skill: angular-signals
 
-## APIs principais de Signals
+Guia completo para **Signals** como primitivos de reatividade em Angular v17+ (estável v20+).
 
-### `signal()` - Estado gravável
+---
+
+## Quando usar
+
+- Gerenciar estado local de um componente (substituir `BehaviorSubject` / propriedades mutáveis).
+- Derivar valores de outros sinais sem subscriptions manuais (`computed()`).
+- Reagir a mudanças de sinais com efeitos colaterais (`effect()`).
+- Integrar com `httpResource()` e dados assíncronos.
+
+## Quando não usar
+
+- Estado global compartilhado entre componentes não relacionados → use serviço com `signal()` injetável ou NgRx.
+- Streams RxJS complexos com `mergeMap`, `switchMap`, etc. — mantenha RxJS para esses casos e converta no final com `toSignal()`.
+
+---
+
+## API de Signals
+
+### signal() — estado mutável
 
 ```typescript
-import { signal } from '@angular/core';
+// Criação
+readonly count = signal(0);
+readonly usuario = signal<Usuario | null>(null);
 
-// Create writable signal
-const count = signal(0);
+// Leitura (sempre chamar como função)
+console.log(this.count()); // 0
 
-// Read value
-console.log(count()); // 0
+// Atualização
+this.count.set(1);             // substituição total
+this.count.update(v => v + 1); // baseado no valor anterior
 
-// Set new value
-count.set(5);
-
-// Update based on current value
-count.update(c => c + 1);
-
-// With explicit type
-const user = signal<User | null>(null);
-user.set({ id: 1, name: 'Alice' });
+// Uso no template
+// {{ count() }}
 ```
 
-### `computed()` - Estado derivado
+---
+
+### computed() — valor derivado (somente leitura)
 
 ```typescript
-import { signal, computed } from '@angular/core';
+readonly total = computed(() => this.itens().reduce((s, i) => s + i.valor, 0));
+readonly hasItens = computed(() => this.itens().length > 0);
+readonly nomeCompleto = computed(() => `${this.nome()} ${this.sobrenome()}`);
 
-const firstName = signal('John');
-const lastName = signal('Doe');
-
-// Derived signal - automatically updates when dependencies change
-const fullName = computed(() => `${firstName()} ${lastName()}`);
-
-console.log(fullName()); // "John Doe"
-firstName.set('Jane');
-console.log(fullName()); // "Jane Doe"
-
-// Computed with complex logic
-const items = signal<Item[]>([]);
-const filter = signal('');
-
-const filteredItems = computed(() => {
-  const query = filter().toLowerCase();
-  return items().filter(item => 
-    item.name.toLowerCase().includes(query)
-  );
-});
-
-const totalPrice = computed(() => 
-  filteredItems().reduce((sum, item) => sum + item.price, 0)
-);
+// NUNCA chame set/update em computed — é readonly
 ```
 
-### `linkedSignal()` - Estado dependente com reset
+---
+
+### effect() — efeitos colaterais
 
 ```typescript
-import { signal, linkedSignal } from '@angular/core';
+constructor() {
+  effect(() => {
+    // rastreia automaticamente os sinais lidos aqui
+    console.log('count mudou para:', this.count());
+    this.salvarPreferencia(this.count());
+  });
+}
 
-const options = signal(['A', 'B', 'C']);
-
-// Reseta para a primeira opção quando `options` muda
-const selected = linkedSignal(() => options()[0]);
-
-console.log(selected()); // "A"
-selected.set('B');       // Usuário seleciona B
-console.log(selected()); // "B"
-options.set(['X', 'Y']); // Options mudou
-console.log(selected()); // "X" - reset automático para a primeira
-
-// Com acesso ao valor anterior
-const items = signal<Item[]>([]);
-
-const selectedItem = linkedSignal<Item[], Item | null>({
-  source: () => items(),
-  computation: (newItems, previous) => {
-    // Tenta preservar a seleção se o item ainda existir
-    const prevItem = previous?.value;
-    if (prevItem && newItems.some(i => i.id === prevItem.id)) {
-      return prevItem;
-    }
-    return newItems[0] ?? null;
-  },
+// Para limpeza de recursos:
+effect((onCleanup) => {
+  const timer = setInterval(() => this.refresh(), 5000);
+  onCleanup(() => clearInterval(timer));
 });
 ```
 
-### `effect()` - Efeitos colaterais
+---
+
+### linkedSignal() — estado derivado mas mutável (Angular v19+)
 
 ```typescript
-import { signal, effect, inject, DestroyRef } from '@angular/core';
+// Caso de uso: dado filtrado pelo usuário, mas que reseteia quando a lista muda
+readonly items = signal<Item[]>([]);
+readonly selectedItem = linkedSignal(() => this.items()[0] ?? null);
 
-@Component({...})
-export class SearchComponent {
-  query = signal('');
-  
-  constructor() {
-    // Effect executa quando `query` muda
-    effect(() => {
-      console.log('Search query:', this.query());
-    });
-    
-    // Effect com cleanup
-    effect((onCleanup) => {
-      const timer = setInterval(() => {
-        console.log('Current query:', this.query());
-      }, 1000);
-      
-      onCleanup(() => clearInterval(timer));
-    });
-  }
+// Usuário pode mudar selectedItem manualmente
+this.selectedItem.set(items[2]);
+// Mas quando items() mudar, selectedItem reseta para items()[0]
+```
+
+---
+
+### toSignal() — converter Observable em Signal
+
+```typescript
+// Para Observables que não se encaixam em httpResource:
+readonly isDark = toSignal(this.themeService.isDark$, { initialValue: false });
+
+// Com requireSync para observables que emitem imediatamente:
+readonly locale = toSignal(this.i18n.locale$, { requireSync: true });
+```
+
+---
+
+### afterNextRender() / afterRender() — efeitos após renderização
+
+```typescript
+constructor() {
+  afterNextRender(() => {
+    // seguro para acessar DOM após renderização
+    this.chart = new Chart(this.canvasRef.nativeElement, this.chartConfig());
+  });
 }
 ```
 
-**Regras de `effect`:**
-- Não pode escrever em signals por padrão (use `allowSignalWrites` se necessário)
-- Executa em contexto de injeção (construtor ou com `runInInjectionContext`)
-- É automaticamente limpo quando o componente é destruído
+---
+
+## Integração com httpResource()
 
 ```typescript
-// Escrita em signals dentro de effects (use com cautela)
-effect(() => {
-  if (this.query().length > 0) {
-    this.hasSearched.set(true);
-  }
-}, { allowSignalWrites: true });
+// httpResource() retorna um Signal com estado loading/error/value
+readonly userId = signal(1);
+readonly user = httpResource<Usuario>(() => `/api/users/${this.userId()}`);
+
+// No template:
+// @if (user.isLoading()) { <span>Carregando...</span> }
+// @if (user.error()) { <span>Erro: {{ user.error()?.message }}</span> }
+// @if (user.value()) { <span>{{ user.value()!.nome }}</span> }
 ```
 
-## Padrão de Estado no Componente
+---
+
+## Regras de Visibilidade
+
+```typescript
+@Component({...})
+export class MeuComponent {
+  // ✅ Correto — protected para template acesso
+  protected readonly count = signal(0);
+  protected readonly total = computed(() => this.count() * 2);
+
+  // ❌ Errado — private não é acessível no template
+  private readonly count = signal(0);
+}
+```
+
+---
+
+## Padrão Completo: Componente com Signals
 
 ```typescript
 @Component({
-  selector: 'app-todo-list',
+  selector: 'app-carrinho',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CurrencyPipe],
   template: `
-    <input [value]="newTodo()" (input)="newTodo.set($any($event.target).value)" />
-    <button (click)="addTodo()" [disabled]="!canAdd()">Add</button>
-    
-    <ul>
-      @for (todo of filteredTodos(); track todo.id) {
-        <li [class.done]="todo.done">
-          {{ todo.text }}
-          <button (click)="toggleTodo(todo.id)">Toggle</button>
-        </li>
-      }
-    </ul>
-    
-    <p>{{ remaining() }} remaining</p>
-  `,
+    <p>Total: {{ total() | currency:'BRL' }}</p>
+    <button (click)="adicionarItem()">Adicionar</button>
+    @for (item of itens(); track item.id) {
+      <li>{{ item.nome }} — {{ item.valor | currency:'BRL' }}</li>
+    }
+  `
 })
-export class TodoListComponent {
-  // Estado
-  todos = signal<Todo[]>([]);
-  newTodo = signal('');
-  filter = signal<'all' | 'active' | 'done'>('all');
-  
-  // Estado derivado
-  canAdd = computed(() => this.newTodo().trim().length > 0);
-  
-  filteredTodos = computed(() => {
-    const todos = this.todos();
-    switch (this.filter()) {
-      case 'active': return todos.filter(t => !t.done);
-      case 'done': return todos.filter(t => t.done);
-      default: return todos;
-    }
-  });
-  
-  remaining = computed(() => 
-    this.todos().filter(t => !t.done).length
+export class CarrinhoComponent {
+  protected readonly itens = signal<Item[]>([]);
+  protected readonly total = computed(() =>
+    this.itens().reduce((soma, item) => soma + item.valor, 0)
   );
-  
-  // Ações
-  addTodo() {
-    const text = this.newTodo().trim();
-    if (text) {
-      this.todos.update(todos => [
-        ...todos,
-        { id: crypto.randomUUID(), text, done: false }
-      ]);
-      this.newTodo.set('');
-    }
+
+  constructor() {
+    effect(() => {
+      sessionStorage.setItem('carrinho', JSON.stringify(this.itens()));
+    });
   }
-  
-  toggleTodo(id: string) {
-    this.todos.update(todos =>
-      todos.map(t => t.id === id ? { ...t, done: !t.done } : t)
-    );
+
+  protected adicionarItem() {
+    this.itens.update(atual => [...atual, { id: Date.now(), nome: 'Novo Item', valor: 10 }]);
   }
 }
 ```
 
-## Interop com RxJS
+---
 
-### `toSignal()` - Observable para Signal
+## Checklist de Uso
 
-```typescript
-import { toSignal } from '@angular/core/rxjs-interop';
-import { interval } from 'rxjs';
-
-@Component({...})
-export class TimerComponent {
-  private http = inject(HttpClient);
-  
-  // De um observable - requer valor inicial ou allowUndefined
-  counter = toSignal(interval(1000), { initialValue: 0 });
-  
-  // De uma chamada HTTP - undefined até carregar
-  users = toSignal(this.http.get<User[]>('/api/users'));
-  
-  // Com requireSync para observables síncronos (BehaviorSubject)
-  private user$ = new BehaviorSubject<User | null>(null);
-  currentUser = toSignal(this.user$, { requireSync: true });
-}
-```
-
-### `toObservable()` - Signal para Observable
-
-```typescript
-import { toObservable } from '@angular/core/rxjs-interop';
-import { switchMap, debounceTime } from 'rxjs';
-
-@Component({...})
-export class SearchComponent {
-  query = signal('');
-  
-  private http = inject(HttpClient);
-  
-  // Converte signal para observable para usar operadores RxJS
-  results = toSignal(
-    toObservable(this.query).pipe(
-      debounceTime(300),
-      switchMap(q => this.http.get<Result[]>(`/api/search?q=${q}`))
-    ),
-    { initialValue: [] }
-  );
-}
-```
-
-## Igualdade de Signal
-
-```typescript
-// Função de igualdade customizada
-const user = signal<User>(
-  { id: 1, name: 'Alice' },
-  { equal: (a, b) => a.id === b.id }
-);
-
-// Só dispara atualizações quando o ID mudar
-user.set({ id: 1, name: 'Alice Updated' }); // Sem atualização
-user.set({ id: 2, name: 'Bob' }); // Dispara atualização
-```
-
-## Leituras não rastreadas
-
-```typescript
-import { untracked } from '@angular/core';
-
-const a = signal(1);
-const b = signal(2);
-
-// Depende somente de 'a', não de 'b'
-const result = computed(() => {
-  const aVal = a();
-  const bVal = untracked(() => b());
-  return aVal + bVal;
-});
-```
-
-## Padrão de Estado em Service
-
-```typescript
-@Injectable({ providedIn: 'root' })
-export class AuthService {
-  // Estado privado gravável
-  private _user = signal<User | null>(null);
-  private _loading = signal(false);
-  
-  // Signals públicos somente leitura
-  readonly user = this._user.asReadonly();
-  readonly loading = this._loading.asReadonly();
-  readonly isAuthenticated = computed(() => this._user() !== null);
-  
-  private http = inject(HttpClient);
-  
-  async login(credentials: Credentials): Promise<void> {
-    this._loading.set(true);
-    try {
-      const user = await firstValueFrom(
-        this.http.post<User>('/api/login', credentials)
-      );
-      this._user.set(user);
-    } finally {
-      this._loading.set(false);
-    }
-  }
-  
-  logout(): void {
-    this._user.set(null);
-  }
-}
-```
-
-Para padrões avançados incluindo `resource()`, veja:
-
-- [Resource API](references/resource-api.MD)
-- [Signal Store Pattern](references/signal-store-pattern.MD)
-- [Form State with Signals](references/form-state.MD)
-- [Async Operations](references/async-operations.MD)
-- [Testing Signals](references/testing-signals.MD)
-
+- [ ] `signal()` para estado local (não `BehaviorSubject`)
+- [ ] `computed()` para derivações (não recalcular no template)
+- [ ] `effect()` para efeitos colaterais (não `ngOnChanges` simples)
+- [ ] `linkedSignal()` para estado derivado mutável (Angular v19+)
+- [ ] `toSignal()` apenas para Observables existentes
+- [ ] Visibilidade `protected` nos signals usados no template
+- [ ] `ChangeDetectionStrategy.OnPush` obrigatório no componente

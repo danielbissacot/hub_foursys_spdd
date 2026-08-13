@@ -101,8 +101,8 @@ public class Pagamento { ... }
 ### UseCase (1 InputPort por UseCase)
 
 ```java
-// ✅ Correto
-@Component
+// ✅ Correto — classe do core SEM anotação de framework.
+// Quem registra o bean é a classe @Configuration (ver seção abaixo).
 @RequiredArgsConstructor
 public class RealizarPagamentoUseCase implements RealizarPagamentoInputPort {
 
@@ -114,14 +114,26 @@ public class RealizarPagamentoUseCase implements RealizarPagamentoInputPort {
         // lógica de negócio aqui
     }
 }
+
+// ❌ PROIBIDO: @Component (ou @Service) na classe do UseCase.
+// Dois motivos:
+// 1. Com @Bean em config/, o Spring registraria o MESMO objeto duas vezes, com o mesmo
+//    nome (nome da classe x nome do método) → BeanDefinitionOverrideException e a
+//    aplicação NÃO SOBE (allow-bean-definition-overriding é false desde o Boot 2.1).
+// 2. core/ não pode depender do framework — é a regra do hexagonal. Quem conhece Spring
+//    é só a camada de configuração.
+@Component
+public class RealizarPagamentoUseCase implements RealizarPagamentoInputPort { ... }
 ```
 
 ### @Bean Obrigatório para cada UseCase
 
+É aqui — e **somente** aqui — que o UseCase vira bean. A classe do UseCase permanece sem
+anotação de framework (ver seção anterior).
+
 ```java
 // ✅ Obrigatório — ausência causa NoSuchBeanDefinitionException em runtime
 @Configuration
-@RequiredArgsConstructor
 public class PagamentoConfig {
 
     @Bean
@@ -132,6 +144,9 @@ public class PagamentoConfig {
     }
 }
 ```
+
+> `@RequiredArgsConstructor` não vai na `@Configuration`: os OutputPorts chegam como
+> parâmetro do método `@Bean` (o Spring injeta ali), não como campo da classe de config.
 
 ### Controller (Adapter de Entrada)
 
@@ -246,3 +261,4 @@ class RealizarPagamentoUseCaseTest {
 7. **Escopo Fechado:** Não crie arquivos fora da task list
 8. **Proteção de Código Existente:** Nunca modifique código existente sem solicitação explícita
 9. **Bean Obrigatório:** Toda `UseCase` em `core/usecase/` exige `@Bean` correspondente em `config/`
+10. **Core sem framework:** a classe do UseCase **nunca** leva `@Component`/`@Service`. Registrar nos dois lugares gera bean duplicado com o mesmo nome e a aplicação não sobe (`BeanDefinitionOverrideException`)

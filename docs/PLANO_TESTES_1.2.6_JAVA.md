@@ -564,21 +564,144 @@ O que falha (teste A3) é ela ser acionada **sozinha** a partir da instruction.
 aceite C1–C4 da história, sem inventar cenário fora do escopo.
 **Resultado:** _(preencher)_
 
-### ⬜ D2 — Casos de teste
+### ✅ D2 — Casos de teste
 **Executar:** `/foursys.qaTestCases`
 **Passa se:** gerar Gherkin em `qa/casos_teste.md`, com tags `@positive`/`@negative`.
-**Resultado:** _(preencher)_
 
-### ⬜ D3 — Cobertura de QA
+**Resultado (13/08, 21h):** ✅ **PASSOU** — 150 linhas, 1 bloco ```gherkin com 11 `Scenario`
+(8 simples + 3 `Scenario Outline`), cobrindo os 11 cenários do plano. Renumerou de
+`CR-01/NG-01` para `TC-SPR-001..011`.
+
+**Formato compatível com o `qaExportXray`** — o comando extrai blocos ```` ```gherkin ```` e
+há exatamente um, com a Feature completa.
+
+**Pontos fortes:**
+- mapeou cada cenário à camada hexagonal, à classe e aos ports a mockar
+  (`# Camada hexagonal: UseCases`, `# Ports mockados: ...`) — não estava no plano, derivou
+- usou `Scenario Outline` com `Examples` nos 3 casos com variação, em vez de repetir cenários
+- transformou a regra de PII em asserção testável:
+  `Then o log não expõe CPF, CNPJ, token, número de conta ou cartão`
+- notas técnicas por tag: `@domain` = JUnit puro, `@usecase` = `MockitoExtension`,
+  `@adapter` = `@WebMvcTest`, `@integration` = `@SpringBootTest`
+
+### ❌ Problema: inventou nomes de classe que não existem
+
+| Citado no Gherkin | Real no projeto |
+|---|---|
+| `IngestaoBoletoController.receberIngestao` | `BoletoCobrancaController` |
+| `BoletoRepositoryPort` | `BuscarBoletoCobrancaPort` / `SalvarBoletoCobrancaPort` |
+| `RelogioPort`, `AuditoriaLogPort` | não existem |
+| `AuditoriaIngestaoAdapter.registrarEvento` | não existe |
+| `Boleto.validarValorMonetario` | não existe |
+
+**É o bug do Leonardo (nomes inventados) reaparecendo.** Causa provável: `qa-test-cases` **não
+está em `PHASES_NEEDING_PROJECT_MAP`** (só `specify`, `plan` e `tasks` recebem o mapa). Sem o
+mapa, ele não tem como saber os nomes reais — inventa por necessidade.
+
+**Correção candidata:** avaliar incluir `qa-test-cases` (e talvez `qa-test-plan`) no
+`PHASES_NEEDING_PROJECT_MAP` em `prompt-context.ts`.
+
+**Menor:** LaTeX vazando na linha 149 — `$\Delta t \le 2s$`, `$t_{sistema}$`. Renderiza
+literalmente. Mesmo problema já visto no Specify da rodada anterior.
+
+### ❌ D3 — Cobertura de QA
 **Executar:** `/foursys.qaCoverage`
 **Passa se:** validar os critérios de aceite contra o **código real** já implementado
 (controller, service, testes) — não contra o texto da história.
-**Resultado:** _(preencher)_
 
-### ⬜ D4 — Relatório de qualidade
+**Resultado (13/08, 20h09):** ❌ **FALHOU — bug de código, não da IA**
+
+Reprovou **todos** os 4 critérios e os 11 cenários, concluindo *"Não pronta para homologação"*
+— com a feature implementada, 25 arquivos e 100 testes passando.
+
+O próprio relatório denuncia a causa:
+
+```
+Arquivos disponíveis no contexto:
+- src/main/resources/application.yml
+- src/main/resources/messages/global.properties
+
+Não foram fornecidos arquivos de domínio, use case, controller, repository,
+adapter ou exception da feature.
+```
+
+**A IA foi honesta. O Hub entregou o contexto errado.**
+
+### Causa raiz: o mesmo bug de profundidade, na outra função
+
+```
+prompt-context.ts:250   readProjectMap        depth > PROJECT_MAP_MAX_DEPTH (20)   corrigido hoje
+prompt-context.ts:146   readWorkspaceContext  depth > 6                            INTOCADO
+```
+
+Num projeto Maven padrão os `.java` ficam em `src/main/java/br/com/empresa/proj/camada/` —
+**profundidade 8+**. O walk morre no nível 6 (`kit`) e só alcança `src/main/resources/`
+(profundidade 2-3). Por isso vieram `application.yml` e `global.properties`.
+
+### Impacto além do D3
+
+`readWorkspaceContext` alimenta **duas** fases (`PHASES_NEEDING_WORKSPACE`):
+
+| Fase | Efeito |
+|---|---|
+| `qa-coverage` | decide "pronto para homologação" sem nunca ver código → reprova sempre |
+| `plan` | o bloco "CÓDIGO REAL DO WORKSPACE" chega com `application.yml` em vez de classes |
+
+O Plan de manhã funcionou **apesar disso**, porque o `readProjectMap` (corrigido hoje) forneceu
+os nomes reais. Sem aquela correção, o Plan estaria igualmente cego.
+
+**Gravidade:** em qualquer projeto Java com pacote padrão, o `qa-coverage` responde sempre
+"não entregue". Um PO ou QA lendo o relatório concluiria que a equipe não fez nada.
+
+**Correção candidata (1 linha):** trocar `depth > 6` por `depth > PROJECT_MAP_MAX_DEPTH` —
+reusa a constante que já existe no arquivo.
+
+### ✅ D4 — Relatório de qualidade (mecânica) / ❌ conteúdo contaminado
 **Executar:** `/foursys.qaReport`
 **Passa se:** gerar o HTML executivo sem erro.
-**Resultado:** _(preencher)_
+
+**Resultado (13/08, 20h15):** ✅ **mecânica perfeita**
+
+```
+relatorio_qualidade.md    4.886 bytes  (111 linhas, 0 tags HTML vazando)
+relatorio_qualidade.html  7.984 bytes  (<!DOCTYPE html>, 19 elementos estruturais)
+```
+
+O `extractHtmlBlock` separou corretamente o HTML executivo do corpo Markdown e gravou os dois
+arquivos. Nenhuma tag HTML sobrou no `.md`. Era isso que este teste media.
+
+**Conteúdo:** ❌ **REPROVADO / NÃO APROVADO para deploy** — herdado do D3.
+
+### A propagação em 4 níveis
+
+```
+1. prompt-context.ts:146   depth > 6              <- a causa, 1 linha de codigo
+2. qa-coverage             nao viu nenhum .java   <- reprovou os 4 criterios
+3. qa-report               leu o review           <- REPROVADO
+4. relatorio_qualidade.html                       <- o gestor le "nao aprovado para deploy"
+```
+
+Quatro camadas entre a causa e quem sofre a consequência. Ninguém no meio tem como desconfiar:
+o relatório é bem formatado, com métricas, justificativas e recomendações coerentes.
+
+**A realidade:** 25 arquivos implementados, 100 testes passando, feature funcionando.
+
+Isso dimensiona a gravidade do achado #7 — não é um relatório feio, é um **falso negativo
+convincente** chegando na mão de quem decide.
+
+---
+
+### ✅ BÔNUS — Exportação para Xray (fora do plano original)
+
+**Executado por engano** no lugar do D3, e passou: `foursys.qaExportXray` extraiu os 11 cenários
+do bloco ```` ```gherkin ```` do `casos_teste.md` e gerou `xray_export.feature` (6.630 bytes),
+válido para importação.
+
+Confirma que o formato produzido pelo D2 é compatível com o comando de exportação — integração
+entre duas funcionalidades do Hub que nunca tinha sido verificada.
+
+⚠️ Exportou junto os nomes fictícios (`BoletoRepositoryPort`, `RelogioPort`) — o erro do D2 se
+propaga até o Xray.
 
 ---
 
@@ -603,9 +726,11 @@ agora, marcar como **não testável nesta máquina**.
 
 # 📊 Resultado consolidado — 13/08/2026
 
-**7 de 15 executados em 13/08/2026.**
+**12 de 15 executados em 13/08/2026** (+ 1 bônus fora do plano).
 
 ## Placar
+
+### Instruction fora do fluxo SDD
 
 | Teste | Status | O que revelou |
 |---|:---:|---|
@@ -617,9 +742,18 @@ agora, marcar como **não testável nesta máquina**.
 | **A7 — revisão de classe suja** | ✅ | **detectou 3 violações (1 inédita), citou a regra e corrigiu** |
 | C2 — skill pelo chat | ✅ | versão de 286 linhas com o diagnóstico de excludes |
 
+### Fases de QA (nunca exercitadas antes)
+
+| Fase | Mecânica | Conteúdo | Observação |
+|---|:---:|:---:|---|
+| D1 — plano de testes | ✅ | ✅ | 11 cenários, ficou no escopo da história, trouxe concorrência e PII por conta própria |
+| D2 — casos de teste | ✅ | ⚠️ | Gherkin válido e exportável, mas cita 5 classes que não existem |
+| D3 — cobertura | ✅ | ❌ | **bug de código** — nunca vê `.java`, reprova toda entrega |
+| D4 — relatório | ✅ | ❌ | mecânica perfeita (md + html separados), conteúdo herdado do D3 |
+| **Bônus** — Xray Export | ✅ | ⚠️ | 11 cenários exportados; integração D2 → Xray confirmada |
+
 **Pendentes:** A3 (JaCoCo — já falhou 2x), A6b (re-teste com escopo), B1 (depende do ajuste da
-persona), C1, C3, D1–D4 (fases de QA, nunca exercitadas), E1 (gate de acesso — não testável
-nesta máquina).
+persona), C1 e C3 (redundantes com o C2), E1 (gate de acesso — não testável nesta máquina).
 
 ## A conclusão central
 
@@ -683,6 +817,8 @@ não segura. **Tarefa concreta funciona; regra abstrata no rodapé não.**
 | 4 | PII esquecido ao gerar (A1) | mesma raiz do #1 — a regra existe e é clara, só não é consultada na geração |
 | 5 | Swagger ausente | passar `personaSkillTagIfAvailable` nos `implementSession1/2` (`extension.ts` ~L280/L288) |
 | 6 | Declaração de conformidade falsa (A1, A4, A5) | proibir explicitamente afirmar conformidade sem verificação — contraste: no A7 ele declarou o problema restante antes do status, que é o comportamento correto |
+| **7** | 🔴 **`readWorkspaceContext` nunca alcança `.java` (D3)** | `prompt-context.ts:146` — trocar `depth > 6` por `depth > PROJECT_MAP_MAX_DEPTH`. **Prioridade máxima:** faz o `qa-coverage` reprovar toda entrega em qualquer projeto Java de pacote padrão |
+| 8 | `qa-test-cases` inventa nomes de classe (D2) | avaliar incluir `qa-test-cases` em `PHASES_NEEDING_PROJECT_MAP` (`prompt-context.ts:13`) |
 
 ### Achado técnico herdado do Implement (encontrado pelo A7)
 

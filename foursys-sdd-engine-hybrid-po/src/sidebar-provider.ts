@@ -801,8 +801,17 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 }
             };
 
+            // Duas chamadas porque os dois catalogos organizam diferente: o embutido no .vsix
+            // guarda <stack>/<skill>/, e o clonado (que e o lido aqui) guarda
+            // <stack>/skills/<skill>/. copySkillsFrom nao recursa — so olha subpastas de
+            // primeiro nivel —, entao com uma chamada so ele encontrava apenas a pasta "skills",
+            // nao achava .md nela e desistia: ZERO skill de stack chegava em globalStorage/skills
+            // (confirmado: 62 skills no catalogo, 0 copiadas). Nao da pra corrigir mudando
+            // config.skillsFolder porque o mesmo campo localiza o AGENTE_*.md, que fica FORA
+            // de skills/ (ver findAgentSkill em catalog-loader.ts).
             const activeSkillsPath = path.join(catalogPath, config.skillsFolder);
             copySkillsFrom(activeSkillsPath);
+            copySkillsFrom(path.join(activeSkillsPath, 'skills'));
 
             // 2b. Skills compartilhadas (agnósticas de stack: playwright, tdd, verificacao, code-review)
             const sharedSkillsPath = path.join(catalogPath, 'agents_skills', 'shared', 'skills');

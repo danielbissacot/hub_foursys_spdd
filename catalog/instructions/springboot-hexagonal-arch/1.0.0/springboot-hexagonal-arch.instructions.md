@@ -293,6 +293,28 @@ class RealizarPagamentoUseCaseTest {
 }
 ```
 
+### Cobertura se MEDE, não se afirma
+
+`cobertura ≥ 95%` é o piso do gate do Sonar. Nunca escreva que atingiu sem ter medido:
+
+1. **Rode** `mvn -o clean test` (o `jacoco:report` roda junto na fase `test`)
+2. **Leia** `target/site/jacoco/jacoco.csv` e calcule
+   `LINE_COVERED / (LINE_COVERED + LINE_MISSED)`
+3. **Reporte o número real.** Abaixo de 95%: liste as classes com maior `LINE_MISSED`,
+   escreva mais teste e meça de novo — não conclua a tarefa
+4. Se não conseguir rodar o Maven no ambiente, diga isso explicitamente em vez de
+   presumir o percentual
+
+**Antes de confiar no número, confira o `<excludes>` do `jacoco-maven-plugin` no `pom.xml`.**
+Se estiver como `<exclude>${sonar.coverage.exclusions}</exclude>`, o exclude **não está sendo
+aplicado** — o JaCoCo exige uma tag por padrão e casa contra caminho de classe (`**/*.class`),
+não de fonte (`.java`). Nesse estado o relatório local mostra cobertura menor que a real e o
+time escreve teste atrás de meta já atingida. Corrija espelhando o `sonar.coverage.exclusions`,
+uma tag por padrão.
+
+> Detalhamento, tabela de tradução dos padrões e o XML do `<goal>check</goal>`:
+> skill **`springboot-testing`**.
+
 ---
 
 ## Regras de Ouro
@@ -308,3 +330,4 @@ class RealizarPagamentoUseCaseTest {
 9. **Proteção de Código Existente:** Nunca modifique código existente sem solicitação explícita
 10. **Bean Obrigatório:** Toda `UseCase` em `core/usecase/` exige `@Bean` correspondente em `config/` — **salvo se o projeto já registra por `@Service`/component scan; nesse caso siga o projeto e NÃO adicione `@Bean`** (os dois juntos duplicam o bean e a aplicação não sobe)
 11. **Core sem framework:** em projeto novo ou já hexagonal puro, a classe do UseCase não leva `@Component`/`@Service` — quem registra é a `@Configuration`
+12. **Cobertura medida:** nunca declare `cobertura ≥ 95%` sem ter rodado `mvn -o clean test` e lido o `jacoco.csv`. Número presumido é violação de governança

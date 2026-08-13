@@ -61,7 +61,11 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         playbookFolder: 'spring_boot',
         skillsFolder: 'agents_skills/spring_boot',
         agentFileName: 'AGENTE_SPRING_FOURSYS.md',
-        implementSkillTag: '#agente-spring-foursys',
+        // Tem que ser agente-<stackId>-foursys: e assim que personal-copilot-sync grava a
+        // persona (`agente-${stackId}-foursys`). Estava 'agente-spring-foursys' e o Implement
+        // do Java pedia uma persona que nao existia com esse nome — as outras 5 stacks tem o
+        // stackId igual ao prefixo, so o spring_boot divergia.
+        implementSkillTag: '#agente-spring_boot-foursys',
         instructionsFolder: 'springboot-hexagonal-arch',
         globalFilesExample: '| `pom.xml` | Adicionar dependência (Feign/Kafka/MongoDB) | Descrição da mudança |\n| `src/main/resources/application.yml` | Configurar datasource, kafka, resilience4j | Descrição da mudança |\n| `src/main/java/.../config/[Nome]Config.java` | Declarar @Bean, habilitar @EnableFeignClients | Descrição da mudança |'
     },

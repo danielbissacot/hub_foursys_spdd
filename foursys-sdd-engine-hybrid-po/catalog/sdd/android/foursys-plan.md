@@ -56,15 +56,18 @@ Liste os novos arquivos por camada:
 
 ### 4. Skills a Consultar
 
-- `SKILL_ANDROID_FEATURE_SCAFFOLD` — scaffold completo (MVI + DI customizada + rotas)
-- `SKILL_ANDROID_MVI` — padrão BaseViewModel/BaseScreen/Event/Effect (BNJOpenAccount)
-- `SKILL_ANDROID_DI_CUSTOM` — setSingleton/setFactory/transferContainer (BNJOpenAccount)
-- `SKILL_ANDROID_ROUTES` — Routes sealed class + RouterManager
-- `SKILL_ANDROID_COMPOSE` — para criação da tela (genérico)
-- `SKILL_ANDROID_ARCHITECTURE` — para estrutura MVVM (genérico)
-- `SKILL_ANDROID_NETWORKING` — se houver chamada de API (Retrofit genérico)
-- `SKILL_ANDROID_PERSISTENCE` — se houver dados locais
-- `SKILL_ANDROID_TESTING` — para cobertura de testes (JUnit + Robolectric)
+> Nomes abaixo são os que o Copilot reconhece (slug da skill). Cite-os para o desenvolvedor
+> abrir na implementação — nesta fase você não executa skill, apenas referencia.
+
+- `android-feature-scaffold` — scaffold completo (MVI + DI customizada + rotas)
+- `android-mvi` — padrão BaseViewModel/BaseScreen/Event/Effect (BNJOpenAccount)
+- `android-di-custom` — setSingleton/setFactory/transferContainer (BNJOpenAccount)
+- `android-routes` — Routes sealed class + RouterManager
+- `android-compose` — para criação da tela (genérico)
+- `android-architecture` — para estrutura MVVM (genérico)
+- `android-networking` — se houver chamada de API (Retrofit genérico)
+- `android-persistence` — se houver dados locais
+- `android-testing` — para cobertura de testes (JUnit + Robolectric)
 
 ### 5. Critérios de Aceitação Técnica
 

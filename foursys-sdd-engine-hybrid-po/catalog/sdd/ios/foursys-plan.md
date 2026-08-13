@@ -63,14 +63,17 @@ Liste os novos arquivos por camada:
 
 ### 4. Skills a Consultar
 
-- `SKILL_IOS_FEATURE_SCAFFOLD_BNJ` — processo completo com checklist de 15 arquivos
-- `SKILL_IOS_VIEWMODEL_BNJ` — BaseViewModel, ViewState, Task management, execute()
-- `SKILL_IOS_ROUTER_BNJ` — RouterInterface, RouterManager, JourneyRoute, Launcher
-- `SKILL_IOS_USECASE_BNJ` — BaseUseCase, InMemoryRepository, interfaces
-- `SKILL_IOS_VIEWDATA_DTO` — DTO (Decodable+Sendable) e ViewData (Equatable)
-- `SKILL_IOS_ANALYTICS_BNJ` — BNSAnalytics, prefixo track, Strings enum
-- `SKILL_IOS_SWIFTUI_COMPONENTS` — seção BNJ Screen Pattern
-- `SKILL_IOS_TESTING` — testes XCTest para ViewModel e UseCase
+> Nomes abaixo são os que o Copilot reconhece (slug da skill). Cite-os para o desenvolvedor
+> abrir na implementação — nesta fase você não executa skill, apenas referencia.
+
+- `ios-feature-scaffold-bnj` — processo completo com checklist de 15 arquivos
+- `ios-viewmodel-bnj` — BaseViewModel, ViewState, Task management, execute()
+- `ios-router-bnj` — RouterInterface, RouterManager, JourneyRoute, Launcher
+- `ios-usecase-bnj` — BaseUseCase, InMemoryRepository, interfaces
+- `ios-viewdata-dto` — DTO (Decodable+Sendable) e ViewData (Equatable)
+- `ios-analytics-bnj` — BNSAnalytics, prefixo track, Strings enum
+- `swiftui-components` — seção BNJ Screen Pattern
+- `ios-testing` — testes XCTest para ViewModel e UseCase
 
 ### 5. Critérios de Aceitação Técnica
 

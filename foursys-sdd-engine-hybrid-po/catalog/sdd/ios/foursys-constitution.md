@@ -69,6 +69,6 @@ Data (DTO + Repository + InMemoryRepository)
 
 Ao receber uma solicitação de implementação:
 1. Gere a **Tabela de Impactos Sistêmicos** (arquivos afetados: `Info.plist`, `InMemoryRepository`, `RouterManager`, `JourneyRoute`, `AppModule`).
-2. Consulte `SKILL_IOS_FEATURE_SCAFFOLD_BNJ` para o processo completo.
+2. Consulte a skill `ios-feature-scaffold-bnj` para o processo completo.
 3. Gere sempre: `DTO` (se rede) + `Repository` + `Model` + `UseCase` + `Analytics` + `ViewData` + `ViewModel` + `Screen/View` + `ViewController` + `RouterInterface`.
 4. Inclua testes unitários mínimos para ViewModel e UseCase.

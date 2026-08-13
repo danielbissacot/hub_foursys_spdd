@@ -772,6 +772,14 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                 `# Foursys SDD — ${stackId}\nUse @foursys_sdd_po para geração guiada. Stack: ${stackId}.\n`
             );
 
+            // 1b. Instructions da stack → .github/instructions/ do projeto.
+            // Diferente das skills (que ficam em global storage, invisíveis pro Copilot até
+            // alguém invocar), estas valem SOZINHAS: o Copilot lê o applyTo do frontmatter e
+            // aplica as regras em todo arquivo que casa o padrão, inclusive fora do Hub — que é
+            // justamente onde o código é escrito de fato. Prefixo "foursys-" marca o que é nosso:
+            // arquivo do time do cliente com outro nome nunca é tocado, e o nosso é atualizado.
+            this._installStackInstructions(workspaceRoot, catalogPath, config.instructionsFolder);
+
             // 2. Skills → global storage — isola o contexto do Copilot, fora do projeto
             const skillsDir = path.join(globalStoragePath, 'skills');
             if (!fs.existsSync(skillsDir)) { fs.mkdirSync(skillsDir, { recursive: true }); }
@@ -850,10 +858,55 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    /**
+     * Copia as regras de arquitetura da stack pra .github/instructions/ do workspace, no formato
+     * nativo do Copilot. Sem stack com instructionsFolder, nao faz nada.
+     *
+     * Nomeia o destino com prefixo "foursys-": deixa claro de quem e o arquivo, permite atualizar
+     * a nossa versao em cada sync e garante que instruction escrita pelo time do cliente (outro
+     * nome) nunca seja sobrescrita.
+     */
+    private _installStackInstructions(
+        workspaceRoot: string,
+        catalogPath: string,
+        instructionsFolder: string | undefined
+    ): void {
+        if (!instructionsFolder) { return; }
+        try {
+            // Catalogo sincronizado primeiro; se nao tiver, cai no embutido no .vsix (funciona
+            // offline, sem depender de ter clicado em "Atualizar Skills").
+            const candidatos = [
+                path.join(catalogPath, 'instructions', instructionsFolder),
+                path.join(this._context.extensionUri.fsPath, 'catalog', 'instructions', instructionsFolder)
+            ];
+            const origem = candidatos.find(p => fs.existsSync(p));
+            if (!origem) { return; }
+
+            // Mesma resolucao das skills: suporta layout flat e versionado (<pasta>/<versao>/x.md).
+            const arquivo = resolveSkillMdFile(origem);
+            if (!arquivo) { return; }
+
+            const destinoDir = path.join(workspaceRoot, '.github', 'instructions');
+            if (!fs.existsSync(destinoDir)) { fs.mkdirSync(destinoDir, { recursive: true }); }
+            fs.copyFileSync(arquivo, path.join(destinoDir, `foursys-${path.basename(arquivo)}`));
+        } catch (e) {
+            console.error('Erro ao instalar instructions da stack:', e);
+        }
+    }
+
     private _updateGitignore(workspaceRoot: string) {
         try {
             const gitignorePath = path.join(workspaceRoot, '.gitignore');
-            const toIgnore = ['.github/copilot-instructions.md', '.github/skills/', 'agentes_foursys/', 'doc_projeto/'];
+            // Padrao (nao a pasta toda) em .github/instructions/: ignorar o diretorio inteiro
+            // esconderia instruction escrita pelo proprio time do cliente. So o que tem o
+            // prefixo "foursys-" e artefato gerado pelo Hub.
+            const toIgnore = [
+                '.github/copilot-instructions.md',
+                '.github/skills/',
+                '.github/instructions/foursys-*.instructions.md',
+                'agentes_foursys/',
+                'doc_projeto/'
+            ];
             let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
             let changed = false;
             for (const entry of toIgnore) {

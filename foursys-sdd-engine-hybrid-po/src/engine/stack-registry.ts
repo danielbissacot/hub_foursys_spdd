@@ -12,6 +12,11 @@ export interface StackConfig {
     agentFileName: string;
     implementSkillTag: string;
     globalFilesExample: string;
+    /** Pasta em catalog/instructions/ com as regras de arquitetura no formato nativo do Copilot
+     *  (.instructions.md com applyTo). Instalada em .github/instructions/ do workspace, passa a
+     *  valer sozinha em todo arquivo que bate o applyTo — inclusive fora das fases do Hub.
+     *  Opcional: stack sem esta pasta simplesmente nao instala nada. */
+    instructionsFolder?: string;
 }
 
 export interface StackDetectionResult {
@@ -31,6 +36,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         skillsFolder: 'agents_skills/angular',
         agentFileName: 'AGENTE_ANGULAR_FOURSYS.md',
         implementSkillTag: '#agente-angular-foursys',
+        instructionsFolder: 'angular-vertical-slice-arch',
         globalFilesExample: '| `app.config.ts` | Adicionar providers (provideHttpClient, provideRouter) | Descrição da mudança |\n| `app.routes.ts` | Registrar rota da feature | Descrição da mudança |\n| `index.html` | Adicionar fonte/biblioteca global | Descrição da mudança |'
     },
     // Android ANTES do spring_boot: usa marker exclusivo (AndroidManifest.xml), sem conflito com build.gradle
@@ -56,6 +62,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         skillsFolder: 'agents_skills/spring_boot',
         agentFileName: 'AGENTE_SPRING_FOURSYS.md',
         implementSkillTag: '#agente-spring-foursys',
+        instructionsFolder: 'springboot-hexagonal-arch',
         globalFilesExample: '| `pom.xml` | Adicionar dependência (Feign/Kafka/MongoDB) | Descrição da mudança |\n| `src/main/resources/application.yml` | Configurar datasource, kafka, resilience4j | Descrição da mudança |\n| `src/main/java/.../config/[Nome]Config.java` | Declarar @Bean, habilitar @EnableFeignClients | Descrição da mudança |'
     },
     node: {

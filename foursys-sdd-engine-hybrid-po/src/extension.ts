@@ -64,6 +64,26 @@ function buildImplementFileList(rootPath: string, context: vscode.ExtensionConte
     return `${files.slice(0, -1).join(', ')} e ${files[files.length - 1]}`;
 }
 
+/** Tag da persona da stack (#agente-x-foursys), ou null se o arquivo da persona nao existe
+ *  em nenhum dos catalogos — nesse caso e melhor nao citar skill nenhuma do que citar uma
+ *  inexistente. Procura no catalogo sincronizado do workspace e no embutido no .vsix. */
+function personaSkillTagIfAvailable(
+    stackId: string,
+    rootPath: string,
+    context: vscode.ExtensionContext
+): string | null {
+    const config = getStackConfig(stackId);
+    const candidatos = [
+        findCatalogPath(rootPath, context.globalState.get<string>('catalogPath') || ''),
+        path.join(context.extensionUri.fsPath, 'catalog')
+    ].filter((p): p is string => !!p);
+
+    const existe = candidatos.some(base =>
+        fs.existsSync(path.join(base, config.skillsFolder, config.agentFileName))
+    );
+    return existe ? config.implementSkillTag : null;
+}
+
 async function openFile(filePath: string) {
     if (fs.existsSync(filePath)) {
         const doc = await vscode.workspace.openTextDocument(filePath);
@@ -241,11 +261,17 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(registerGated('foursys.implement', async () => {
         const stackId = getActiveStackId(context);
-        const config = getStackConfig(stackId);
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
+        // So manda "invoque a Skill: #agente-x" se a persona existir de fato no catalogo.
+        // Stacks sem persona (node hoje, e o fallback 'unknown') mandavam uma tag que nao
+        // existe em lugar nenhum — o Copilot ignora ou, pior, inventa um comportamento pra ela.
+        const skillTag = personaSkillTagIfAvailable(stackId, rootPath, context);
+        const instrucao = skillTag
+            ? `Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${skillTag}.`
+            : 'Inicie a codificação estritamente de acordo com as tarefas listadas.';
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${config.implementSkillTag}.`
+            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. ${instrucao}`
         });
     }));
 
@@ -847,7 +873,6 @@ async function executeSDDPhase(
             plan:            'light',
             tasks:           'light',
             implement:       'implement',
-            'qa-automation': 'implement',
         };
         const phaseType = PHASE_TYPE[command] ?? 'standard';
 

@@ -14,6 +14,8 @@ import {
     getDocPath,
     readWorkspaceContextForPhase,
     readProjectStackInfo,
+    readProjectMap,
+    PHASES_NEEDING_PROJECT_MAP,
     extractHtmlBlock,
     extractFencedBlocks
 } from './engine/prompt-context';
@@ -838,6 +840,12 @@ async function executeSDDPhase(
         userContext += readWorkspaceContextForPhase(command, rootPath, stackId);
         if (command === 'constitution' || command === 'plan' || command === 'tasks') {
             userContext += readProjectStackInfo(rootPath, stackId);
+        }
+        // Fases que propõem estrutura técnica precisam do mapa real do projeto pra cumprir a
+        // Etapa 0 do playbook — sem ele a IA trava pedindo pom.xml/árvore de pacotes (que o
+        // contexto de workspace nunca envia) ou inventa o pacote.
+        if (PHASES_NEEDING_PROJECT_MAP.has(command)) {
+            userContext += readProjectMap(rootPath, stackId);
         }
 
         // Nota de mockup de tela (apenas para specify). Usa path.dirname(outputPath) em vez de

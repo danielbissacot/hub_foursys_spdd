@@ -8,6 +8,10 @@ export const DOC_FOLDER = 'doc_projeto';
 export const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de workspace em 60%
 export const WORKSPACE_CONTEXT_MAX_LINES = 80;  // era 300 — snippet curto de imports + assinaturas
 export const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc é suficiente
+/** Fases que propõem estrutura/nomes de código e por isso exigem a Etapa 0 do playbook.
+ *  specify-tech e plan desenham pacotes; tasks lista arquivos impactados. */
+export const PHASES_NEEDING_PROJECT_MAP = new Set(['specify', 'plan', 'tasks']);
+
 export const PHASES_NEEDING_WORKSPACE = new Set([
     'plan',
     // qa-coverage: valida se cada critério de aceite foi de fato entregue no código real
@@ -175,6 +179,84 @@ export function readWorkspaceContext(rootPath: string, stackId: string): string 
     return context;
 }
 
+/** Identificador base real do projeto, lido do manifesto. No pom.xml o PRIMEIRO <groupId> quase
+ *  sempre e do <parent> (org.springframework.boot) — por isso o bloco parent e removido antes. */
+function readBaseIdentifier(rootPath: string, stackId: string): string {
+    try {
+        if (stackId === 'spring_boot') {
+            const pom = path.join(rootPath, 'pom.xml');
+            if (fs.existsSync(pom)) {
+                const semParent = fs.readFileSync(pom, 'utf8').replace(/<parent>[\s\S]*?<\/parent>/, '');
+                const g = semParent.match(/<groupId>([^<]+)<\/groupId>/);
+                if (g) { return `groupId (pom.xml): ${g[1].trim()}`; }
+            }
+            const gradle = ['build.gradle', 'build.gradle.kts']
+                .map(f => path.join(rootPath, f)).find(f => fs.existsSync(f));
+            if (gradle) {
+                const g = fs.readFileSync(gradle, 'utf8').match(/^\s*group\s*=?\s*['"]([^'"]+)['"]/m);
+                if (g) { return `group (build.gradle): ${g[1].trim()}`; }
+            }
+        }
+        if (stackId === 'angular' || stackId === 'node') {
+            const pkg = path.join(rootPath, 'package.json');
+            if (fs.existsSync(pkg)) {
+                const nome = JSON.parse(fs.readFileSync(pkg, 'utf8')).name;
+                if (nome) { return `name (package.json): ${nome}`; }
+            }
+        }
+        if (stackId === 'android') {
+            const gradle = path.join(rootPath, 'app', 'build.gradle.kts');
+            if (fs.existsSync(gradle)) {
+                const m = fs.readFileSync(gradle, 'utf8').match(/(?:namespace|applicationId)\s*=?\s*['"]([^'"]+)['"]/);
+                if (m) { return `namespace (app/build.gradle.kts): ${m[1].trim()}`; }
+            }
+        }
+    } catch { /* manifesto ilegivel — cai no fallback da arvore de pastas */ }
+    return '';
+}
+
+const PROJECT_MAP_MAX_DIRS = 60;
+
+/**
+ * Mapa barato do projeto: identificador base + arvore de PASTAS (so caminhos, sem conteudo).
+ *
+ * A Etapa 0 dos playbooks exige "use o pacote real do projeto" e "liste o que ja existe", mas
+ * readWorkspaceContext manda so 2 arquivos de src/ — nunca o pom.xml (que fica na raiz) nem a
+ * estrutura de pacotes. Sem estes dados a IA nao tem como cumprir a Etapa 0: ou trava pedindo
+ * as informacoes, ou inventa o pacote (que foi o bug original). Custa ~300-500 tokens, contra
+ * ~26k de injetar as skills inteiras.
+ */
+export function readProjectMap(rootPath: string, stackId: string): string {
+    const srcPath = path.join(rootPath, 'src');
+    if (!fs.existsSync(srcPath)) { return ''; }
+
+    const dirs: string[] = [];
+    const walk = (dir: string, depth: number) => {
+        if (depth > 8 || dirs.length >= PROJECT_MAP_MAX_DIRS) { return; }
+        let entries: fs.Dirent[];
+        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+        for (const entry of entries) {
+            if (!entry.isDirectory()) { continue; }
+            if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'out') { continue; }
+            const full = path.join(dir, entry.name);
+            dirs.push(path.relative(rootPath, full).replace(/\\/g, '/'));
+            walk(full, depth + 1);
+        }
+    };
+    walk(srcPath, 0);
+    if (dirs.length === 0) { return ''; }
+
+    const identificador = readBaseIdentifier(rootPath, stackId);
+    let mapa = '\n--- MAPA REAL DO PROJETO (para a Etapa 0 — use estes nomes, não invente) ---\n';
+    if (identificador) { mapa += `${identificador}\n`; }
+    mapa += 'Pastas existentes:\n';
+    mapa += dirs.map(d => `  ${d}`).join('\n') + '\n';
+    if (dirs.length >= PROJECT_MAP_MAX_DIRS) { mapa += '  (lista truncada)\n'; }
+    mapa += 'Siga esta estrutura e esta nomenclatura. Se a história pedir algo que não existe aqui, ' +
+            'proponha o novo DENTRO desta estrutura, nunca em pacote inventado.\n';
+    return mapa;
+}
+
 /** Escolhe se injeta o código real do workspace pra fase — centralizado aqui pra extension.ts
  *  (VS Code) e assembleFinalPrompt (IntelliJ/CLI) nunca divergirem na mesma decisão. */
 export function readWorkspaceContextForPhase(command: string, rootPath: string, stackId: string): string {
@@ -247,6 +329,9 @@ export function assembleFinalPrompt(params: {
         }
     });
     userContext += readWorkspaceContextForPhase(command, workspaceRoot, stackId);
+    if (PHASES_NEEDING_PROJECT_MAP.has(command)) {
+        userContext += readProjectMap(workspaceRoot, stackId);
+    }
     if (command === 'constitution' || command === 'plan' || command === 'tasks') {
         userContext += readProjectStackInfo(workspaceRoot, stackId);
     }

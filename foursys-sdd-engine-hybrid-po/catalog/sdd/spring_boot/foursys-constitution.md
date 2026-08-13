@@ -55,7 +55,7 @@ A saída deve ser um arquivo Markdown contendo:
      ► EXCEÇÃO OBRIGATÓRIA: se o projeto já registra UseCase/Service por @Service ou @Component (component scan) — confira o MAPA REAL DO PROJETO no contexto —, siga o projeto e NÃO adicione @Bean. Os dois juntos criam bean duplicado com o mesmo nome e a aplicação NÃO SOBE (BeanDefinitionOverrideException, desde o Spring Boot 2.1).
 
 4. 🧪 QUALIDADE E TESTES
-   - Cobertura mínima de 95% (alinhado com SKILL_SPRINGBOOT_TESTING).
+   - Cobertura mínima de 95% de linha e 90% de branch, MEDIDA com JaCoCo — nunca declarada sem rodar `mvn -o clean test` e ler `target/site/jacoco/jacoco.csv`. Detalhamento na skill `springboot-testing`.
    - Uso de Mocks para dependências externas.
    - Padrão AAA (Arrange, Act, Assert).
 

@@ -45,11 +45,13 @@ Gere a especificação técnica em Markdown, contendo:
 1. **Arquitetura Hexagonal — Camadas Impactadas:**
    - Domain: Entidades, Records, Value Objects, exceções de domínio
    - Application: Use Cases (1 InputPort cada), interfaces de porta (Port In/Out)
-   - Infrastructure — Adapters de entrada: Adapters REST (Controller)
-   - Infrastructure — Adapters de saída (escolher os aplicáveis):
+   - Infrastructure — Adapters de entrada (quem ACIONA a aplicação):
+     - Controller REST (adapter/input/controller/)
+     - Kafka Consumer (adapter/input/consumer/) — recebe mensagem e aciona um UseCase, mesmo papel de um Controller
+   - Infrastructure — Adapters de saída, quem a aplicação ACIONA (escolher os aplicáveis):
      - Repository: MongoDB (Spring Data MongoDB) / PostgreSQL (Spring Data JPA)
      - Feign Client: integração com APIs externas (com circuit breaker Resilience4j)
-     - Kafka Producer/Consumer: mensageria assíncrona (Confluent Cloud)
+     - Kafka Producer (adapter/output/producer/): publicação de eventos (Confluent Cloud)
      - Redis Cache Adapter: cache via Azure Cache for Redis com CSI Driver (sem SDK no código)
      - Blob Storage Adapter: upload/download de arquivos via Azure Blob Storage
      - Service Bus Adapter: mensageria alternativa via Azure Service Bus

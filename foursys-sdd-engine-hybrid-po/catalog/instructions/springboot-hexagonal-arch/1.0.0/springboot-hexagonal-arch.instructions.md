@@ -57,17 +57,23 @@ src/main/java/...
 │   ├── input/                 ← Interfaces InputPort (contratos de entrada)
 │   └── output/                ← Interfaces OutputPort (contratos de saída)
 ├── adapter/
-│   ├── input/
-│   │   └── controller/        ← Controllers REST + DTOs request/response
-│   └── output/
+│   ├── input/                 ← Quem CHAMA a aplicação (driving)
+│   │   ├── controller/        ← Controllers REST + DTOs request/response
+│   │   ├── consumer/          ← Kafka Consumers (recebem mensagem = entram na aplicação)
+│   │   └── mapper/            ← Conversão DTO ↔ domínio na borda de entrada
+│   └── output/                ← Quem a aplicação CHAMA (driven)
 │       ├── repository/        ← Repositories + Entities JPA/MongoDB
 │       ├── client/            ← Feign Clients + DTOs
-│       ├── producer/          ← Kafka Producers
-│       ├── consumer/          ← Kafka Consumers
+│       ├── producer/          ← Kafka Producers (a aplicação publica = sai dela)
 │       ├── cache/             ← Redis Cache Adapters
 │       └── storage/           ← Blob Storage Adapters
 └── config/                    ← Classes @Configuration com @Bean para cada UseCase
 ```
+
+> **Consumer é entrada, Producer é saída.** O Consumer recebe mensagem de fora e aciona um
+> UseCase — mesmo papel de um Controller REST, por isso fica em `adapter/input/`. O Producer é
+> acionado pela aplicação para publicar — por isso fica em `adapter/output/`. Inverter isso quebra
+> a regra de dependência do hexagonal.
 
 ---
 

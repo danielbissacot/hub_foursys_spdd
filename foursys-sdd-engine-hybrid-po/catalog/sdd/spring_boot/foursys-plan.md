@@ -75,7 +75,7 @@ Gere a especificação técnica em Markdown, contendo:
    - Performance: metas de latência/throughput; estratégia de cache (TTL por natureza: estático 24h, semi-estático 1h, transacional 5min)
    - Cobertura de testes: mínimo 95% (unitários AAA + integração)
    - Logs de auditoria: campos obrigatórios (sem PII: CPF, senha, token, conta)
-   - Tratamento de exceções: exceções de domínio por cenário de erro
+   - Tratamento de exceções: mapeie cada cenário de erro para uma exceção que o projeto JÁ TEM (consulte as pastas `exception/` no MAPA REAL DO PROJETO). Proponha exceção nova só se nenhuma existente cobrir o cenário — e nesse caso registre na tabela do item 4 qual você avaliou e descartou. Não crie uma exceção nova por cenário.
    - Para features de transação financeira (obrigatório):
      - ACID: garantia de atomicidade e rollback em falha
      - Idempotência: operações repetidas devem gerar o mesmo resultado

@@ -48,6 +48,7 @@ A saída deve ser um arquivo Markdown contendo:
    - Regra 4 (Zero Teimosia): Se o usuário apontar uma violação de governança, você deve interromper e reler este documento.
    - Regra 5 (Atomic Edits): Toda edição deve manter a integridade total do arquivo.
    - Regra 6 (Exceções de Domínio): Nunca use RuntimeException genérica — sempre lance exceções de domínio específicas.
+     ► REUSO ANTES DE CRIAR: liste as exceções que o projeto já tem (confira o MAPA REAL DO PROJETO no contexto — pastas `exception/` do domínio e da infraestrutura) e use a que servir. Só crie exceção nova quando NENHUMA das existentes cobrir o caso, e justifique por escrito qual você descartou e por quê. Uma exceção nova por cenário de erro incha o domínio e quebra o handler já configurado.
    - Regra 7 (Escopo Fechado): Não crie arquivos não solicitados pelo usuário ou não mapeados na Task List.
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o arquivo não estiver na Task List ativa, NÃO TOQUE nele.
    - Regra 9 (Bean Obrigatório): TODA UseCase criada em core/usecase/ EXIGE @Bean correspondente em config/. Ausência causa NoSuchBeanDefinitionException em runtime.

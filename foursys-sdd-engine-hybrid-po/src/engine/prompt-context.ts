@@ -216,44 +216,76 @@ function readBaseIdentifier(rootPath: string, stackId: string): string {
 }
 
 const PROJECT_MAP_MAX_DIRS = 60;
+const PROJECT_MAP_MAX_NAMES = 150;
 
 /**
- * Mapa barato do projeto: identificador base + arvore de PASTAS (so caminhos, sem conteudo).
+ * Mapa barato do projeto: identificador base + arvore de pastas COM os nomes ja existentes
+ * em cada uma (so nomes, sem conteudo de arquivo).
  *
  * A Etapa 0 dos playbooks exige "use o pacote real do projeto" e "liste o que ja existe", mas
  * readWorkspaceContext manda so 2 arquivos de src/ — nunca o pom.xml (que fica na raiz) nem a
  * estrutura de pacotes. Sem estes dados a IA nao tem como cumprir a Etapa 0: ou trava pedindo
- * as informacoes, ou inventa o pacote (que foi o bug original). Custa ~300-500 tokens, contra
- * ~26k de injetar as skills inteiras.
+ * as informacoes, ou inventa o pacote (que foi o bug original).
+ *
+ * So a lista de pastas nao basta: no teste E2E o Tasks viu `adapter/exception/handler/` vazia
+ * de nomes e propos criar um `GlobalExceptionHandler`, sem enxergar que o projeto ja tinha
+ * `RestExceptionHandler` e `BusinessExceptionHandler` ali dentro. Por isso o mapa agora leva
+ * tambem os nomes. Custa ~700-900 tokens num projeto medio, contra ~26k de injetar as skills.
  */
 export function readProjectMap(rootPath: string, stackId: string): string {
     const srcPath = path.join(rootPath, 'src');
     if (!fs.existsSync(srcPath)) { return ''; }
 
-    const dirs: string[] = [];
+    const config = getStackConfig(stackId);
+    const arvore: { dir: string; nomes: string[] }[] = [];
+    let totalNomes = 0;
+    let nomesTruncados = false;
+
     const walk = (dir: string, depth: number) => {
-        if (depth > 8 || dirs.length >= PROJECT_MAP_MAX_DIRS) { return; }
+        if (depth > 8 || arvore.length >= PROJECT_MAP_MAX_DIRS) { return; }
         let entries: fs.Dirent[];
         try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+
+        // Nome sem extensao: Foo.java -> Foo. Em Angular isso colapsa o trio
+        // foo.component.{ts,html,scss} num unico "foo.component" — dai o Set.
+        const nomes = new Set<string>();
+        const subdirs: string[] = [];
         for (const entry of entries) {
-            if (!entry.isDirectory()) { continue; }
             if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'out') { continue; }
-            const full = path.join(dir, entry.name);
-            dirs.push(path.relative(rootPath, full).replace(/\\/g, '/'));
-            walk(full, depth + 1);
+            if (entry.isDirectory()) { subdirs.push(path.join(dir, entry.name)); continue; }
+            const ext = path.extname(entry.name);
+            if (!config.fileExtensions.includes(ext)) { continue; }
+            nomes.add(path.basename(entry.name, ext));
         }
+
+        const selecionados: string[] = [];
+        for (const nome of nomes) {
+            if (totalNomes >= PROJECT_MAP_MAX_NAMES) { nomesTruncados = true; break; }
+            selecionados.push(nome);
+            totalNomes++;
+        }
+        arvore.push({ dir: path.relative(rootPath, dir).replace(/\\/g, '/'), nomes: selecionados });
+
+        for (const sub of subdirs) { walk(sub, depth + 1); }
     };
     walk(srcPath, 0);
-    if (dirs.length === 0) { return ''; }
+    if (arvore.length === 0) { return ''; }
 
     const identificador = readBaseIdentifier(rootPath, stackId);
     let mapa = '\n--- MAPA REAL DO PROJETO (para a Etapa 0 — use estes nomes, não invente) ---\n';
     if (identificador) { mapa += `${identificador}\n`; }
-    mapa += 'Pastas existentes:\n';
-    mapa += dirs.map(d => `  ${d}`).join('\n') + '\n';
-    if (dirs.length >= PROJECT_MAP_MAX_DIRS) { mapa += '  (lista truncada)\n'; }
+    mapa += 'Estrutura existente (pasta e, abaixo dela, os nomes que já existem lá):\n';
+    for (const { dir, nomes } of arvore) {
+        mapa += `  ${dir}\n`;
+        if (nomes.length > 0) { mapa += `      ${nomes.join(', ')}\n`; }
+    }
+    if (arvore.length >= PROJECT_MAP_MAX_DIRS) { mapa += '  (pastas truncadas)\n'; }
+    if (nomesTruncados) { mapa += '  (nomes truncados)\n'; }
     mapa += 'Siga esta estrutura e esta nomenclatura. Se a história pedir algo que não existe aqui, ' +
             'proponha o novo DENTRO desta estrutura, nunca em pacote inventado.\n';
+    mapa += 'ANTES de propor um arquivo novo, procure nesta lista um nome que já cumpra o mesmo papel ' +
+            '(ex.: um handler de exceções, um mapper, um config). Se existir, REUSE o existente e diga ' +
+            'qual é — criar um segundo componente para a mesma responsabilidade é erro.\n';
     return mapa;
 }
 

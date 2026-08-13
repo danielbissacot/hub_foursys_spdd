@@ -172,16 +172,33 @@ public class PagamentoController {
 
 ### Exceções de Domínio
 
+**ANTES de escrever `throw`, liste o que já existe em `domain/exception/` (ou pacote
+equivalente) e use a que servir.** Inventar nome de exceção é a causa mais comum de código
+gerado que não compila: a classe não existe no projeto e o import quebra.
+
 ```java
-// ✅ Correto — exceções de domínio específicas
+// ✅ Correto — reusa a exceção que o projeto já tem
+throw new NaoEncontradoException("Contrato não encontrado para o ID: " + id);
+
+// ❌ Proibido — nome inventado, sem conferir o projeto.
+// NegocioException/DomainException/BusinessRuleException "parecem" existir mas
+// normalmente não existem: o código não compila.
+throw new NegocioException("Contrato não encontrado");
+
+// ❌ Proibido — genérica
+throw new RuntimeException("Contrato não encontrado");
+```
+
+Só crie exceção nova quando **nenhuma** das existentes cobrir o caso — e aí seguindo a
+convenção de nome do próprio projeto (se lá é `...Exception` em português, mantenha):
+
+```java
+// ✅ Criar nova só se realmente não houver equivalente
 public class PagamentoNaoEncontradoException extends RuntimeException {
     public PagamentoNaoEncontradoException(String codigoOperacao) {
         super("Pagamento não encontrado: " + codigoOperacao);
     }
 }
-
-// ❌ Proibido
-throw new RuntimeException("Pagamento não encontrado");
 ```
 
 ---
@@ -197,11 +214,39 @@ throw new RuntimeException("Pagamento não encontrado");
 // CNPJ: **.***.***/****.XX
 ```
 
-**Anotações obrigatórias:**
+**Em classe comum (entidade JPA, DTO com Lombok):**
 ```java
-@ToString.Exclude  // Lombok — em todos os campos PII em entidades JPA
+@ToString.Exclude  // Lombok — em todos os campos PII
 private String cpf;
 private String senha;
+```
+
+**Em `record` — `@ToString.Exclude` NÃO funciona:**
+
+Lombok não atua em `record`, e o `toString()` que o Java gera sozinho **imprime todos os
+componentes**, PII incluído. Um `log.info("{}", contrato)` vaza CPF no log. Como entidade de
+domínio aqui é `record`, isto vale para a maioria dos casos — escolha uma das duas saídas:
+
+```java
+// ✅ Opção 1 (preferida): PII não entra no record de domínio.
+// Fica só no DTO da borda, que não é logado.
+public record Contrato(Long id, String numeroContrato, BigDecimal valor) {}
+
+// ✅ Opção 2: se o PII precisa estar no record, sobrescreva toString() mascarando.
+public record Contrato(Long id, String cpfCliente, BigDecimal valor) {
+    @Override
+    public String toString() {
+        return "Contrato{id=" + id + ", cpfCliente='" + mascarar(cpfCliente)
+             + "', valor=" + valor + "}";
+    }
+}
+
+// ❌ PROIBIDO: escrever toString() que imprime o PII em texto puro,
+// e igualmente proibido deixar o toString() automático do record quando há PII.
+@Override
+public String toString() {
+    return "Contrato{cpfCliente='" + cpfCliente + "'}";   // vaza CPF em todo log
+}
 ```
 
 **DTOs de resposta:** nunca retorne campos sensíveis desnecessários.
@@ -257,8 +302,9 @@ class RealizarPagamentoUseCaseTest {
 3. **Build First:** Valide `pom.xml` e `application.yml` antes de gerar classes
 4. **Zero Teimosia:** Se houver violação de governança apontada, reabra este documento
 5. **Atomic Edits:** Toda edição mantém a integridade total do arquivo
-6. **Exceções de Domínio:** Nunca use `RuntimeException` genérica
-7. **Escopo Fechado:** Não crie arquivos fora da task list
-8. **Proteção de Código Existente:** Nunca modifique código existente sem solicitação explícita
-9. **Bean Obrigatório:** Toda `UseCase` em `core/usecase/` exige `@Bean` correspondente em `config/`
-10. **Core sem framework:** a classe do UseCase **nunca** leva `@Component`/`@Service`. Registrar nos dois lugares gera bean duplicado com o mesmo nome e a aplicação não sobe (`BeanDefinitionOverrideException`)
+6. **Exceções de Domínio:** Nunca use `RuntimeException` genérica — e **antes de criar exceção nova, confira `domain/exception/` e use a que já existe**. Nome inventado não compila
+7. **PII nunca em `toString()`:** `record` imprime todos os campos por padrão e `@ToString.Exclude` não funciona nele. Com PII no `record`, sobrescreva `toString()` mascarando — ou deixe o PII fora do domínio
+8. **Escopo Fechado:** Não crie arquivos fora da task list
+9. **Proteção de Código Existente:** Nunca modifique código existente sem solicitação explícita
+10. **Bean Obrigatório:** Toda `UseCase` em `core/usecase/` exige `@Bean` correspondente em `config/` — **salvo se o projeto já registra por `@Service`/component scan; nesse caso siga o projeto e NÃO adicione `@Bean`** (os dois juntos duplicam o bean e a aplicação não sobe)
+11. **Core sem framework:** em projeto novo ou já hexagonal puro, a classe do UseCase não leva `@Component`/`@Service` — quem registra é a `@Configuration`

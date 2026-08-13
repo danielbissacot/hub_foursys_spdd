@@ -47,10 +47,10 @@ function copyReferencesIfAny(srcDir: string, destSkillSlug: string): void {
     const refSrc = path.join(srcDir, 'references');
     if (!fs.existsSync(refSrc)) { return; }
     const refDest = path.join(SKILLS_DIR, destSkillSlug, 'references');
-    fs.mkdirSync(refDest, { recursive: true });
-    for (const f of fs.readdirSync(refSrc)) {
-        fs.copyFileSync(path.join(refSrc, f), path.join(refDest, f));
-    }
+    // cpSync recursivo (nao readdir + copyFileSync): skill com references em subpasta —
+    // como o catalogo do Design System Liquid, que organiza por componente — fazia
+    // copyFileSync receber um diretorio, lancar EISDIR e abortar o sync inteiro no meio.
+    fs.cpSync(refSrc, refDest, { recursive: true });
 }
 
 function writeAgentFile(slug: string, description: string, body: string): void {

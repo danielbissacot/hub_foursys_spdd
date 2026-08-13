@@ -348,5 +348,29 @@ describe('utils.ts', () => {
             const soEstrutura = '# Especificação Técnica\n\n## Tem?\n\n> Deixe em branco.\n\n---\n\nRESPOSTA:\n';
             assert.strictEqual(isTechSpecUnfilled(soEstrutura), true);
         });
+
+        // Organizar a resposta com titulo/citacao e o jeito natural de escrever texto tecnico:
+        // filtrar por prefixo descartava isso em silencio, perdendo spec que a pessoa escreveu.
+        it('resposta escrita com TITULO markdown conta como preenchido', () => {
+            const comTitulo = TECH_SPEC_TEMPLATE + '\n## Regras de negócio\n### Fila\nUsar a fila existente.\n';
+            assert.strictEqual(isTechSpecUnfilled(comTitulo), false);
+        });
+
+        it('resposta escrita como CITACAO conta como preenchido', () => {
+            const comCitacao = TECH_SPEC_TEMPLATE + '\n> Não mexer na tabela CONTRATO.\n';
+            assert.strictEqual(isTechSpecUnfilled(comCitacao), false);
+        });
+
+        it('resposta em lista ou bloco de codigo conta como preenchido', () => {
+            assert.strictEqual(isTechSpecUnfilled(TECH_SPEC_TEMPLATE + '\n- usar a fila X\n'), false);
+            assert.strictEqual(isTechSpecUnfilled(TECH_SPEC_TEMPLATE + '\n```java\nclass X {}\n```\n'), false);
+        });
+
+        it('template antigo com titulo escrito por cima conta como preenchido', () => {
+            const antigoComTitulo = '# Technical Specification (opcional)\n\n' +
+                'Cole aqui o detalhamento técnico: classes, endpoints, contratos de API,\n\n' +
+                '## Minha regra\nO endpoint /v1/contratos não pode mudar de assinatura.\n';
+            assert.strictEqual(isTechSpecUnfilled(antigoComTitulo), false);
+        });
     });
 });

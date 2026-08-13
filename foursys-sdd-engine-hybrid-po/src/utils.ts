@@ -37,29 +37,38 @@ export const TECH_SPEC_TEMPLATE = `# Especificação Técnica
 RESPOSTA:
 `;
 
-/** Frases do template ANTIGO (versoes <= 1.2.5). Sem isto, quem ja tem o arquivo criado
+/** Linhas do template ANTIGO (versoes <= 1.2.5). Sem isto, quem ja tem o arquivo criado
  *  pela versao antiga e nunca preencheu seria tratado como "preenchido". */
 const LEGACY_TECH_SPEC_MARKERS = [
+    '# Technical Specification',
     'Cole aqui o detalhamento técnico',
     'exemplos de código, yml, estrutura de pacotes',
     'Este arquivo é lido pela fase Plan',
 ];
 
+const RESPOSTA_MARKER = 'RESPOSTA:';
+
 /**
  * True quando o technical_spec.md so tem o template (novo ou antigo), sem nada escrito.
  * Nesse caso o arquivo nao e injetado no prompt: mandar um template vazio so gasta contexto
  * e, pior, oferece o texto de exemplo pra IA copiar como se fosse dado do projeto.
+ *
+ * Template novo: vale tudo que estiver DEPOIS de "RESPOSTA:". Nao se pode filtrar por prefixo
+ * aqui — titulo (##) e citacao (>) sao jeitos normais de organizar texto tecnico, e descartar
+ * essas linhas fazia o Hub ignorar em silencio uma spec que a pessoa escreveu de verdade.
  */
 export function isTechSpecUnfilled(content: string): boolean {
+    const idx = content.lastIndexOf(RESPOSTA_MARKER);
+    if (idx !== -1) {
+        return content.slice(idx + RESPOSTA_MARKER.length).trim().length === 0;
+    }
+    // Sem o marcador: arquivo do template antigo (ou escrito a mao). Descarta so as linhas
+    // conhecidas do template antigo — qualquer outra coisa conta como conteudo.
     const escrito = content
         .split('\n')
         .map(l => l.trim())
         .filter(l => l.length > 0)
-        .filter(l => !l.startsWith('#'))                 // titulos do template
-        .filter(l => !l.startsWith('>'))                 // instrucoes (citacao)
-        .filter(l => !l.startsWith('<!--'))              // comentarios
-        .filter(l => !/^[-*_]{3,}$/.test(l))             // linha horizontal
-        .filter(l => l !== 'RESPOSTA:')                  // marcador do campo vazio
+        .filter(l => !/^[-*_]{3,}$/.test(l))
         .filter(l => !LEGACY_TECH_SPEC_MARKERS.some(m => l.includes(m)));
     return escrito.length === 0;
 }

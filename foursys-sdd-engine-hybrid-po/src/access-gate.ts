@@ -26,8 +26,12 @@ const BLOCKED_HINT =
     'Se voce e da Foursys e esta em ambiente de cliente, peca o codigo de liberacao ao time do Hub ' +
     'e rode "Foursys: Liberar Acesso" na paleta de comandos (Ctrl+Shift+P).';
 
+// Exige pelo menos um caractere antes do @ — endsWith sozinho aceitava "@foursys.com.br"
+// digitado sem nome nenhum.
+const FOURSYS_EMAIL = /^[^\s@]+@foursys\.com\.br$/i;
+
 function isFoursysEmail(email: string | undefined): boolean {
-    return !!email && email.trim().toLowerCase().endsWith(ALLOWED_DOMAIN);
+    return !!email && FOURSYS_EMAIL.test(email.trim());
 }
 
 /** True se esta maquina ja passou pela validacao — por e-mail valido ou por codigo. */
@@ -42,9 +46,19 @@ export function hasAccess(context: vscode.ExtensionContext): boolean {
  * Pergunta o e-mail UMA vez por maquina (fica salvo em globalState). Se a pessoa ja informou
  * um e-mail @foursys.com.br pra telemetria, aproveita esse e nem pergunta.
  */
+/** Prompt em andamento. Abrir o Hub dispara a checagem e clicar num botao dispara outra —
+ *  sem isto, as duas abriam caixa de e-mail e a pessoa respondia duas vezes seguidas. */
+let perguntaEmAndamento: Promise<boolean> | null = null;
+
 export async function ensureFoursysAccess(context: vscode.ExtensionContext): Promise<boolean> {
     if (hasAccess(context)) { return true; }
+    if (perguntaEmAndamento) { return perguntaEmAndamento; }
 
+    perguntaEmAndamento = perguntarEValidar(context).finally(() => { perguntaEmAndamento = null; });
+    return perguntaEmAndamento;
+}
+
+async function perguntarEValidar(context: vscode.ExtensionContext): Promise<boolean> {
     // Reaproveita o e-mail da telemetria quando ele ja e Foursys — evita perguntar duas vezes
     // a mesma coisa pra quem ja respondeu.
     const doTelemetria = context.globalState.get<string>(TELEMETRY_EMAIL_KEY);

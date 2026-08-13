@@ -217,6 +217,11 @@ function readBaseIdentifier(rootPath: string, stackId: string): string {
 
 const PROJECT_MAP_MAX_DIRS = 60;
 const PROJECT_MAP_MAX_NAMES = 150;
+/** Pacote Java come muita profundidade so em prefixo: src/main/java/br/com/empresa/proj/
+ *  ja consome 7 niveis antes da primeira pasta de codigo. Com o limite antigo (8) o mapa
+ *  parava exatamente em .../adapter e nunca chegava em .../adapter/exception/handler —
+ *  a pasta nem aparecia no prompt, e a IA propunha criar handler que ja existia. */
+const PROJECT_MAP_MAX_DEPTH = 20;
 
 /**
  * Mapa barato do projeto: identificador base + arvore de pastas COM os nomes ja existentes
@@ -242,7 +247,7 @@ export function readProjectMap(rootPath: string, stackId: string): string {
     let nomesTruncados = false;
 
     const walk = (dir: string, depth: number) => {
-        if (depth > 8 || arvore.length >= PROJECT_MAP_MAX_DIRS) { return; }
+        if (depth > PROJECT_MAP_MAX_DEPTH || arvore.length >= PROJECT_MAP_MAX_DIRS) { return; }
         let entries: fs.Dirent[];
         try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
 
@@ -255,7 +260,13 @@ export function readProjectMap(rootPath: string, stackId: string): string {
             if (entry.isDirectory()) { subdirs.push(path.join(dir, entry.name)); continue; }
             const ext = path.extname(entry.name);
             if (!config.fileExtensions.includes(ext)) { continue; }
-            nomes.add(path.basename(entry.name, ext));
+            const base = path.basename(entry.name, ext);
+            // Em Angular/Node o teste mora ao lado do codigo (login.page.spec.ts). Listar os
+            // dois dobrava a lista e estourava o teto ANTES de chegar em shared/, que e
+            // justamente onde moram os componentes reutilizaveis. O nome do teste e derivavel
+            // do nome do arquivo, entao nao paga o token.
+            if (base.endsWith('.spec') || base.endsWith('.test')) { continue; }
+            nomes.add(base);
         }
 
         const selecionados: string[] = [];
@@ -264,7 +275,12 @@ export function readProjectMap(rootPath: string, stackId: string): string {
             selecionados.push(nome);
             totalNomes++;
         }
-        arvore.push({ dir: path.relative(rootPath, dir).replace(/\\/g, '/'), nomes: selecionados });
+        // Pasta sem nome nenhum e so passagem (br/, com/, empresa/, src/main/java/...):
+        // emitir uma linha para ela gastaria token sem informar nada. O caminho completo
+        // continua visivel na linha da pasta folha que tem conteudo.
+        if (selecionados.length > 0) {
+            arvore.push({ dir: path.relative(rootPath, dir).replace(/\\/g, '/'), nomes: selecionados });
+        }
 
         for (const sub of subdirs) { walk(sub, depth + 1); }
     };
@@ -276,8 +292,7 @@ export function readProjectMap(rootPath: string, stackId: string): string {
     if (identificador) { mapa += `${identificador}\n`; }
     mapa += 'Estrutura existente (pasta e, abaixo dela, os nomes que já existem lá):\n';
     for (const { dir, nomes } of arvore) {
-        mapa += `  ${dir}\n`;
-        if (nomes.length > 0) { mapa += `      ${nomes.join(', ')}\n`; }
+        mapa += `  ${dir}\n      ${nomes.join(', ')}\n`;
     }
     if (arvore.length >= PROJECT_MAP_MAX_DIRS) { mapa += '  (pastas truncadas)\n'; }
     if (nomesTruncados) { mapa += '  (nomes truncados)\n'; }

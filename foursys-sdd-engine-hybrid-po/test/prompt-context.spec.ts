@@ -41,6 +41,30 @@ describe('prompt-context.ts', () => {
             assert.ok(!mapa.includes('.java'), 'nome vai sem extensao, para economizar token');
         });
 
+        // O limite de profundidade era 8, mas src/main/java/br/com/empresa/proj/ ja gasta 7
+        // niveis so de prefixo: o mapa morria em .../adapter e nunca listava
+        // .../adapter/exception/handler. A pasta nem chegava no prompt.
+        it('alcanca pacote Java profundo, alem do prefixo src/main/java/br/com/...', () => {
+            escrever(tmpRoot, 'src/main/java/br/com/bradesco/kit/srv/adapter/exception/handler/RestExceptionHandler.java');
+            escrever(tmpRoot, 'src/main/java/br/com/bradesco/kit/srv/adapter/input/boleto/api/dto/mapper/BoletoMapper.java');
+
+            const mapa = readProjectMap(tmpRoot, 'spring_boot');
+
+            assert.ok(mapa.includes('adapter/exception/handler'), 'pasta profunda deveria aparecer');
+            assert.ok(mapa.includes('RestExceptionHandler'));
+            assert.ok(mapa.includes('BoletoMapper'), 'pasta ainda mais profunda deveria aparecer');
+        });
+
+        it('nao gasta linha com pasta de passagem que nao tem arquivo (br/, com/, ...)', () => {
+            escrever(tmpRoot, 'src/main/java/br/com/x/Servico.java');
+
+            const mapa = readProjectMap(tmpRoot, 'spring_boot');
+            const linhasDePasta = mapa.split('\n').filter(l => l.startsWith('  src'));
+
+            assert.strictEqual(linhasDePasta.length, 1, 'so a pasta que tem conteudo vira linha');
+            assert.ok(linhasDePasta[0].includes('src/main/java/br/com/x'));
+        });
+
         it('manda instrucao explicita de reusar o que ja existe antes de criar arquivo novo', () => {
             escrever(tmpRoot, 'src/main/java/br/com/x/Application.java');
             const mapa = readProjectMap(tmpRoot, 'spring_boot');

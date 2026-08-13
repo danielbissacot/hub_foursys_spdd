@@ -1,7 +1,7 @@
 ---
 name: 'springboot-hexagonal-arch'
 description: "Regras de arquitetura Java + Spring Boot Hexagonal sempre-ativas para o GitHub Copilot. Instaladas pelo Hub em .github/instructions/ do workspace, fazem o Copilot seguir Hexagonal, TDD, PII safety e padrões Java em qualquer contexto — sem precisar rodar uma fase SDD. A versão fica na pasta (1.0.0/), não no frontmatter: instructions do Copilot só aceitam name, description e applyTo."
-applyTo: "**/*.java, **/pom.xml, **/application.yml, **/application.properties"
+applyTo: "**/*.java,**/pom.xml,**/application.yml,**/application.properties"
 ---
 
 # Arquitetura Java 21 + Spring Boot Hexagonal — Regras Foursys SDD

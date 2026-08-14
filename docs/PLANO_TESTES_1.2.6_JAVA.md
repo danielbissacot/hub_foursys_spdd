@@ -1085,3 +1085,115 @@ Se não funcionar assim, a alternativa é mover a tag para o começo do prompt.
 
 **Como testar:** rodar `/foursys.implementSession2` e verificar se o Controller sai com
 `@Tag`/`@Operation`, ou com a interface `<Nome>Swagger.java` no padrão do `ContaCorrenteSwagger`.
+
+## 5. Onde escrever cada coisa — história vs `technical_spec.md`
+
+**Quais fases leem o `technical_spec.md`** (medido no `prompt-context.ts`):
+
+| Fase | Lê? |
+|---|:---:|
+| Specify | ❌ **não** |
+| Plan | ✅ |
+| Tasks | ✅ |
+
+Consequência prática: se você escrever *"a ingestão chega por Kafka"* só no `technical_spec`,
+o **Specify não vê** — vai marcar "canal de entrada não especificado" como suposição e assumir
+REST. Depois o Plan lê o `technical_spec` e implementa Kafka, contrariando a suposição que ficou
+registrada no `user_story.md`.
+
+O código sai certo, mas os documentos ficam inconsistentes entre si.
+
+**Regra prática:**
+
+| O que você quer definir | Onde escrever |
+|---|---|
+| Decisão de **negócio** — canal de entrada, regra, comportamento esperado | **na própria história** (o Specify precisa ver) |
+| Restrição **técnica** — versão de lib, não mexer em X, padrão a seguir | `technical_spec.md` (o Plan é quem usa) |
+
+**Sobre bloqueio:** a regra da correção 9 diz *"nunca proponha uma tecnologia ausente do projeto
+**sem que a história a mencione explicitamente**"*. Ou seja: história pedindo Kafka, Mongo ou
+Redis **não** vira suposição nem é bloqueada — é requisito, e segue direto. A regra só impede
+*inventar* tecnologia que nem a história nem o projeto têm.
+
+---
+
+# ❌ Correção 10 — testada em 14/08: a tag `/agente-x` não é interpretada no prompt
+
+## O teste
+
+Fluxo completo refeito com o `.vsix` contendo as correções 9 e 10. Na Sessão 2, a Tarefa 10
+gerou o Controller:
+
+```java
+@RestController
+public class BoletoController {      // sem implements, sem @Tag, sem @Operation
+```
+
+Nenhuma interface `BoletoSwagger.java` foi criada — só existe a `ContaCorrenteSwagger.java`,
+que é original do Kit.
+
+## Conclusão: a hipótese registrada ontem se confirmou
+
+A cadeia está inteira e correta:
+
+| Elo | Estado |
+|---|---|
+| Comando envia a tag | ✅ corrigido (correção 5) |
+| Prefixo `/` em vez de `#` | ✅ corrigido (correção 10) |
+| Persona existe em `~/.copilot/agents/agente-spring_boot-foursys.agent.md` | ✅ |
+| Nome bate exatamente | ✅ |
+| **Copilot carrega a persona** | ❌ |
+
+O prompt enviado é:
+```
+"Leia os arquivos ... Execute APENAS as tarefas da Sessão 2 ... Invoque a Skill: /agente-spring_boot-foursys."
+```
+
+**O `/` no meio da frase é lido como texto comum, não como comando de barra.** Comando de barra
+no Copilot Chat vale no **início** da mensagem.
+
+## Alternativa não testada
+
+Mover a tag para o começo do prompt:
+```
+"/agente-spring_boot-foursys Leia os arquivos ... Execute APENAS as tarefas da Sessão 2 ..."
+```
+
+⚠️ **Risco:** se o Copilot tratar `/agente-x` como comando de barra de verdade, pode consumir a
+mensagem inteira como argumento do agente, mudando o comportamento de forma imprevisível — o
+prompt deixa de ser instrução e vira entrada do agente.
+
+## Alternativas de fundo (não avaliadas)
+
+1. **Levar a orientação de Swagger para a instruction**, que já funciona por `applyTo` em
+   `**/*.java` — em vez de depender da persona ser invocada. É onde as outras regras de
+   arquitetura vivem e comprovadamente disparam (testes A2, A4, A7).
+2. **Levar para o playbook do Tasks**, fazendo a documentação OpenAPI virar tarefa explícita —
+   mesmo padrão que funcionou para a cobertura JaCoCo (`Teste 05: Verificar cobertura`).
+
+A opção 1 tem precedente forte: tudo que está na instruction e foi testado ontem **funcionou**;
+o que depende de invocação de persona nunca funcionou.
+
+---
+
+# ❌ Achado — Sessão 1 executou tarefas da Sessão 2 (14/08)
+
+A Task List dividia:
+```
+Sessão 1: Tarefas 01 a 04   (domínio)
+Sessão 2: Tarefas 05 a 10   (infraestrutura)
+```
+
+Rodando `implementSession1`, ele criou **também** `BoletoEntity` (Tarefa 05) e `BoletoRepository`
+(Tarefa 06) — ambas da Sessão 2.
+
+O prompt do comando é explícito:
+> *"Execute **APENAS** as tarefas da Sessão 1 de Implementação — Domínio. **Ignore completamente**
+> as tarefas da Sessão 2 e de Teste."*
+
+Ignorou as duas instruções. Viola a **Regra 7 (Escopo Fechado)** — e sem a ambiguidade que
+contaminou o teste A6 de ontem: aqui o pedido delimitava escopo de forma inequívoca.
+
+**Impacto:** baixo neste caso (as tarefas seriam executadas na sequência de qualquer forma), mas
+mostra que a separação em sessões — pensada para dar ao dev um ponto de revisão entre domínio e
+infraestrutura — não está sendo respeitada.

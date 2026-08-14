@@ -50,6 +50,21 @@ Data (RepositoryImpl + Retrofit ApiService + Room DAO)
 | Singleton manual (`companion object { val instance }`) | DI registrada (`setSingleton`/Hilt) |
 | Context no ViewModel | `@ApplicationContext` via Hilt se imprescindível |
 | `Log.*` com dados pessoais | Remover ou anonimizar |
+| Apagar arquivo da Task List para o build passar | Consertar o arquivo; se inviável, aplicar a Parada Honesta (4.1) |
+
+## 4.1. Parada Honesta (Obrigatório)
+
+Quando você **não conseguir** cumprir uma tarefa — não compila, dependência ausente, dado que a história não define, cobertura abaixo do mínimo — a saída é **PARAR e REPORTAR**:
+
+1. Deixe a tarefa como `[ ]` na Task List, nunca `[x]`.
+2. Diga em uma frase o que bloqueou e o que você tentou.
+3. **NÃO** declare a entrega pronta, completa ou apta a produção.
+
+**Proibido para destravar:** apagar arquivo, inventar exceção a uma regra, apresentar número parcial como se fosse total, inventar caminho/pasta/classe que não confirmou, ou pular seção obrigatória e renumerar as outras. Um bloqueio declarado custa uma conversa; um bloqueio disfarçado de entrega pronta custa um deploy.
+
+**Estar na Task List autoriza CRIAR e AJUSTAR o arquivo — nunca REMOVÊ-LO.** Build verde porque não sobrou nada testando o código é entrega falsificada: teste que não compila se conserta, não se apaga.
+
+---
 
 ## 5. Padrão de Resposta do Agente
 

@@ -492,18 +492,30 @@ export const PHASES_NEEDING_COVERAGE = new Set(['qa-coverage', 'qa-report']);
  * `src/main/java/**\/adapter/exception/handler/*.java` vira
  * { pacote termina em 'adapter.exception.handler', classe casa /^.*$/ }.
  */
-function parseSonarExclusions(pomXml: string): { pkgSuffix: string; classRe: RegExp }[] {
+function parseSonarExclusions(pomXml: string): { pkgRe: RegExp; classRe: RegExp }[] {
     const bloco = pomXml.match(/<sonar\.coverage\.exclusions>([\s\S]*?)<\/sonar\.coverage\.exclusions>/)?.[1];
     if (!bloco) { return []; }
-    const regras: { pkgSuffix: string; classRe: RegExp }[] = [];
+    const escapar = (s: string) => s.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    // Um `*` casa UM segmento (pasta ou trecho de nome); `**` casa qualquer profundidade.
+    // A primeira versao juntava os segmentos com ponto e comparava por endsWith — o `*` do meio
+    // virava asterisco literal e `adapter.output.*.dto` nunca casava com pacote nenhum. Efeito:
+    // os tres padroes desse formato no pom do Kit (adapter/input/*/dto/*DTO.java,
+    // adapter/input/*/dto/mapper/*Mapper.java, adapter/output/*/dto/*.java) NAO eram excluidos, e
+    // o Hub reportava cobertura menor que a do Sonar, apontando DTO e mapper como "falta teste".
+    const regras: { pkgRe: RegExp; classRe: RegExp }[] = [];
     for (const bruto of bloco.split(',')) {
         const padrao = bruto.trim().replace(/^src\/main\/java\//, '').replace(/^\*\*\//, '');
         if (!padrao.endsWith('.java')) { continue; }
         const partes = padrao.split('/');
         const arquivo = partes.pop()!.replace(/\.java$/, '');
+        const pacote = partes
+            .filter(p => p !== '**')
+            .map(p => p === '*' ? '[^.]+' : escapar(p).replace(/\*/g, '[^.]*'))
+            .join('\\.');
         regras.push({
-            pkgSuffix: partes.filter(p => p !== '**').join('.'),
-            classRe: new RegExp('^' + arquivo.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '(\\..+)?$')
+            // Sufixo de pacote: casa no fim, e so em fronteira de segmento.
+            pkgRe: new RegExp(pacote ? `(^|\\.)${pacote}$` : '.*'),
+            classRe: new RegExp('^' + escapar(arquivo).replace(/\*/g, '.*') + '(\\..+)?$')
         });
     }
     return regras;
@@ -530,7 +542,7 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
             if (c.length < 9) { continue; }
             const [liM, liC, brM, brC] = [Number(c[7]), Number(c[8]), Number(c[5]), Number(c[6])];
             if ([liM, liC, brM, brC].some(Number.isNaN)) { continue; }
-            const fora = exclusoes.some(r => c[1].endsWith(r.pkgSuffix) && r.classRe.test(c[2]));
+            const fora = exclusoes.some(r => r.pkgRe.test(c[1]) && r.classRe.test(c[2]));
             if (fora) { excluidas++; continue; }
             lm += liM; lc += liC; bm += brM; bc += brC;
             if (liM > 0) { piores.push({ classe: c[2], faltando: liM, total: liM + liC }); }
@@ -728,12 +740,32 @@ export function detectarPlaceholders(conteudo: string): string {
         [/<[a-zà-ú][a-zà-ú0-9_]*[ -][a-zà-ú0-9 _-]{1,40}>/g, 'placeholder entre < >'],
         [/\bTarefa (ZZ|XX|NN)\b/g, 'numeração de tarefa não resolvida'],
         // Texto entre colchetes que nao e link markdown (`[texto](url)`) nem checkbox (`- [ ]`).
+        // Filtrado depois pela allowlist: varios marcadores entre colchetes sao OBRIGATORIOS nos
+        // documentos do proprio Hub e acusa-los transforma o aviso em ruido de todo Specify.
         [/\[[A-ZÀ-Úa-zà-ú][^\]\n]{4,60}\](?!\()/g, 'texto de template não substituído'],
         [/\?{3,}/g, 'interrogação de dúvida não resolvida'],
     ];
+    // Marcadores entre colchetes que os PROPRIOS playbooks mandam escrever. Sem esta lista o
+    // detector acusa todo documento do Specify: [SUPOSIÇÃO S1] vem da correcao 9, [RN01 — ...] e
+    // formato obrigatorio das Regras de Negocio Core, e [AJUSTADA]/[APROVADA] sao o status INVEST.
+    // Aviso que dispara sempre e aviso que ninguem le — e ai o placeholder de verdade passa.
+    const legitimos = [
+        /^SUPOSIÇÃO S\d+$/i,          // correcao 9 — marcacao no criterio de aceite
+        /^RN\d+\b/i,                  // regra de negocio: [RN01 — Atualizacao por operacao]
+        /^(AJUSTADA|APROVADA|REPROVADA|PENDENTE|BLOQUEADA)$/i,  // status INVEST do Specify
+        /^[A-Z]{2,3}-\d+$/,           // ID de cenario: [CR-01], [EC-02]
+        /^!/,                          // alerta GitHub: [!CAUTION], [!NOTE]
+        /^[x ]$/i,                     // checkbox
+    ];
+    const ehLegitimo = (bruto: string) => {
+        const dentro = bruto.replace(/^\[|\]$/g, '').trim();
+        return legitimos.some(re => re.test(dentro));
+    };
+
     const achados = new Map<string, number>();
     for (const [re, rotulo] of padroes) {
         for (const m of conteudo.matchAll(re)) {
+            if (m[0].startsWith('[') && ehLegitimo(m[0])) { continue; }
             const chave = `${rotulo}: ${m[0]}`;
             achados.set(chave, (achados.get(chave) ?? 0) + 1);
         }

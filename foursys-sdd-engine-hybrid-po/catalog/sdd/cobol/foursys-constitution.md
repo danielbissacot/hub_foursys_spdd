@@ -2,7 +2,7 @@
 name: Constituição Foursys SDD — COBOL
 description: Princípios, padrões e regras de ouro para projetos COBOL com divisões, copybooks, JCL e CICS.
 metadata:
-  version: "1.1.0"
+  version: "2.0.0"
 ---
 
 # Playbook: Foursys Constitution Generator — COBOL
@@ -43,6 +43,9 @@ Sua tarefa é gerar a CONSTITUIÇÃO do projeto COBOL. Este é o documento mestr
    - Regra 6 (Código de Retorno): Todo CALL externo deve verificar o código de retorno (RETURN-CODE).
    - Regra 7 (Escopo Fechado): Não crie programas não mapeados na Task List.
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo/programa; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o programa não estiver na Task List ativa, NÃO TOQUE nele.
+     ► O ARQUIVO DA TASK LIST TAMBÉM É PROTEGIDO: estar na Task List autoriza você a CRIAR e AJUSTAR aquele arquivo — nunca a REMOVÊ-LO. Apagar um entregável para o build passar é falsificar a entrega: o build fica verde porque não sobrou nada testando o código. **Teste que não compila se conserta, não se apaga.** Se a adaptação for inviável, aplique a Regra da Parada Honesta.
+   - Regra 9 (Parada Honesta): quando você NÃO conseguir cumprir uma tarefa — não compila, biblioteca ausente, dado que a história não define, cobertura abaixo do mínimo —, a saída é PARAR e REPORTAR. Nesta ordem: (1) deixe a tarefa como `[ ]` na Task List, nunca `[x]`; (2) diga em uma frase o que bloqueou e o que você tentou; (3) NÃO declare a entrega pronta, completa ou apta a produção.
+     ► PROIBIDO para destravar: apagar arquivo, inventar exceção a uma regra, apresentar número parcial como se fosse total, inventar caminho/pasta/classe que não confirmou, ou pular uma seção obrigatória e renumerar as outras. Um bloqueio declarado custa uma conversa; um bloqueio disfarçado de entrega pronta custa um deploy.
 
 4. 🧪 QUALIDADE E TESTES
    - Cobertura mínima de 95% dos fluxos de PROCEDURE DIVISION.

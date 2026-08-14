@@ -2,7 +2,7 @@
 name: Geração da Constituição Foursys SDD
 description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto Angular v20+.
 metadata:
-  version: "1.7.0"
+  version: "2.0.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Angular v20+
@@ -52,6 +52,9 @@ A saída deve ser um arquivo Markdown contendo:
    - Regra 6 (Acessibilidade): Todo componente de UI deve seguir WCAG AA (Aria-labels, Roles, Teclado).
    - Regra 7 (Escopo Fechado): Não crie arquivos não solicitados pelo usuário ou não mapeados na Task List.
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o arquivo não estiver na Task List ativa, NÃO TOQUE nele.
+     ► O ARQUIVO DA TASK LIST TAMBÉM É PROTEGIDO: estar na Task List autoriza você a CRIAR e AJUSTAR aquele arquivo — nunca a REMOVÊ-LO. Apagar um entregável para o build passar é falsificar a entrega: o build fica verde porque não sobrou nada testando o código. **Teste que não compila se conserta, não se apaga.** Se a adaptação for inviável, aplique a Regra da Parada Honesta.
+   - Regra 9 (Parada Honesta): quando você NÃO conseguir cumprir uma tarefa — não compila, biblioteca ausente, dado que a história não define, cobertura abaixo do mínimo —, a saída é PARAR e REPORTAR. Nesta ordem: (1) deixe a tarefa como `[ ]` na Task List, nunca `[x]`; (2) diga em uma frase o que bloqueou e o que você tentou; (3) NÃO declare a entrega pronta, completa ou apta a produção.
+     ► PROIBIDO para destravar: apagar arquivo, inventar exceção a uma regra, apresentar número parcial como se fosse total, inventar caminho/pasta/classe que não confirmou, ou pular uma seção obrigatória e renumerar as outras. Um bloqueio declarado custa uma conversa; um bloqueio disfarçado de entrega pronta custa um deploy.
 
 4. 🧪 QUALIDADE E TESTES
    - Cobertura mínima de 90%.

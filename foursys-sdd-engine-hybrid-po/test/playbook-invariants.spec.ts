@@ -18,6 +18,10 @@ describe('invariantes dos playbooks', () => {
     // Fase -> marcadores que a regra precisa ter, em TODA pasta que sobrescreve o generic.
     const REGRAS: Record<string, string[]> = {
         'qa-test-plan': ['pendente-po', 'Suposições'],
+        // Regras nascidas em 14/08 depois que o Implement apagou os proprios testes para o build
+        // passar. Elas so existiam na constituicao do spring_boot — as outras 6 stacks rodariam
+        // sem nenhuma das duas protecoes. Este teste garante que ninguem esqueca uma stack.
+        'constitution': ['Parada Honesta', 'Task List'],
     };
 
     for (const [fase, marcadores] of Object.entries(REGRAS)) {

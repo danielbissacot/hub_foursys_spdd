@@ -146,6 +146,20 @@ export function getDocPath(rootPath: string): string {
     return docPath;
 }
 
+/**
+ * Codigo de teste, nas duas convencoes que as stacks do Hub usam: pasta separada
+ * (Maven/Gradle — src/test/java/..., src/androidTest/) ou vizinho do codigo
+ * (Angular/Node — login.page.spec.ts). Nao serve para EXCLUIR arquivo, so para ordenar:
+ * um projeto que so tem teste continua entregando o que tem.
+ */
+export function isTestFile(filePath: string): boolean {
+    const norm = filePath.replace(/\\/g, '/');
+    if (/\/src\/(test|androidTest)\//.test(norm)) { return true; }
+    const base = path.basename(norm, path.extname(norm));
+    return base.endsWith('.spec') || base.endsWith('.test')
+        || base.endsWith('Test') || base.endsWith('Tests') || base.endsWith('IT');
+}
+
 export function readWorkspaceContext(rootPath: string, stackId: string): string {
     const config = getStackConfig(stackId);
     const srcPath = path.join(rootPath, 'src');
@@ -167,7 +181,7 @@ export function readWorkspaceContext(rootPath: string, stackId: string): string 
     //
     // Corrigir os dois NAO aumenta token: WORKSPACE_CONTEXT_MAX_FILES continua 2 e so esses
     // 2 sao enviados. O que muda e QUAIS 2. O custo extra e varredura de disco.
-    const collected: { filePath: string; mtime: number }[] = [];
+    const collected: { filePath: string; mtime: number; isTest: boolean }[] = [];
     const walk = (dir: string, depth: number) => {
         if (depth > PROJECT_MAP_MAX_DEPTH || collected.length >= WORKSPACE_CONTEXT_MAX_CANDIDATES) { return; }
         let entries: fs.Dirent[];
@@ -177,12 +191,20 @@ export function readWorkspaceContext(rootPath: string, stackId: string): string 
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) { walk(full, depth + 1); }
             else if (config.fileExtensions.includes(path.extname(entry.name))) {
-                try { collected.push({ filePath: full, mtime: fs.statSync(full).mtimeMs }); } catch { /* ignorar */ }
+                try {
+                    collected.push({ filePath: full, mtime: fs.statSync(full).mtimeMs, isTest: isTestFile(full) });
+                } catch { /* ignorar */ }
             }
         }
     };
     walk(srcPath, 0);
-    collected.sort((a, b) => b.mtime - a.mtime);
+    // Producao antes de teste, e SO DEPOIS por mtime. Ordenar so por mtime dava o pior
+    // resultado possivel justamente onde mais importa: no Implement o ultimo arquivo escrito e
+    // sempre o teste (a Task List manda escrever o teste junto da classe), entao o qa-coverage
+    // recebia dois arquivos de teste e nenhuma classe de producao — e e ele quem decide "pronto
+    // para homologacao". O proprio playbook dele diz que nao e auditoria de teste automatizado:
+    // e conferir se a FUNCIONALIDADE existe no codigo. Sem ver o codigo, nao da para conferir.
+    collected.sort((a, b) => Number(a.isTest) - Number(b.isTest) || b.mtime - a.mtime);
     const selected = collected.slice(0, WORKSPACE_CONTEXT_MAX_FILES);
     if (selected.length === 0) { return ''; }
 

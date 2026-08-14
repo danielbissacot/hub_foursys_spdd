@@ -1296,3 +1296,68 @@ Kit preservado: so o .gitignore alterado
 ```
 
 Melhor resultado das 4 rodadas (anteriores: 97%, 91,6%, build quebrado).
+
+---
+
+# ✅ Correções 11 e 12 — os dois furos de QA (14/08, manhã)
+
+Fechadas as duas pendências que tinham sobrado da rodada de QA (D1–D4).
+
+## Correção 11 — `qa-coverage` recebia teste em vez de código de produção
+
+**Arquivo:** `src/engine/prompt-context.ts` — novo helper `isTestFile()` + critério de ordenação.
+
+A correção 7 (profundidade da varredura) fez o `readWorkspaceContext` enxergar `.java` pela
+primeira vez, mas o `qa-coverage` continuou reprovando: dos 2 arquivos que ele recebe, os 2
+vinham de `src/test/`. Causa: a ordenação era só por `mtime`, e no Implement o último arquivo
+escrito é **sempre** o teste — a Task List manda escrever teste junto da classe.
+
+Agora ordena produção antes de teste, e só depois por data:
+
+```ts
+collected.sort((a, b) => Number(a.isTest) - Number(b.isTest) || b.mtime - a.mtime);
+```
+
+`isTestFile()` cobre as duas convenções das stacks do Hub: pasta separada (`src/test/`,
+`src/androidTest/`) e vizinho do código (`login.page.spec.ts`, `FooTest.java`, `FooIT.java`).
+É só ordenação, **não exclusão** — projeto que só tem teste continua entregando o que tem.
+
+Por que importa: o próprio playbook do `qa-coverage` diz que *não* é auditoria de teste
+automatizado, e sim conferir se a **funcionalidade existe no código**. Sem ver o código de
+produção, a fase não conseguia fazer o que ela mesma define como sua função.
+
+## Correção 12 — `qa-test-plan` ignorava as suposições da história
+
+**Arquivo:** `catalog/sdd/generic/foursys-qa-test-plan.md` — 48 → 55 linhas, versão 1.1.0 → 1.2.0.
+
+A correção 9 fez o Specify registrar as decisões que ele preencheu sozinho (tabela "Suposições
+a Confirmar" + marcações `[SUPOSIÇÃO Sn]`) no `user_story.md`. E o `user_story.md` **já estava**
+no contexto do `qa-test-plan` — o playbook é que nunca mandou olhar. As suposições chegavam e
+eram descartadas.
+
+Entrou como **Etapa 2**, não no rodapé: o teste da correção 1 mostrou que regra em lista
+numerada no fim do documento não dispara. As demais etapas foram renumeradas (3–7).
+
+A etapa manda gerar a tabela "Cenários que Dependem de Confirmação" e criar a tag
+`@pendente-po`, com uma regra dura: cenário derivado de suposição **não pode** ser `@critical`.
+Cenário que bloqueia release não se apoia em premissa não validada.
+
+Isso responde diretamente ao propósito da ferramenta como o PO descreveu: o QA aqui não audita
+código, ele valida se a entrega está coerente com a história. As suposições são exatamente as
+perguntas que o QA precisa levar de volta pro PO.
+
+## Verificação
+
+```
+tsc              sem erro
+test:unit        47 passando
+.vsix            foursys-sdd-engine-hybrid-po-1.2.6.vsix (153 arquivos, 421,92 KB)
+```
+
+## O que reteste precisa provar
+
+| Teste | Critério |
+|---|---|
+| D3 (`qa-coverage`) | o bloco "CÓDIGO REAL DO WORKSPACE" traz classe de `src/main/`, não `src/test/` |
+| D1 (`qa-test-plan`) | plano tem a tabela "Cenários que Dependem de Confirmação" e tags `@pendente-po` |
+| D4 (`qa-report`) | veredito deixa de ser REPROVADO por falta de código no D3 |

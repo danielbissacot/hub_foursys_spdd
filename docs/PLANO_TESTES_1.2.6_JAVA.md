@@ -1361,3 +1361,235 @@ test:unit        47 passando
 | D3 (`qa-coverage`) | o bloco "CÓDIGO REAL DO WORKSPACE" traz classe de `src/main/`, não `src/test/` |
 | D1 (`qa-test-plan`) | plano tem a tabela "Cenários que Dependem de Confirmação" e tags `@pendente-po` |
 | D4 (`qa-report`) | veredito deixa de ser REPROVADO por falta de código no D3 |
+
+---
+
+# 🔴 Rodada E2E do zero — 14/08 manhã (história ESCRI-19223, Kit Java)
+
+Ambiente limpo, `.vsix` 1.2.6 recém-instalado, "Atualizar Hub" rodado. Instruction confirmada
+no workspace: 363 linhas, `applyTo` cobrindo `**/*.java`, seção Swagger no corpo (linha 180).
+
+## ✅ O que funcionou
+
+| Correção | Evidência |
+|---|---|
+| **9** — suposições (3ª validação) | Seção 6 com S1–S4; a S1 justificada pelo mapa: *"não há consumer Kafka no mapa"*. E vazou pro código: o Service documenta `Timezone efetivo: America/Sao_Paulo (S2)` |
+| **7/8** — mapa real | **0 classe inventada** nos artefatos. `domain/model`, `port/input`, `port/output`, `adapter/output/.../entity` conferidos no disco: todos existem |
+| Impactos Sistêmicos | "Nenhum impacto sistêmico identificado" |
+| `core/usecase` fictício | Rejeitado de novo pelo Plan |
+| Escopo das sessões | Sessão 1 = exatamente as 5 tarefas de domínio. **O vazamento da rodada anterior não repetiu** |
+| Kit preservado | Nenhum arquivo pré-existente alterado |
+| Cobertura medida | Os números por classe do chat batem exatamente com o `jacoco.csv` — ele lê o arquivo de verdade |
+
+## ❌ B1 — Swagger: FALHOU (4ª tentativa)
+
+O chat afirmou *"✨ Documentação OpenAPI: Swagger annotations"*. No disco, **0 arquivos** da
+feature têm `@Tag`, `@Operation`, `@Schema` ou import `io.swagger` — Controller e DTOs limpos,
+com o `ContaCorrenteSwagger.java` do Kit ali do lado como padrão.
+
+**Esta é a primeira tentativa em que não dá para culpar a entrega da regra.** A instruction
+estava instalada, com `applyTo` correto, e a orientação está no corpo com checklist e exemplo.
+
+Diagnóstico: a instruction **dispara no chat comum** (provado em A2, A4, A7) e **não dispara
+durante o Implement**. A diferença é que o Implement manda ler o `task_list.md` e executar as
+tarefas — a IA segue o checklist explícito, e o critério de conclusão da Tarefa 08 é só
+*"endpoint exposto com validação ativa e mapeamento de erros padronizado"*. Regra ambiente
+perde para instrução concreta escrita na tarefa.
+
+## ❌ Cobertura — 91,2%, declarada "pronta para produção"
+
+```
+TOTAL FEATURE:  linhas 135/148 = 91,2%   (mínimo do próprio Plan: 95%)
+                branch  18/22  = 81,8%   (mínimo: 90%)
+Global projeto: 462/601 = 76,9%   (<excludes> do pom continua quebrado — achado A3)
+```
+
+Ele mostrou a cobertura **por classe** e nunca somou. E classificou o modelo com 66,67% como
+*"⚠️ Aceitável (Record)"* — criou uma exceção para uma regra que é absoluta (SONAR).
+
+O buraco está justamente no escopo que ninguém pediu: `OperacaoProcessadaEntity` 5/10 linhas
+(tabela de idempotência), `BoletoCobrancaEntity` 16/20 (por causa do `@Version`).
+
+## ❌ Teste 05 não executado
+
+A tarefa mandava salvar evidência em `doc_projeto/evidencias/`. A pasta não existe.
+
+## ⚠️ Nomes inventados no resumo do próprio chat
+
+| Chat disse | Disco |
+|---|---|
+| `AtualizarDataAlteracaoBoletoCobrancaInputPort` | `...UseCase` |
+| `BoletoCobrancaOutputPort` | `AtualizarDataAlteracaoBoletoCobrancaPort` |
+| "25 arquivos" | 18 |
+| "Logging Estruturado: LogCloud" | `@EnableLogCloud` já estava no `Application.java` do Kit; o código do boleto usa slf4j puro |
+
+Padrão já conhecido (A1, A4, A5): **o resumo do chat não é evidência.** Só o disco é.
+
+---
+
+# 📌 Candidatas a correção — decididas depois do QA
+
+## Candidata 13 — Swagger no critério de conclusão da tarefa de Controller
+
+**Arquivo:** `catalog/sdd/spring_boot/foursys-tasks.md`
+
+Parar de tentar pela instruction. Fazer o playbook do Tasks escrever, em toda tarefa que cria
+Controller, um critério de conclusão que cite `@Tag`/`@Operation` (ou a interface
+`<Nome>Swagger.java`, se o projeto já usar esse padrão). Vira instrução concreta na tarefa, que
+é o que a IA comprovadamente obedece.
+
+## Candidata 14 — gate frouxo de "transação financeira"
+
+**Arquivo:** `catalog/sdd/spring_boot/foursys-plan.md:79`
+
+*"Para features de transação financeira (obrigatório): ACID, idempotência, lock otimista,
+reversibilidade"*. A palavra **boleto** acionou o gate numa feature que só carimba timestamp
+para captura Delta no DataBricks — não move dinheiro. Custou 2 classes de produção
+(`OperacaoProcessadaEntity`, `OperacaoProcessadaRepository`), um `@Version`, 3 tarefas e 1
+teste. E puxou a cobertura para baixo.
+
+Conferido: idempotência não aparece na história, nem no `technical_spec` (25 linhas), nem na
+Constituição. Veio só do playbook.
+
+Agravante: o Plan criou decisões novas e **não marcou nenhuma** como suposição — a marcação
+`[SUPOSIÇÃO Sn]` só existe no Specify. Não há S5.
+
+## Candidata 15 — `@Bean` obrigatório ainda no playbook do Plan
+
+**Arquivo:** `catalog/sdd/spring_boot/foursys-plan.md:70`
+
+*"Config: classes @Configuration com @Bean obrigatório para cada UseCase"* — mesma contradição
+já corrigida no agente e na instruction, sobrou num terceiro lugar. Nesta rodada não mordeu (a
+IA resistiu sozinha), mas o arquivo está errado.
+
+---
+
+# ✅ Rodada de 14/08 tarde — 11 correções entregues
+
+E2E do zero, `.vsix` reinstalado, Kit zerado. Resultado por correção:
+
+| # | O quê | Resultado |
+|---|---|---|
+| **9** | Suposições marcadas no Specify | ✅ 5ª rodada — 5 marcações + tabela com 4 |
+| **13** | Swagger pela constitution + Task List | ✅ **B1 FECHADO** — `BoletoCobrancaSwagger` gerado, Controller implementa, `@Schema` nos DTOs |
+| **14** | Gate de transação financeira | ✅ Plan registrou *"Não aplicar bloco de transação financeira — escopo real é metadado técnico"*; zero idempotência não pedida |
+| **15** | `@Bean` obrigatório | ✅ *"seguir o padrão já existente e não duplicar registro de bean"* |
+| **16/17** | `qa-coverage` com mapa + 8 arquivos | ✅ de *"não encontrado controller/DTO"* para **1** ressalva — e procedente |
+| **18** | Java do pom | ✅ constituição e Plan em Java 17 + Boot 3.4.7; código compila no 17 |
+| **19** | Hub calcula a cobertura | ✅ QA reprovou citando *"linha 92.8%, branch 80.8%"* — os números exatos do Hub |
+| **20** | Teto de linhas por fase | ✅ corpo do `executar()` chegou; 828 linhas contra 160 antes |
+| 21 | Contrato de saída no `qa-test-plan` | ⬜ a testar |
+| 22 | Relatório de Implementação como tarefa | ⬜ a testar |
+| 23 | "Java 21" cravado no fecho da constitution | ⬜ a testar |
+
+## O QA achou um bug real
+
+O `review_cobertura.md` marcou C3 como parcial porque *"não foi possível comprovar mapeamento final 422"*.
+Conferido: o `422` só existe no `BoletoCobrancaSwagger` (documentação). O `BusinessExceptionHandler`
+do Kit mapeia `NO_CONTENT` e `SERVICE_UNAVAILABLE` — **não** `UNPROCESSABLE_ENTITY`. O contrato
+documentado não bate com o comportamento. Antes ele reprovava por cegueira; agora reprova por divergência.
+
+## O que ainda não fecha
+
+**Cobertura declarada.** O chat afirmou *"100% linha e branch em todos os componentes"* com a
+`BoletoCobrancaEntity` em 8/17 linhas. Os outros 8 componentes estavam mesmo em 100%. É o mesmo
+ponto cego: exclui a pior classe da conta mental. A correção 22 ataca isso pelo relatório, e a 19
+já entrega o número certo ao QA — falta medir se muda o discurso do Implement.
+
+---
+
+# 🔌 Canais de invocação — o que existe e o que nunca foi testado
+
+Levantamento feito em 14/08 a pedido do PO. O Hub tem **quatro** canais, não três.
+
+## Canal 1 — Botões da sidebar (comandos VS Code)
+
+21 comandos `foursys.*`. Os 8 de fase caem todos em `executeSDDPhase(fase, '', '', null, ...)`.
+É o caminho mais testado — todas as rodadas E2E foram por aqui.
+
+## Canal 2 — Chat participant `@foursys_sdd_po`
+
+14 subcomandos declarados no `package.json`. Caem no **mesmo** `executeSDDPhase`, mas com três
+diferenças que o botão não tem:
+
+```
+botão:  executeSDDPhase(fase, '',             '',                null, ...)
+chat:   executeSDDPhase(fase, request.prompt, referencesContext, response, ...)
+                              └ texto livre   └ arquivos #ref    └ streaming
+```
+
+⚠️ **Nunca testamos o chat com texto livre nem com `#arquivo`.** São dois parâmetros que só o
+canal do chat preenche, e nenhuma rodada exercitou.
+
+### 🔴 Achado: `/implement` pelo chat quebra
+
+O participant declara `/implement`, mas:
+
+- não existe `case 'implement'` no `resolveOutputAndContextFiles`
+- não existe `foursys-implement.md` em nenhuma pasta do catálogo
+- `loadPlaybookForStack` termina em `throw new Error("Playbook para 'implement' não encontrado")`
+
+O **botão** de Implement não passa por aí — ele usa `workbench.action.chat.open`. Por isso nunca
+apareceu: os dois caminhos divergem justamente na fase que mais se usa.
+
+Mesma suspeita para `/skill` e `/playbook`: são subcomandos declarados que não são fase SDD.
+Precisam de tratamento próprio antes do `executeSDDPhase` — a conferir.
+
+## Canal 3 — Catálogo da sidebar
+
+Aba que lista skills e playbooks. **Nunca testado** (C1 e C3 seguem em aberto desde 13/08).
+
+## Canal 4 — Skills nativas do Copilot (`/nome`)
+
+O "Sincronizar Skills" copia 46 arquivos para
+`globalStorage/foursys.foursys-sdd-engine-hybrid-po/skills/`. Elas viram `/nome` no chat do
+Copilot, **fora** do participant. Confirmado pelo PO em print de 13/08.
+
+⚠️ É o canal com **menos cobertura de teste** e o de maior alcance — funciona no VS Code, no
+IntelliJ e no CLI. `custom-skills/` está vazia (0 arquivos): a conferir se é esperado.
+
+---
+
+# ⬜ Testes a fazer — canais de invocação
+
+### F1 — Chat com texto livre
+```
+@foursys_sdd_po /specify Preciso permitir cancelamento de boleto já registrado
+```
+**Passa se:** o texto entra como `INSTRUÇÃO ADICIONAL` no prompt e a User Story sai sobre
+cancelamento. É o `userInstruction`, que o botão sempre manda vazio.
+
+### F2 — Chat com referência de arquivo
+```
+@foursys_sdd_po /plan #BoletoCobrancaService.java
+```
+**Passa se:** o conteúdo do arquivo chega como `referencesContext`. Segundo parâmetro que só o chat preenche.
+
+### F3 — `/implement` pelo chat
+```
+@foursys_sdd_po /implement
+```
+**Esperado hoje:** erro *"Playbook para 'implement' não encontrado"*. Confirmar e decidir: criar o
+playbook, remover o subcomando, ou redirecionar para o mesmo `chat.open` do botão.
+
+### F4 — `/skill` e `/playbook` pelo chat
+```
+@foursys_sdd_po /skill springboot-testing
+@foursys_sdd_po /playbook
+```
+O `/skill` passou em 13/08 (C2). O `/playbook` nunca foi exercitado.
+
+### F5 — Catálogo da sidebar (era C1 e C3)
+Abrir a aba Catálogo, confirmar que as 15 skills de Spring aparecem e que `springboot-testing`
+abre na versão de 286 linhas.
+
+### F6 — Skill nativa fora do participant (era D2)
+Chat do Copilot, sem `@foursys_sdd_po`:
+```
+/springboot-testing
+```
+**Passa se:** o Copilot reconhece a skill sincronizada. É o canal que vale para IntelliJ e CLI.
+
+### F7 — Command Palette
+`Ctrl+Shift+P` → `Foursys: ...` — confirmar que os 21 comandos aparecem e que os gated pedem
+o e-mail `@foursys.com.br` quando não autenticado (junta com o E1, que segue em aberto).

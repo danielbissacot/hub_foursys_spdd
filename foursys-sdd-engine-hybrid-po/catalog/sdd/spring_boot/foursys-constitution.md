@@ -2,7 +2,7 @@
 name: Geração da Constituição Foursys SDD
 description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto Java 21 + Spring Boot com Arquitetura Hexagonal.
 metadata:
-  version: "1.7.0"
+  version: "1.8.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Java 21 + Spring Boot
@@ -53,6 +53,8 @@ A saída deve ser um arquivo Markdown contendo:
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o arquivo não estiver na Task List ativa, NÃO TOQUE nele.
    - Regra 9 (Bean Obrigatório): TODA UseCase criada em core/usecase/ EXIGE @Bean correspondente em config/. Ausência causa NoSuchBeanDefinitionException em runtime.
      ► EXCEÇÃO OBRIGATÓRIA: se o projeto já registra UseCase/Service por @Service ou @Component (component scan) — confira o MAPA REAL DO PROJETO no contexto —, siga o projeto e NÃO adicione @Bean. Os dois juntos criam bean duplicado com o mesmo nome e a aplicação NÃO SOBE (BeanDefinitionOverrideException, desde o Spring Boot 2.1).
+   - Regra 10 (Swagger em todo Controller): TODO endpoint REST criado ou alterado sai documentado — @Tag(name = "...") com nome de negócio na classe, @Operation(summary = ...) em cada método, @ApiResponses com os códigos que o endpoint realmente devolve e @Schema(description = ...) nos campos dos DTOs. Sem isso o endpoint aparece "pelado" no /swagger-ui (nome técnico da classe, sem descrição) e reprova em revisão de API.
+     ► SIGA O PADRÃO DO PROJETO: se o MAPA REAL DO PROJETO mostrar interface de documentação separada (ex.: `ContaCorrenteController implements ContaCorrenteSwagger`), crie `<Nome>Swagger.java` e faça o Controller implementá-la. Nunca introduza um estilo diferente do que já está no projeto.
 
 4. 🧪 QUALIDADE E TESTES
    - Cobertura mínima de 95% de linha e 90% de branch, MEDIDA com JaCoCo — nunca declarada sem rodar `mvn -o clean test` e ler `target/site/jacoco/jacoco.csv`. Detalhamento na skill `springboot-testing`.

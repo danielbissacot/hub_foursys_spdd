@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD — Genérico
 description: Decompõe um plano técnico em tarefas granulares, atômicas e testáveis. Agnóstico de stack — exemplos de arquivos globais são substituídos em runtime pelo catalog-loader.
 metadata:
-  version: "1.7.0"
+  version: "1.8.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -44,6 +44,7 @@ Cada tarefa deve ser:
 2. **Testável**: Tem um Critério de Conclusão verificável.
 3. **Sequencial**: Respeita dependências explícitas entre tarefas.
 4. **Sistêmica**: Contempla impactos em arquivos globais.
+5. **Documentada quando expõe contrato**: se a tarefa cria ou altera algo que outra equipe consome — endpoint REST, contrato público, componente de biblioteca compartilhada —, o **Critério de conclusão** precisa exigir também a documentação desse contrato no padrão que o projeto já usa (confira o **MAPA REAL DO PROJETO**). Não basta "endpoint exposto e validando": um contrato sem documentação chega no consumidor sem descrição e reprova em revisão. Se a tarefa não expõe contrato para fora, ignore este item.
 
 ### ✅ FORMATO DE SAÍDA (Obrigatório)
 

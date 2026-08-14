@@ -19,8 +19,27 @@ export const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc
  *  (`# Referência técnica:`, `# Ports mockados:`) e sem o mapa ele inventa. No teste de
  *  13/08/2026 citou IngestaoBoletoController, BoletoRepositoryPort, RelogioPort e
  *  AuditoriaLogPort — nenhum existe no projeto. Como o .feature vai para o Xray, o nome
- *  inventado sai do Hub e chega na ferramenta de QA. */
-export const PHASES_NEEDING_PROJECT_MAP = new Set(['specify', 'plan', 'tasks', 'qa-test-cases']);
+ *  inventado sai do Hub e chega na ferramenta de QA.
+ *
+ *  qa-coverage entrou em 14/08/2026 pelo motivo inverso: ele nao inventa o que nao existe, ele
+ *  NEGA o que existe. Recebendo so os 2 arquivos de codigo, viu Service + Persistence e
+ *  escreveu "C4 — Nao Entregue: nao encontrado controller/DTO/validacao" sobre um
+ *  BoletoCobrancaController real, com @RestController e @Valid nos DTOs. O mapa custa ~700-900
+ *  tokens e resolve a pergunta "isso existe?" sem precisar mandar o arquivo inteiro. */
+export const PHASES_NEEDING_PROJECT_MAP = new Set(['specify', 'plan', 'tasks', 'qa-test-cases', 'qa-coverage']);
+
+/** Teto de arquivos POR FASE, sobrepondo WORKSPACE_CONTEXT_MAX_FILES.
+ *
+ *  O 2 foi calibrado para as fases de DESENHO (plan), onde o codigo entra so como amostra de
+ *  estilo e nomenclatura — 2 arquivos bastam e o resto e desperdicio. O qa-coverage tem outro
+ *  trabalho: conferir se CADA criterio de aceite existe no codigo entregue. Uma feature normal
+ *  sai com Controller + DTO + Mapper + Service + Port + Persistence + Entity; com 2 arquivos
+ *  ele so podia reprovar.
+ *
+ *  Custo: 8 x WORKSPACE_CONTEXT_MAX_LINES = 640 linhas no pior caso, e so nesta fase. */
+export const PHASE_WORKSPACE_MAX_FILES: Record<string, number> = {
+    'qa-coverage': 8,
+};
 
 export const PHASES_NEEDING_WORKSPACE = new Set([
     'plan',
@@ -160,7 +179,11 @@ export function isTestFile(filePath: string): boolean {
         || base.endsWith('Test') || base.endsWith('Tests') || base.endsWith('IT');
 }
 
-export function readWorkspaceContext(rootPath: string, stackId: string): string {
+export function readWorkspaceContext(
+    rootPath: string,
+    stackId: string,
+    maxFiles: number = WORKSPACE_CONTEXT_MAX_FILES
+): string {
     const config = getStackConfig(stackId);
     const srcPath = path.join(rootPath, 'src');
     if (!fs.existsSync(srcPath)) { return ''; }
@@ -205,7 +228,7 @@ export function readWorkspaceContext(rootPath: string, stackId: string): string 
     // para homologacao". O proprio playbook dele diz que nao e auditoria de teste automatizado:
     // e conferir se a FUNCIONALIDADE existe no codigo. Sem ver o codigo, nao da para conferir.
     collected.sort((a, b) => Number(a.isTest) - Number(b.isTest) || b.mtime - a.mtime);
-    const selected = collected.slice(0, WORKSPACE_CONTEXT_MAX_FILES);
+    const selected = collected.slice(0, maxFiles);
     if (selected.length === 0) { return ''; }
 
     let context = '\n--- CÓDIGO REAL DO WORKSPACE (use como referência para nomes e estrutura) ---\n';
@@ -276,7 +299,7 @@ const PROJECT_MAP_MAX_DEPTH = 20;
  * em cada uma (so nomes, sem conteudo de arquivo).
  *
  * A Etapa 0 dos playbooks exige "use o pacote real do projeto" e "liste o que ja existe", mas
- * readWorkspaceContext manda so 2 arquivos de src/ — nunca o pom.xml (que fica na raiz) nem a
+ * readWorkspaceContext manda poucos arquivos de src/ — nunca o pom.xml (que fica na raiz) nem a
  * estrutura de pacotes. Sem estes dados a IA nao tem como cumprir a Etapa 0: ou trava pedindo
  * as informacoes, ou inventa o pacote (que foi o bug original).
  *
@@ -355,7 +378,9 @@ export function readProjectMap(rootPath: string, stackId: string): string {
 /** Escolhe se injeta o código real do workspace pra fase — centralizado aqui pra extension.ts
  *  (VS Code) e assembleFinalPrompt (IntelliJ/CLI) nunca divergirem na mesma decisão. */
 export function readWorkspaceContextForPhase(command: string, rootPath: string, stackId: string): string {
-    if (PHASES_NEEDING_WORKSPACE.has(command)) { return readWorkspaceContext(rootPath, stackId); }
+    if (PHASES_NEEDING_WORKSPACE.has(command)) {
+        return readWorkspaceContext(rootPath, stackId, PHASE_WORKSPACE_MAX_FILES[command] ?? WORKSPACE_CONTEXT_MAX_FILES);
+    }
     return '';
 }
 

@@ -2,7 +2,7 @@
 name: Especificação Técnica — Java 21 + Spring Boot (Hexagonal + Azure Adapters)
 description: Avalia uma história de negócio e deriva especificações técnicas detalhadas com fluxos arquiteturais para Java/Spring Boot (sem gerar código).
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Playbook: Foursys Plan — Java 21 + Spring Boot
@@ -67,7 +67,11 @@ Gere a especificação técnica em Markdown, contendo:
      - Redis Cache Adapter: cache via Azure Cache for Redis com CSI Driver (sem SDK no código)
      - Blob Storage Adapter: upload/download de arquivos via Azure Blob Storage
      - Service Bus Adapter: mensageria alternativa via Azure Service Bus
-   - Config: classes @Configuration com @Bean obrigatório para cada UseCase
+   - Config: registre cada UseCase de UMA das duas formas, seguindo o que o projeto JÁ faz
+     (confira o MAPA REAL DO PROJETO): classe `@Configuration` com `@Bean` no pacote `config/`
+     e a UseCase sem estereótipo (hexagonal puro), OU `@Service`/`@Component` na própria UseCase
+     e NENHUM `@Bean` para ela (component scan). Nunca as duas: bean duplicado com o mesmo nome
+     derruba a aplicação no start (`BeanDefinitionOverrideException`, desde o Spring Boot 2.1)
 
 2. **Regras de Negócio Core:** Validações de input (@Valid, @NotNull), limites, cálculos e bloqueios previstos.
 
@@ -76,7 +80,13 @@ Gere a especificação técnica em Markdown, contendo:
    - Cobertura de testes: mínimo 95% (unitários AAA + integração)
    - Logs de auditoria: campos obrigatórios (sem PII: CPF, senha, token, conta)
    - Tratamento de exceções: mapeie cada cenário de erro para uma exceção que o projeto JÁ TEM (consulte as pastas `exception/` no MAPA REAL DO PROJETO). Proponha exceção nova só se nenhuma existente cobrir o cenário — e nesse caso registre na tabela do item 4 qual você avaliou e descartou. Não crie uma exceção nova por cenário.
-   - Para features de transação financeira (obrigatório):
+   - **Transação financeira** — aplique o bloco abaixo SOMENTE se a feature movimenta valor
+     monetário ou altera saldo/posição financeira (pagamento, transferência, estorno, cobrança,
+     lançamento contábil). Gravar timestamp, atualizar status, marcar flag de auditoria ou
+     qualquer alteração de metadado **NÃO é transação financeira**, mesmo que o registro seja de
+     boleto, conta ou cartão. Na dúvida, NÃO aplique e registre a decisão na tabela do item 4:
+     cada item abaixo custa classe, tabela, tarefa e teste, e o que entra aqui sem a história
+     pedir vira escopo que ninguém aprovou.
      - ACID: garantia de atomicidade e rollback em falha
      - Idempotência: operações repetidas devem gerar o mesmo resultado
      - Concorrência: uso de locks otimistas (versioning) para evitar race conditions

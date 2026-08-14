@@ -156,11 +156,18 @@ public class PagamentoConfig {
 @RequestMapping("/v1/pagamentos")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "Pagamentos", description = "Operações de pagamento")
 public class PagamentoController {
 
     private final RealizarPagamentoInputPort realizarPagamentoUseCase;
 
     @PostMapping
+    @Operation(summary = "Realiza um pagamento",
+               description = "Cria um novo pagamento a partir dos dados informados")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Pagamento criado"),
+        @ApiResponse(responseCode = "400", description = "Falha de validação")
+    })
     public ResponseEntity<PagamentoResponse> realizar(
             @RequestBody @Valid RealizarPagamentoRequest request) {
         var pagamento = realizarPagamentoUseCase.realizar(request.toCommand());
@@ -169,6 +176,29 @@ public class PagamentoController {
     }
 }
 ```
+
+### Documentação OpenAPI/Swagger (OBRIGATÓRIA em todo Controller)
+
+**Todo endpoint REST precisa aparecer documentado no Swagger.** Sem isso o endpoint sai "pelado"
+na UI — nome técnico da classe, sem descrição, sem códigos de resposta — e reprova em revisão
+de API.
+
+Checklist ao criar ou alterar um Controller:
+
+- [ ] `springdoc-openapi-starter-webmvc-ui` no `pom.xml` (na maioria dos Kits já está)
+- [ ] `@Tag(name = "...")` na classe, com **nome de negócio** — "Pagamentos", não
+      "pagamento-controller"
+- [ ] `@Operation(summary = ...)` em cada método
+- [ ] `@ApiResponses` com os códigos que o endpoint realmente devolve
+- [ ] `@Schema(description = ...)` nos campos dos DTOs de request/response
+
+**Se o projeto já separa a documentação numa interface** — padrão comum em Kits corporativos,
+ex.: `ContaCorrenteController implements ContaCorrenteSwagger` —, **siga o padrão existente**:
+crie `<Nome>Swagger.java` com as anotações e faça o Controller implementá-la. Confira o
+`MAPA REAL DO PROJETO` antes de decidir; nunca introduza um estilo diferente do que já está lá.
+
+Validação: com a aplicação no ar, o endpoint deve aparecer em `/swagger-ui/index.html` agrupado
+pelo `@Tag` e com o texto do `@Operation` — não com o nome da classe.
 
 ### Exceções de Domínio
 

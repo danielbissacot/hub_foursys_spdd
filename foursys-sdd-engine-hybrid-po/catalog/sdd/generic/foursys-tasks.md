@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD — Genérico
 description: Decompõe um plano técnico em tarefas granulares, atômicas e testáveis. Agnóstico de stack — exemplos de arquivos globais são substituídos em runtime pelo catalog-loader.
 metadata:
-  version: "1.9.0"
+  version: "2.0.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -91,8 +91,13 @@ Cada tarefa deve ser:
   - Descrição técnica: [O que deve ser testado]
   - Arquivo impactado: `caminho/do/arquivo.spec`
   - Estimativa: XS | S
-  - Critério de conclusão: [Cobertura ou cenário validado]
+  - Critério de conclusão: arquivo de teste **existe, compila e a suíte roda**, cobrindo [cenário]
   - Depende de: Tarefa XX
+
+> ⚠️ Tarefa de teste só é concluída com o arquivo NO LUGAR e a suíte executando. Remover um teste
+> que não compila deixa o build verde e a entrega sem cobertura — é regressão disfarçada de sucesso.
+> Se o teste não puder ser adaptado ao projeto, a tarefa fica `[ ]` e o bloqueio vai para a seção 7
+> do Relatório de Implementação.
 
 ### 📄 Relatório de Implementação (SEMPRE a última tarefa)
 > Executada ao final da **Sessão 2**, depois das Tarefas de Teste — é o fechamento da entrega.
@@ -103,6 +108,9 @@ Cada tarefa deve ser:
   - Estimativa: XS
   - Critério de conclusão: Relatório salvo com as 8 seções obrigatórias abaixo, todas preenchidas.
   - Depende de: todas as tarefas anteriores, inclusive as de Teste
+  - ⚠️ Gere o relatório **mesmo que alguma tarefa tenha ficado aberta**. Ele é justamente onde o
+    bloqueio é declarado (seção 7). Entrega que travou e não produziu relatório deixa o time sem
+    saber o que aconteceu — pior do que o próprio bloqueio.
 
   Seções obrigatórias do relatório:
   1. **Status** — build passou ou não; total de testes executados e quantos passaram.

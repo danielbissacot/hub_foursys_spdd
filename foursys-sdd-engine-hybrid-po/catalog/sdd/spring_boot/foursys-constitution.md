@@ -2,7 +2,7 @@
 name: Geração da Constituição Foursys SDD
 description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto Java 21 + Spring Boot com Arquitetura Hexagonal.
 metadata:
-  version: "1.9.0"
+  version: "2.0.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Java 21 + Spring Boot
@@ -39,6 +39,7 @@ A saída deve ser um arquivo Markdown contendo:
    - Injeção de Dependência: via construtor (nunca @Autowired em campo).
    - Adapters de saída reconhecidos: Repository (MongoDB, PostgreSQL), Feign Client (APIs externas), Kafka Producer/Consumer (mensageria Confluent), Redis Cache (Azure Cache for Redis via CSI Driver), Blob Storage (Azure Blob), Service Bus (Azure Service Bus).
    - NÃO use padrões Angular, TypeScript ou COBOL nesta constituição.
+   - 📦 BIBLIOTECAS DISPONÍVEIS (OBRIGATÓRIO): o bloco STACK REAL DO PROJETO no contexto lista as bibliotecas que este projeto **não** tem. Copie essa lista para a Constituição, com o que fazer no lugar de cada uma. Quem lê a Constituição depois (Plan, Tasks, Implement) não recebe o `pom.xml` — se a ausência não estiver escrita aqui, o desenvolvedor escreve `@Builder` num projeto sem Lombok, não compila, e a entrega trava.
 
 3. 📏 REGRAS DE OURO (GOLDEN RULES) — APENAS JAVA
    ⚠️ NÃO ADICIONE regras Angular (inject(), Signals, app.config.ts, WCAG, NG1). Este projeto é exclusivamente Java/Spring Boot.
@@ -51,10 +52,13 @@ A saída deve ser um arquivo Markdown contendo:
      ► REUSO ANTES DE CRIAR: liste as exceções que o projeto já tem (confira o MAPA REAL DO PROJETO no contexto — pastas `exception/` do domínio e da infraestrutura) e use a que servir. Só crie exceção nova quando NENHUMA das existentes cobrir o caso, e justifique por escrito qual você descartou e por quê. Uma exceção nova por cenário de erro incha o domínio e quebra o handler já configurado.
    - Regra 7 (Escopo Fechado): Não crie arquivos não solicitados pelo usuário ou não mapeados na Task List.
    - Regra 8 (Proteção de Código Existente): NUNCA modifique, sobrescreva ou delete código existente sem solicitação explícita do desenvolvedor. Antes de qualquer geração: (1) leia o que já existe no arquivo; (2) identifique exatamente o que precisa mudar conforme a Task List; (3) faça APENAS a alteração solicitada, preservando todo o restante intacto. Se o arquivo não estiver na Task List ativa, NÃO TOQUE nele.
+     ► O ARQUIVO DA TASK LIST TAMBÉM É PROTEGIDO: estar na Task List autoriza você a CRIAR e AJUSTAR aquele arquivo — nunca a REMOVÊ-LO. Apagar um entregável para o build passar é falsificar a entrega: o build fica verde porque não sobrou nada testando o código. **Teste que não compila se conserta, não se apaga.** Se a adaptação for inviável, aplique a Regra 11.
    - Regra 9 (Bean Obrigatório): TODA UseCase criada em core/usecase/ EXIGE @Bean correspondente em config/. Ausência causa NoSuchBeanDefinitionException em runtime.
      ► EXCEÇÃO OBRIGATÓRIA: se o projeto já registra UseCase/Service por @Service ou @Component (component scan) — confira o MAPA REAL DO PROJETO no contexto —, siga o projeto e NÃO adicione @Bean. Os dois juntos criam bean duplicado com o mesmo nome e a aplicação NÃO SOBE (BeanDefinitionOverrideException, desde o Spring Boot 2.1).
    - Regra 10 (Swagger em todo Controller): TODO endpoint REST criado ou alterado sai documentado — @Tag(name = "...") com nome de negócio na classe, @Operation(summary = ...) em cada método, @ApiResponses com os códigos que o endpoint realmente devolve e @Schema(description = ...) nos campos dos DTOs. Sem isso o endpoint aparece "pelado" no /swagger-ui (nome técnico da classe, sem descrição) e reprova em revisão de API.
      ► SIGA O PADRÃO DO PROJETO: se o MAPA REAL DO PROJETO mostrar interface de documentação separada (ex.: `ContaCorrenteController implements ContaCorrenteSwagger`), crie `<Nome>Swagger.java` e faça o Controller implementá-la. Nunca introduza um estilo diferente do que já está no projeto.
+   - Regra 11 (Parada Honesta): quando você NÃO conseguir cumprir uma tarefa — não compila, biblioteca ausente, dado que a história não define, cobertura abaixo do mínimo —, a saída é PARAR e REPORTAR. Nesta ordem: (1) deixe a tarefa como `[ ]` na Task List, nunca `[x]`; (2) diga em uma frase o que bloqueou e o que você tentou; (3) NÃO declare a entrega pronta, completa ou apta a produção.
+     ► PROIBIDO para destravar: apagar arquivo, inventar exceção a uma regra ("essa classe está excluída do gate"), apresentar número parcial como se fosse total, inventar caminho/pasta/classe que não confirmou, ou pular uma seção obrigatória e renumerar as outras. Um bloqueio declarado custa uma conversa; um bloqueio disfarçado de entrega pronta custa um deploy.
 
 4. 🧪 QUALIDADE E TESTES
    - Cobertura mínima de 95% de linha e 90% de branch, MEDIDA com JaCoCo — nunca declarada sem rodar `mvn -o clean test` e ler `target/site/jacoco/jacoco.csv`. Detalhamento na skill `springboot-testing`.
@@ -64,7 +68,7 @@ A saída deve ser um arquivo Markdown contendo:
 5. 🔒 SEGURANÇA DE DADOS SENSÍVEIS (PII)
    - PROIBIDO logar dados sensíveis (CPF, CNPJ, senha, token, número de conta, número de cartão).
    - Mascaramento obrigatório no formato `***.***.***-XX` para CPF, `**.***.***/****.XX` para CNPJ.
-   - Use `@ToString.Exclude` (Lombok) em todos os campos sensíveis de entidades JPA.
+   - Em entidades JPA: mantenha PII fora do `toString()`. Se o projeto usa Lombok, `@ToString.Exclude` nos campos sensíveis; se NÃO usa (confira as bibliotecas ausentes no item 2), escreva o `toString()` à mão omitindo ou mascarando esses campos. Nunca cite Lombok numa constituição de projeto que não o tem.
    - DTOs de resposta: nunca retorne campos sensíveis desnecessários ao front-end.
    - Valores monetários: SEMPRE BigDecimal — NUNCA Double ou Float.
 

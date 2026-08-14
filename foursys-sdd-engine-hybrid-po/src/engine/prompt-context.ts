@@ -440,6 +440,22 @@ function readMavenStackInfo(rootPath: string): string {
             }
         }
         if (bootVersion) { info += `Spring Boot: ${bootVersion}\n`; }
+
+        // Bibliotecas cuja AUSENCIA quebra codigo que a IA escreveria por habito. O caso medido
+        // em 14/08/2026 foi Lombok: os exemplos da instruction e a regra de PII da Constituicao
+        // usam @RequiredArgsConstructor, @Builder e @ToString.Exclude, e este Kit nao tem Lombok
+        // nenhum. A IA escreveu 5 arquivos de teste com builder(), nao compilou, e resolveu
+        // APAGANDO os testes e declarando a entrega pronta. Ela so descobriu a ausencia depois de
+        // escrever. Saber antes e a diferenca entre escrever certo e escrever, quebrar e apagar.
+        const libs: [string, string, string][] = [
+            ['lombok', 'Lombok', 'NÃO use @Data/@Builder/@Getter/@Setter/@RequiredArgsConstructor/@ToString.Exclude. Escreva construtor, getters e equals/hashCode à mão, ou use record onde couber. Em teste, construa objetos pelo construtor real — builder() não existe aqui.'],
+            ['mapstruct', 'MapStruct', 'NÃO anote mapper com @Mapper esperando geração automática; escreva a conversão à mão.'],
+        ];
+        const ausentes = libs.filter(([artefato]) => !new RegExp(`<artifactId>\\s*${artefato}`, 'i').test(pom));
+        if (ausentes.length) {
+            info += 'Bibliotecas NÃO disponíveis neste projeto — confira antes de escrever código ou teste:\n';
+            for (const [, nome, instrucao] of ausentes) { info += `  ${nome}: ausente. ${instrucao}\n`; }
+        }
         return info;
     } catch {
         return '';

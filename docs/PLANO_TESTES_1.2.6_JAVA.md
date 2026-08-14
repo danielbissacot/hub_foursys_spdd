@@ -1593,3 +1593,47 @@ Chat do Copilot, sem `@foursys_sdd_po`:
 ### F7 — Command Palette
 `Ctrl+Shift+P` → `Foursys: ...` — confirmar que os 21 comandos aparecem e que os gated pedem
 o e-mail `@foursys.com.br` quando não autenticado (junta com o E1, que segue em aberto).
+
+---
+
+# 🔴 Candidata 24 — a Task List aponta para uma pasta de história que não existe
+
+Achado em 14/08 na rodada de validação das correções 21/22/23.
+
+**Sintoma:** a Task List gerou todas as tarefas apontando para
+`doc_projeto/us_atualizacao_data_alteracao_boleto_ingestao/`, e a pasta real da história é
+`doc_projeto/escri-19223/`. Nenhuma tarefa aponta para o lugar certo.
+
+**Causa — minha, na correção 22.** Escrevi no playbook:
+
+```
+Arquivo impactado: `doc_projeto/<pasta-da-história>/relatorio_implementacao.md`
+```
+
+`<pasta-da-história>` é placeholder, e a IA não tem como resolver: o nome da pasta nunca é
+enviado no contexto. Ela fez o que sempre faz com dado ausente — inventou um slug a partir do
+título da história. Mesmo padrão dos nomes de classe inventados que o MAPA REAL DO PROJETO
+resolveu.
+
+**Não é regressão da 22.** Conferido: as tarefas de evidência já apontavam para a pasta errada
+antes, porque o playbook sempre falou em `doc_projeto/` sem dizer qual subpasta. A 22 só tornou
+o problema visível ao criar uma tarefa cujo caminho é o próprio entregável.
+
+**Correção proposta:** injetar a pasta ativa no contexto das fases que escrevem caminho (tasks,
+e provavelmente plan). O Hub já sabe o nome — é o `storyDocPath`, resolvido por
+`resolveStoryDocPath` em `utils.ts:153` e passado para `resolveOutputAndContextFiles`. Falta só
+mandar essa string no prompt, no mesmo formato do bloco `MAPA REAL DO PROJETO`:
+
+```
+--- PASTA DA HISTÓRIA ATIVA ---
+doc_projeto/escri-19223/
+Use exatamente este caminho ao citar arquivos de documentação. Não derive nome de pasta do
+título da história.
+```
+
+Custo: ~10 linhas em `prompt-context.ts` mais uma linha no playbook do Tasks. Risco baixo — é
+injeção de contexto, mesmo mecanismo já usado por readProjectMap e readCoverageReport.
+
+**Impacto se não corrigir:** o Implement cria uma segunda pasta em `doc_projeto/`, e o relatório
+e as evidências ficam fora da pasta da história. O QA, que lê pelo `storyDocPath` correto, não
+enxerga nenhum dos dois.

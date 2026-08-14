@@ -18,6 +18,9 @@ import {
     readCoverageReport,
     PHASES_NEEDING_PROJECT_MAP,
     PHASES_NEEDING_COVERAGE,
+    PHASES_NEEDING_STORY_FOLDER,
+    readStoryFolderInfo,
+    detectarPlaceholders,
     extractHtmlBlock,
     extractFencedBlocks
 } from './engine/prompt-context';
@@ -861,6 +864,9 @@ async function executeSDDPhase(
         if (PHASES_NEEDING_COVERAGE.has(command)) {
             userContext += readCoverageReport(rootPath, stackId);
         }
+        if (PHASES_NEEDING_STORY_FOLDER.has(command)) {
+            userContext += readStoryFolderInfo(rootPath, storyDocPath);
+        }
         // Fases que propõem estrutura técnica precisam do mapa real do projeto pra cumprir a
         // Etapa 0 do playbook — sem ele a IA trava pedindo pom.xml/árvore de pacotes (que o
         // contexto de workspace nunca envia) ou inventa o pacote.
@@ -955,6 +961,16 @@ async function executeSDDPhase(
             fs.writeFileSync(outputPath, mdToSave);
             await openFile(outputPath);
             if (chatResponse) { chatResponse.markdown(`\n\n✅ **Salvo em**: ${path.basename(outputPath)}`); }
+
+            // Rede de proteção determinística: placeholder que sobrevive no documento vira caminho
+            // errado no disco na fase seguinte. Avisar é barato; descobrir depois custou uma rodada.
+            const placeholders = detectarPlaceholders(mdToSave);
+            if (placeholders) {
+                outputChannel.appendLine(`[SDD] ${placeholders}`);
+                const aviso = `⚠️ O documento gerado tem placeholder não resolvido — confira antes de seguir:\n${placeholders}`;
+                if (chatResponse) { chatResponse.markdown(`\n\n${aviso}`); }
+                else { vscode.window.showWarningMessage(aviso.split('\n')[0], 'Ver detalhes').then(r => { if (r) { outputChannel.show(); } }); }
+            }
 
             if (htmlReportPath && htmlReportContent) {
                 fs.writeFileSync(htmlReportPath, htmlReportContent);

@@ -574,6 +574,32 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
     }
 }
 
+/** Fases que escrevem caminho de arquivo de documentacao e por isso precisam saber a pasta real. */
+export const PHASES_NEEDING_STORY_FOLDER = new Set(['plan', 'tasks', 'qa-test-plan', 'qa-test-cases']);
+
+/**
+ * Injeta a pasta da historia ativa. O Hub SEMPRE soube esse nome — e ele quem grava os arquivos
+ * la, via resolveStoryDocPath — mas nunca contava para a IA: em 14/08/2026 a string 'escri-19223'
+ * nao aparecia em NENHUM dos arquivos que a fase Tasks recebe (constitution, implementation_plan,
+ * technical_spec) nem no mapa do projeto, que varre so src/.
+ *
+ * Sem o dado, a IA preenche a lacuna com o mais provavel: em duas rodadas seguidas inventou nomes
+ * diferentes a partir do titulo da historia (us_atualizacao_data_alteracao_boleto_ingestao e
+ * refino_historia_boleto). O relatorio e as evidencias cairiam fora da pasta da historia, e o QA,
+ * que le pelo storyDocPath correto, nao acharia nenhum dos dois.
+ *
+ * Mesmo remedio que ja matou os nomes de classe inventados (readProjectMap) e o percentual de
+ * cobertura chutado (readCoverageReport): se o Hub sabe o valor, ele manda — nao pede para deduzir.
+ */
+export function readStoryFolderInfo(rootPath: string, storyDocPath: string): string {
+    const rel = path.relative(rootPath, storyDocPath).replace(/\\/g, '/');
+    if (!rel || rel.startsWith('..')) { return ''; }
+    return `\n--- PASTA DA HISTÓRIA ATIVA ---\n${rel}/\n`
+        + 'Use EXATAMENTE este caminho ao citar arquivos de documentação desta história '
+        + '(relatório, evidências, artefatos de QA). NÃO derive nome de pasta do título da história '
+        + 'e NÃO deixe placeholder do tipo `<pasta-da-história>` no documento gerado.\n';
+}
+
 export function readProjectStackInfo(rootPath: string, stackId: string): string {
     if (stackId === 'spring_boot') { return readMavenStackInfo(rootPath); }
     if (stackId !== 'angular' && stackId !== 'node') { return ''; }
@@ -683,6 +709,41 @@ export function extractFencedBlocks(content: string, lang: string): string[] {
  *  para separar o relatório HTML executivo do corpo Markdown). Mesmo padrão de parsing em
  *  máquina de estados usado em extractFencedBlocks, mas para no primeiro bloco fechado e
  *  preserva o restante do texto em `rest` — por isso não reaproveita a função acima. */
+/**
+ * Varre o documento gerado por placeholder que a IA nao resolveu. Ideia emprestada do
+ * `/speckit.analyze` do github/spec-kit, que trata "unresolved placeholders (TODO, TKTK, ???,
+ * <placeholder>)" como achado de ambiguidade.
+ *
+ * Vale a pena porque e deterministico: nao depende de a IA obedecer nada. Em 14/08/2026 a Task
+ * List saiu com DOIS placeholders vivos — `<pasta-da-historia>` virou nome inventado e `Tarefa ZZ`
+ * foi copiado literal. Placeholder que sobrevive no documento vira caminho errado no disco.
+ *
+ * Retorna string vazia quando esta tudo resolvido.
+ */
+export function detectarPlaceholders(conteudo: string): string {
+    // Cuidado com falso positivo: `<String>` e `List<Boleto>` sao generics de Java, `<div>` e HTML.
+    // O que distingue o placeholder dos nossos templates e comecar em minuscula E ter hifen ou
+    // espaco no meio (`<pasta-da-historia>`, `<nome do modulo>`). Sem a flag `i`, de proposito.
+    const padroes: [RegExp, string][] = [
+        [/<[a-zà-ú][a-zà-ú0-9_]*[ -][a-zà-ú0-9 _-]{1,40}>/g, 'placeholder entre < >'],
+        [/\bTarefa (ZZ|XX|NN)\b/g, 'numeração de tarefa não resolvida'],
+        // Texto entre colchetes que nao e link markdown (`[texto](url)`) nem checkbox (`- [ ]`).
+        [/\[[A-ZÀ-Úa-zà-ú][^\]\n]{4,60}\](?!\()/g, 'texto de template não substituído'],
+        [/\?{3,}/g, 'interrogação de dúvida não resolvida'],
+    ];
+    const achados = new Map<string, number>();
+    for (const [re, rotulo] of padroes) {
+        for (const m of conteudo.matchAll(re)) {
+            const chave = `${rotulo}: ${m[0]}`;
+            achados.set(chave, (achados.get(chave) ?? 0) + 1);
+        }
+    }
+    if (achados.size === 0) { return ''; }
+    let aviso = '⚠️ Placeholders não resolvidos no documento gerado:\n';
+    for (const [chave, n] of [...achados].slice(0, 10)) { aviso += `   ${chave}${n > 1 ? ` (${n}x)` : ''}\n`; }
+    return aviso;
+}
+
 export function extractHtmlBlock(content: string): { html: string | null; rest: string } {
     const lines = content.split('\n');
     const restLines: string[] = [];

@@ -865,3 +865,223 @@ git push --force-with-lease origin e9f8a14:feature/figma-mcp-hybrid
 ```
 
 `origin/main` antes de hoje: `929435d` · depois: `8084878` (2 arquivos)
+
+---
+
+# 📘 Anotações para o Manual do Usuário
+
+> Coisas descobertas testando que valem virar dica no manual de quem for usar o Hub.
+> **Não são bugs** — são comportamentos que o usuário precisa conhecer.
+
+## 1. História ambígua vira decisão da IA, não pergunta
+
+**O que aconteceu:** a história ESCRI_19223 diz *"o sistema tenha sido acionado para
+ingestão"* — sem dizer por qual canal (REST? Kafka? batch?).
+
+O Specify listou isso como **defeito da história**:
+```
+Defeitos identificados:
+- Faltava explicitar gatilho operacional (Kafka)
+```
+e então **preencheu sozinho**, reescrevendo os critérios de aceite como evento Kafka:
+```gherkin
+Dado que chegou evento Kafka válido com operacaoTipo "ALTERACAO"
+```
+
+A partir daí virou fato: o Plan propôs `KafkaConsumerConfig`, o Tasks colocou dependência
+no `pom.xml` e configuração de tópico/DLQ no `application.yml` — **num projeto que não tem
+Kafka** (0 menções no `pom.xml`).
+
+**Mesma história, no outro modelo, deu o oposto:**
+> *"Kafka consumer: não obrigatório pela história; só incluir se ingestão for assíncrona já
+> definida em requisito técnico externo"*
+
+**Dica para o manual:** se a história não diz o canal de entrada, o meio de persistência ou a
+integração, **escreva no `technical_spec.md` antes de rodar o Specify**. Deixar em branco
+funciona muito bem para o Hub descobrir a *estrutura* do projeto (pacotes, classes existentes),
+mas não para decidir *arquitetura nova*. Uma linha basta:
+```
+RESPOSTA:
+A ingestão é síncrona via REST. Não usar mensageria.
+```
+
+**Como perceber que aconteceu:** leia a seção "Defeitos Identificados" do `user_story.md`
+depois do Specify. Se algum "defeito" for na verdade uma decisão técnica que a IA tomou,
+corrija ali antes de seguir para o Plan — senão ela se propaga por todas as fases seguintes.
+
+## 2. O modelo de IA muda o resultado mais do que se espera
+
+Mesma história, mesmo Hub, dois modelos:
+
+| | Nota INVEST | Linhas geradas | Canal de entrada |
+|---|---|---|---|
+| Sonnet 4.5 | 45% — REPROVADA | 294 | pediu confirmação |
+| GPT-5.3-Codex | (mais permissivo) | 96 | decidiu: Kafka |
+
+**Dica para o manual:** o rigor da análise INVEST e o volume de saída variam bastante por
+modelo. Se a nota vier muito baixa e os defeitos parecerem exagerados, não é a história que
+está ruim — pode ser calibragem do modelo.
+
+## 3. `foursys.modelOverride` — quando mexer
+
+O Hub escolhe o modelo por fase (Haiku para fases leves, etc.). Se nenhum dos preferidos
+existir no Copilot da máquina, ele cai em "qualquer modelo disponível" — que pode não ser o
+ideal para texto.
+
+**Sintoma:** erro `Response contained no choices` no meio de uma fase.
+
+**Como ajustar:** `Ctrl+,` → `foursys.modelOverride` → nome da família (ex.: `gpt-5.3-codex`).
+Deixar vazio volta ao automático.
+
+**Observação técnica:** o retry do Hub só cobre erro de *rate limit*. `no choices` não dispara
+fallback para o próximo modelo — a fase falha e é preciso rodar de novo. Nos testes de
+13/08/2026 isso aconteceu 3 vezes e sempre passou na segunda tentativa, sem mudar nada.
+
+## 4. O seletor de modelo do chat NÃO controla as fases
+
+O dropdown do Copilot Chat (onde se escolhe "Claude Sonnet 4.5") controla **só a conversa do
+chat**. As fases do Hub (Constitution, Specify, Plan, Tasks) chamam a API `vscode.lm`
+diretamente e escolhem o modelo por conta própria.
+
+**Dica para o manual:** para mudar o modelo das fases, use `foursys.modelOverride` nas
+Settings — não o seletor do chat.
+
+---
+
+# ✅ Correção 9 — Suposições marcadas no Specify (13/08, 21h30)
+
+## O problema
+
+O playbook do Specify mandava, numa linha só:
+> *"Identifique falhas semânticas e **reescreva a história corrigindo** os problemas de clareza"*
+
+Tratava dois tipos de defeito como um. A IA obedeceu: identificou que a história não dizia o
+canal de entrada, chamou de defeito (*"Faltava explicitar gatilho operacional (Kafka)"*) e
+**resolveu sozinha**.
+
+Propagação medida:
+```
+Specify   "faltava explicitar gatilho (Kafka)"        <- ainda parece diagnostico
+user_story "Dado que chegou evento Kafka valido..."   <- virou criterio de aceite
+Plan      "KafkaConsumerConfig para consumer e DLQ"   <- virou arquitetura
+Tasks     pom.xml + application.yml + config          <- virou impacto sistemico
+Implement 21 classes + spring-kafka no pom do Kit     <- virou codigo
+Resultado BUILD FAILURE (spring-kafka ausente no .m2)
+```
+
+**Um projeto que compilava parou de compilar por causa de uma suposição que ninguém confirmou.**
+
+## A correção
+
+`catalog/sdd/generic/foursys-specify.md` — de 36 para 70 linhas, dois acréscimos:
+
+1. **Separar defeito de redação de decisão ausente.** Redação corrige direto; decisão ausente
+   propõe *marcando*. Com a regra: escolher a opção coerente com o **MAPA REAL DO PROJETO**, e
+   nunca propor tecnologia ausente do projeto sem a história mencionar.
+2. **Seção 6 obrigatória na saída** — tabela de suposições com lacuna, escolha, justificativa e
+   impacto se errada. Mais marcação `[SUPOSIÇÃO Sn]` nos critérios BDD que dela nasceram.
+
+## O resultado
+
+| Critério | Antes | Depois |
+|---|:---:|:---:|
+| Seção de suposições | ❌ | ✅ linha 114 |
+| Canal de entrada tratado como suposição | ❌ virou requisito | ✅ **S1** |
+| Escolha coerente com o projeto | ❌ Kafka (projeto não tem) | ✅ **REST** |
+| BDD rastreável à suposição | ❌ | ✅ `[SUPOSIÇÃO S1]` nas linhas 40 e 46 |
+
+**A S1, com a justificativa citando o projeto real:**
+```
+| S1 | Canal de entrada não especificado | REST síncrono via Controller
+   | Projeto atual expõe entradas por adapter/input/.../api
+   | Muda adapter de entrada e estratégia de teste |
+```
+
+### Encontrou 4 lacunas que ninguém tinha previsto
+
+| # | Lacuna | Por que importa |
+|---|---|---|
+| S2 | "data atual" sem timezone/formato | divergência de horário no Delta e no painel Databricks |
+| S3 | reprocessamento não definido | reenvio duplicaria a atualização |
+| S4 | campos do boleto não detalhados | pode exigir remodelagem de entidade |
+| S5 | boleto inexistente | contrato de erro da API — cita `NaoEncontradoException` porque *"já existe no domínio"* |
+
+A **S2** é a mais valiosa: a história diz *"data atual do sistema"* e nenhuma das 3 rodadas
+anteriores — nem a revisão humana — questionou de qual fuso. Num sistema que alimenta
+Databricks, é bug de produção esperando acontecer.
+
+## Efeito no fluxo
+
+Plan, Tasks e Implement leem este documento e agora **veem** que REST é hipótese, não pedido.
+A fronteira entre "o PO pediu" e "a IA supôs" ficou explícita — o problema diagnosticado.
+
+## Observação de método
+
+Na primeira tentativa o `.vsix` não tinha sido instalado (extensão de 20:31, playbook com 36
+linhas). O teste rodou contra a versão antiga e a seção não apareceu. **Verificar o playbook
+dentro de `~/.vscode/extensions/` antes de concluir que uma correção falhou** — o VS Code nem
+sempre substitui a extensão quando a versão é a mesma.
+
+Nessa mesma execução (sem a correção), ele escolheu REST espontaneamente — 1 menção a Kafka
+contra 7 da rodada anterior. Reforça que a resolução da ambiguidade variava por sorte; a regra
+tirou isso do acaso.
+
+---
+
+# 🔴 Correção 10 — a persona era invocada com o prefixo errado (13/08, 22h)
+
+## Um bug escondia o outro
+
+**Ontem** o diagnóstico foi: *"a persona nunca chega ao Implement porque os comandos
+`implementSession1/2` não passam a tag"*. Correto — e corrigido (correção 5).
+
+**Hoje**, com a tag sendo enviada pela primeira vez, o Controller gerado saiu de novo sem
+Swagger. Investigando: a tag chega, a persona existe com o nome exato, e mesmo assim não é
+carregada.
+
+O usuário testou no chat e mostrou a sintaxe real do Copilot:
+
+```
+@nome  -> chat participant          (ex: @foursys_sdd_po)
+/nome  -> skill ou agente do sync   (ex: /foursys-constitution-android)
+#nome  -> referencia arquivo (#file:) — NAO invoca nada
+```
+
+E o Hub mandava **`#agente-spring_boot-foursys`**.
+
+```
+Hub mandava:     #agente-spring_boot-foursys
+Copilot conhece: /agente-spring_boot-foursys
+```
+
+Os nomes batiam perfeitamente. **Só o prefixo estava errado — um caractere.**
+
+Ninguém tinha notado porque, enquanto a tag não era enviada, o `#` errado nunca chegou a ser
+exercitado. A correção 5 foi necessária mas não suficiente: ela fez o bug antigo aparecer.
+
+## A correção
+
+`src/engine/stack-registry.ts` — 7 tags, `#` → `/`, mais comentário explicando por que o
+prefixo importa e como o nome se liga ao arquivo em `~/.copilot/agents/`.
+
+Validado contra o que o Copilot expõe de fato:
+```
+OK  /agente-android-foursys      OK  /agente-cobol-foursys
+OK  /agente-angular-foursys      OK  /agente-ios-foursys
+OK  /agente-spring_boot-foursys
+```
+
+## Pendente de teste (amanhã)
+
+⚠️ **Não sabemos se `/agente-x` funciona dentro de um prompt** enviado por
+`workbench.action.chat.open`, ou só quando o dev digita no chat. O `/` costuma ser interpretado
+como comando de barra no **início** da mensagem, e o Hub o coloca no fim de uma frase longa:
+
+```
+"Leia os arquivos ... Execute APENAS as tarefas da Sessão 2 ... /agente-spring_boot-foursys."
+```
+
+Se não funcionar assim, a alternativa é mover a tag para o começo do prompt.
+
+**Como testar:** rodar `/foursys.implementSession2` e verificar se o Controller sai com
+`@Tag`/`@Operation`, ou com a interface `<Nome>Swagger.java` no padrão do `ContaCorrenteSwagger`.

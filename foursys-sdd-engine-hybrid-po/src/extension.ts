@@ -15,7 +15,9 @@ import {
     readWorkspaceContextForPhase,
     readProjectStackInfo,
     readProjectMap,
+    readCoverageReport,
     PHASES_NEEDING_PROJECT_MAP,
+    PHASES_NEEDING_COVERAGE,
     extractHtmlBlock,
     extractFencedBlocks
 } from './engine/prompt-context';
@@ -855,6 +857,9 @@ async function executeSDDPhase(
         userContext += readWorkspaceContextForPhase(command, rootPath, stackId);
         if (command === 'constitution' || command === 'plan' || command === 'tasks') {
             userContext += readProjectStackInfo(rootPath, stackId);
+        }
+        if (PHASES_NEEDING_COVERAGE.has(command)) {
+            userContext += readCoverageReport(rootPath, stackId);
         }
         // Fases que propõem estrutura técnica precisam do mapa real do projeto pra cumprir a
         // Etapa 0 do playbook — sem ele a IA trava pedindo pom.xml/árvore de pacotes (que o

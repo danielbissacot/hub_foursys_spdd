@@ -41,6 +41,18 @@ export const PHASE_WORKSPACE_MAX_FILES: Record<string, number> = {
     'qa-coverage': 8,
 };
 
+/** Teto de LINHAS por arquivo, por fase. Companheiro obrigatorio do teto acima: aumentar o
+ *  numero de arquivos sem aumentar o corte so entrega mais comecos de arquivo.
+ *
+ *  Medido em 14/08/2026, ja com os 8 arquivos: o qa-coverage marcou C1/C2/C3 como
+ *  "Parcialmente Entregue — o trecho fornecido nao mostra a linha de atualizacao/persistencia".
+ *  O BoletoCobrancaService tem 162 linhas e o metodo executar() comeca na 55; com corte em 80 ele
+ *  recebeu a assinatura e perdeu o corpo, que e exatamente onde vivem as regras de negocio que
+ *  essa fase tem de conferir. 4 dos 13 arquivos da feature passavam de 80 linhas. */
+export const PHASE_WORKSPACE_MAX_LINES: Record<string, number> = {
+    'qa-coverage': 250,
+};
+
 export const PHASES_NEEDING_WORKSPACE = new Set([
     'plan',
     // qa-coverage: valida se cada critério de aceite foi de fato entregue no código real
@@ -182,7 +194,8 @@ export function isTestFile(filePath: string): boolean {
 export function readWorkspaceContext(
     rootPath: string,
     stackId: string,
-    maxFiles: number = WORKSPACE_CONTEXT_MAX_FILES
+    maxFiles: number = WORKSPACE_CONTEXT_MAX_FILES,
+    maxLines: number = WORKSPACE_CONTEXT_MAX_LINES
 ): string {
     const config = getStackConfig(stackId);
     const srcPath = path.join(rootPath, 'src');
@@ -235,8 +248,11 @@ export function readWorkspaceContext(
     for (const { filePath } of selected) {
         try {
             const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-            const snippet = lines.slice(0, WORKSPACE_CONTEXT_MAX_LINES).join('\n');
-            context += `\n--- ARQUIVO EXISTENTE: ${path.relative(rootPath, filePath)} ---\n${snippet}\n`;
+            const snippet = lines.slice(0, maxLines).join('\n');
+            // Avisar o corte importa: sem isso a IA le o fim do trecho como fim do arquivo e
+            // conclui "nao implementado" para o que ficou depois da linha de corte.
+            const corte = lines.length > maxLines ? `\n... [truncado — arquivo tem ${lines.length} linhas]` : '';
+            context += `\n--- ARQUIVO EXISTENTE: ${path.relative(rootPath, filePath)} ---\n${snippet}${corte}\n`;
         } catch { /* ignorar */ }
     }
 
@@ -379,12 +395,171 @@ export function readProjectMap(rootPath: string, stackId: string): string {
  *  (VS Code) e assembleFinalPrompt (IntelliJ/CLI) nunca divergirem na mesma decisão. */
 export function readWorkspaceContextForPhase(command: string, rootPath: string, stackId: string): string {
     if (PHASES_NEEDING_WORKSPACE.has(command)) {
-        return readWorkspaceContext(rootPath, stackId, PHASE_WORKSPACE_MAX_FILES[command] ?? WORKSPACE_CONTEXT_MAX_FILES);
+        return readWorkspaceContext(
+            rootPath,
+            stackId,
+            PHASE_WORKSPACE_MAX_FILES[command] ?? WORKSPACE_CONTEXT_MAX_FILES,
+            PHASE_WORKSPACE_MAX_LINES[command] ?? WORKSPACE_CONTEXT_MAX_LINES
+        );
     }
     return '';
 }
 
+/**
+ * Le a versao real do Java e do Spring Boot do pom.xml.
+ *
+ * Ate 14/08/2026 readProjectStackInfo devolvia '' para tudo que nao fosse angular/node — nao por
+ * decisao, mas porque ela so sabia ler package.json e ninguem escreveu o ramo do Maven. Efeito:
+ * o playbook diz "Java 21" fixo e a Constituicao do Kit saiu declarando Java 21 num projeto com
+ * <java.version>17</java.version>. Nao quebrou porque a IA nao usou nada exclusivo do 21 —
+ * record (16), sealed (17) e var (10) compilam no 17. Mas pattern matching for switch, record
+ * patterns e SequencedCollection sao 21: a primeira historia que levar a IA para la quebra o
+ * build. E o aviso que o Angular ja recebe ("nao empurre a versao ideal do playbook por cima de
+ * um projeto que ja funciona") e exatamente o que faltava aqui.
+ */
+function readMavenStackInfo(rootPath: string): string {
+    const pomPath = path.join(rootPath, 'pom.xml');
+    if (!fs.existsSync(pomPath)) { return ''; }
+    try {
+        const pom = fs.readFileSync(pomPath, 'utf-8');
+        // <java.version> e a propriedade que o starter do Spring Boot usa; maven.compiler.release
+        // cobre o pom que define a versao direto no plugin.
+        const javaVersion = pom.match(/<java\.version>\s*([\d.]+)\s*<\/java\.version>/)?.[1]
+            ?? pom.match(/<maven\.compiler\.release>\s*([\d.]+)\s*<\/maven\.compiler\.release>/)?.[1]
+            ?? pom.match(/<maven\.compiler\.source>\s*(\d[\d.]*)\s*<\/maven\.compiler\.source>/)?.[1];
+        // A versao do Boot vem do <parent>, entao pega o <version> que estiver logo depois dele.
+        const bootVersion = pom.match(/spring-boot-starter-parent<\/artifactId>\s*<version>\s*([\d.]+[\w.-]*)\s*</)?.[1];
+        if (!javaVersion && !bootVersion) { return ''; }
+
+        let info = '\n--- STACK REAL DO PROJETO (detectado via pom.xml) ---\n';
+        info += 'ATENÇÃO: calibre a Constituição/Plano ao que está instalado abaixo. NÃO empurre a versão "ideal" do playbook por cima de um projeto existente que já funciona — só proponha migração se o usuário pedir explicitamente.\n';
+        if (javaVersion) {
+            info += `Java configurado no pom.xml: ${javaVersion}\n`;
+            if (Number(javaVersion) < 21) {
+                info += `IMPORTANTE: este projeto compila em Java ${javaVersion}. NÃO gere código com recursos exclusivos do Java 21 (pattern matching for switch, record patterns, virtual threads, SequencedCollection/getFirst/getLast) — o build quebra. Record, sealed classes e var são válidos neste nível.\n`;
+            }
+        }
+        if (bootVersion) { info += `Spring Boot: ${bootVersion}\n`; }
+        return info;
+    } catch {
+        return '';
+    }
+}
+
+/** Minimos da Foursys: abaixo disso nao passa no Sonar oficial, mesmo em legado. */
+export const COVERAGE_MIN_LINE = 95;
+export const COVERAGE_MIN_BRANCH = 90;
+/** Fases que decidem "pronto para homologacao" e por isso precisam do numero medido. */
+export const PHASES_NEEDING_COVERAGE = new Set(['qa-coverage', 'qa-report']);
+
+/**
+ * Le target/site/jacoco/jacoco.csv e injeta o percentual JA CALCULADO.
+ *
+ * Por que o Hub calcula em vez de pedir: a IA passou a rodar o Maven e ler o csv (isso funciona
+ * desde 13/08), mas mostra a cobertura POR CLASSE e nunca soma. Em 14/08/2026 apresentou uma
+ * tabela com cinco classes em 100%, declarou "IMPLEMENTACAO COMPLETA" e o total real era 81,7%
+ * de linha e 66,7% de branch. Para fechar a tarefa justificou a classe pior coberta com
+ * "excluida do gate de cobertura pela configuracao JaCoCo (domain/entity/*.java)" — falso em
+ * tres frentes: a classe esta em adapter/output/.../database/entity/, a pasta domain/entity/ nao
+ * existe no projeto, e nao ha <goal>check</goal> no pom, ou seja, nao existe gate local nenhum.
+ *
+ * Pedir com mais enfase nao resolve: a regra ja chega pela Constituicao (linha "95% linha / 90%
+ * branch") e pelo criterio de conclusao da Task List, os dois canais que comprovadamente
+ * funcionam. O que nao funciona e delegar a conta. Numero vindo do disco nao se negocia.
+ */
+/**
+ * Traduz a lista <sonar.coverage.exclusions> do pom para casadores contra as colunas PACKAGE e
+ * CLASS do jacoco.csv. Sem isso o total inclui o legado que o Sonar oficial ignora
+ * (CORSConfig, ApiErroResponse, ServicoIndisponivelException...) e o relatorio manda escrever
+ * teste justamente para as classes que a skill springboot-testing manda NAO testar.
+ *
+ * `src/main/java/**\/adapter/exception/handler/*.java` vira
+ * { pacote termina em 'adapter.exception.handler', classe casa /^.*$/ }.
+ */
+function parseSonarExclusions(pomXml: string): { pkgSuffix: string; classRe: RegExp }[] {
+    const bloco = pomXml.match(/<sonar\.coverage\.exclusions>([\s\S]*?)<\/sonar\.coverage\.exclusions>/)?.[1];
+    if (!bloco) { return []; }
+    const regras: { pkgSuffix: string; classRe: RegExp }[] = [];
+    for (const bruto of bloco.split(',')) {
+        const padrao = bruto.trim().replace(/^src\/main\/java\//, '').replace(/^\*\*\//, '');
+        if (!padrao.endsWith('.java')) { continue; }
+        const partes = padrao.split('/');
+        const arquivo = partes.pop()!.replace(/\.java$/, '');
+        regras.push({
+            pkgSuffix: partes.filter(p => p !== '**').join('.'),
+            classRe: new RegExp('^' + arquivo.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '(\\..+)?$')
+        });
+    }
+    return regras;
+}
+
+export function readCoverageReport(rootPath: string, stackId: string): string {
+    if (stackId !== 'spring_boot') { return ''; }
+    const csvPath = path.join(rootPath, 'target', 'site', 'jacoco', 'jacoco.csv');
+    if (!fs.existsSync(csvPath)) {
+        return '\n--- COBERTURA MEDIDA PELO HUB ---\n'
+            + 'target/site/jacoco/jacoco.csv NÃO existe: a suíte não foi executada neste workspace. '
+            + 'NÃO afirme percentual de cobertura — registre que a medição não foi feita e que `mvn -o clean test` precisa rodar.\n';
+    }
+    let pomXml = '';
+    try { pomXml = fs.readFileSync(path.join(rootPath, 'pom.xml'), 'utf-8'); } catch { /* segue sem exclusoes */ }
+    const exclusoes = parseSonarExclusions(pomXml);
+
+    try {
+        const linhas = fs.readFileSync(csvPath, 'utf-8').trim().split('\n').slice(1);
+        let lm = 0, lc = 0, bm = 0, bc = 0, excluidas = 0;
+        const piores: { classe: string; faltando: number; total: number }[] = [];
+        for (const linha of linhas) {
+            const c = linha.split(',');
+            if (c.length < 9) { continue; }
+            const [liM, liC, brM, brC] = [Number(c[7]), Number(c[8]), Number(c[5]), Number(c[6])];
+            if ([liM, liC, brM, brC].some(Number.isNaN)) { continue; }
+            const fora = exclusoes.some(r => c[1].endsWith(r.pkgSuffix) && r.classRe.test(c[2]));
+            if (fora) { excluidas++; continue; }
+            lm += liM; lc += liC; bm += brM; bc += brC;
+            if (liM > 0) { piores.push({ classe: c[2], faltando: liM, total: liM + liC }); }
+        }
+        if (lm + lc === 0) { return ''; }
+
+        const pctLinha = (lc * 100) / (lm + lc);
+        const pctBranch = bm + bc > 0 ? (bc * 100) / (bm + bc) : 100;
+        const ok = pctLinha >= COVERAGE_MIN_LINE && pctBranch >= COVERAGE_MIN_BRANCH;
+
+        let info = '\n--- COBERTURA MEDIDA PELO HUB (lida de target/site/jacoco/jacoco.csv) ---\n';
+        info += 'Este número foi calculado pelo Hub a partir do arquivo em disco, já aplicando o '
+             + '<sonar.coverage.exclusions> do pom. É o número que o Sonar oficial vai ver. Use ELE: '
+             + 'não recalcule, não apresente cobertura por classe como se fosse o total, e não trate '
+             + 'classe abaixo do mínimo como exceção aceitável — o que era exceção já saiu da conta.\n';
+        info += `Linha:  ${lc}/${lm + lc} = ${pctLinha.toFixed(1)}% (mínimo ${COVERAGE_MIN_LINE}%)\n`;
+        info += `Branch: ${bc}/${bm + bc} = ${pctBranch.toFixed(1)}% (mínimo ${COVERAGE_MIN_BRANCH}%)\n`;
+        if (excluidas) { info += `Classes fora da conta pelas exclusões do Sonar: ${excluidas}\n`; }
+        info += `VEREDITO: ${ok ? 'ATINGE os mínimos.' : 'ABAIXO DO MÍNIMO — a entrega não pode ser declarada pronta por cobertura.'}\n`;
+
+        if (piores.length) {
+            info += 'Classes que CONTAM e estão com linha descoberta (maior déficit primeiro) — é aqui que falta teste:\n';
+            for (const p of piores.sort((a, b) => b.faltando - a.faltando).slice(0, 10)) {
+                info += `  ${p.classe}: faltam ${p.faltando} de ${p.total}\n`;
+            }
+        }
+
+        // O <excludes> do plugin JaCoCo nao aplica nesta configuracao (exige uma tag por padrao,
+        // casando caminho de .class). Por isso o Hub aplica a lista por conta propria acima — e
+        // por isso o numero que o Maven imprime localmente e MENOR que o real.
+        if (pomXml.includes('<exclude>${sonar.coverage.exclusions}</exclude>')) {
+            info += 'NOTA: o <excludes> do jacoco-maven-plugin está como ${sonar.coverage.exclusions}, '
+                 + 'que o JaCoCo não interpreta. O relatório local do Maven mostra cobertura MENOR que a real; '
+                 + 'o número acima já corrige isso. Corrigir o pom (uma tag por padrão, caminho de classe) '
+                 + 'é recomendação para o time — não invente que uma classe está excluída sem conferir a lista.\n';
+        }
+
+        return info;
+    } catch {
+        return '';
+    }
+}
+
 export function readProjectStackInfo(rootPath: string, stackId: string): string {
+    if (stackId === 'spring_boot') { return readMavenStackInfo(rootPath); }
     if (stackId !== 'angular' && stackId !== 'node') { return ''; }
     const pkgPath = path.join(rootPath, 'package.json');
     if (!fs.existsSync(pkgPath)) { return ''; }
@@ -454,6 +629,9 @@ export function assembleFinalPrompt(params: {
     }
     if (command === 'constitution' || command === 'plan' || command === 'tasks') {
         userContext += readProjectStackInfo(workspaceRoot, stackId);
+    }
+    if (PHASES_NEEDING_COVERAGE.has(command)) {
+        userContext += readCoverageReport(workspaceRoot, stackId);
     }
 
     const instruction = userInstruction.trim() !== '' ? `INSTRUÇÃO ADICIONAL: ${userInstruction}\n\n` : '';

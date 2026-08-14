@@ -277,20 +277,35 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }));
 
+    // As duas sessoes tambem invocam a persona. Antes so o foursys.implement acima fazia isso,
+    // mas quem manda usar as sessoes e a propria Task List ("Execute com
+    // /foursys.implementSession1"), entao na pratica a persona quase nunca chegava. Efeito
+    // concreto medido em 13/08/2026: a orientacao de expor OpenAPI/Swagger vive no
+    // AGENTE_SPRING_FOURSYS.md e o Controller gerado saiu sem @Tag/@Operation, enquanto o
+    // ContaCorrenteController do Kit tem implements ContaCorrenteSwagger. Isso tambem explica
+    // por que o implementSkillTag do spring_boot ficou com o nome errado sem ninguem notar.
+    const instrucaoDeSessao = (rootPath: string, sessao: 1 | 2): string => {
+        const foco = sessao === 1
+            ? 'Sessão 1 de Implementação — Domínio'
+            : 'Sessão 2 de Implementação — Infraestrutura';
+        const ignorar = sessao === 1 ? 'Sessão 2' : 'Sessão 1';
+        const skillTag = personaSkillTagIfAvailable(getActiveStackId(context), rootPath, context);
+        const persona = skillTag ? ` Invoque a Skill: ${skillTag}.` : '';
+        return `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. `
+            + `Execute APENAS as tarefas da "${foco}" do task_list.md. `
+            + `Ignore completamente as tarefas da ${ignorar} e de Teste.${persona}`;
+    };
+
     context.subscriptions.push(registerGated('foursys.implementSession1', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
-        vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. Execute APENAS as tarefas da "Sessão 1 de Implementação — Domínio" do task_list.md. Ignore completamente as tarefas da Sessão 2 e de Teste.`
-        });
+        vscode.commands.executeCommand('workbench.action.chat.open', { query: instrucaoDeSessao(rootPath, 1) });
     }));
 
     context.subscriptions.push(registerGated('foursys.implementSession2', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
-        vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. Execute APENAS as tarefas da "Sessão 2 de Implementação — Infraestrutura" do task_list.md. Ignore completamente as tarefas da Sessão 1 e de Teste.`
-        });
+        vscode.commands.executeCommand('workbench.action.chat.open', { query: instrucaoDeSessao(rootPath, 2) });
     }));
 
     // Mend Advise é passivo — escaneia automaticamente e exibe CVEs no painel Problems.

@@ -6,11 +6,21 @@ import { isTechSpecUnfilled } from '../utils';
 
 export const DOC_FOLDER = 'doc_projeto';
 export const WORKSPACE_CONTEXT_MAX_FILES = 2;   // era 5 — reduz tokens de workspace em 60%
+/** Quantos arquivos o walk chega a CONSIDERAR antes de ordenar por data e cortar em
+ *  WORKSPACE_CONTEXT_MAX_FILES. Nao afeta token — so os MAX_FILES finais sao enviados —,
+ *  serve para o "mais recente" ser o mais recente do projeto e nao dos primeiros encontrados. */
+export const WORKSPACE_CONTEXT_MAX_CANDIDATES = 400;
 export const WORKSPACE_CONTEXT_MAX_LINES = 80;  // era 300 — snippet curto de imports + assinaturas
 export const CONTEXT_FILE_MAX_LINES = 200;      // era 800 — cabeçalho do doc é suficiente
 /** Fases que propõem estrutura/nomes de código e por isso exigem a Etapa 0 do playbook.
- *  specify-tech e plan desenham pacotes; tasks lista arquivos impactados. */
-export const PHASES_NEEDING_PROJECT_MAP = new Set(['specify', 'plan', 'tasks']);
+ *  specify-tech e plan desenham pacotes; tasks lista arquivos impactados.
+ *
+ *  qa-test-cases entrou depois: o Gherkin cita classe e port em cada cenário
+ *  (`# Referência técnica:`, `# Ports mockados:`) e sem o mapa ele inventa. No teste de
+ *  13/08/2026 citou IngestaoBoletoController, BoletoRepositoryPort, RelogioPort e
+ *  AuditoriaLogPort — nenhum existe no projeto. Como o .feature vai para o Xray, o nome
+ *  inventado sai do Hub e chega na ferramenta de QA. */
+export const PHASES_NEEDING_PROJECT_MAP = new Set(['specify', 'plan', 'tasks', 'qa-test-cases']);
 
 export const PHASES_NEEDING_WORKSPACE = new Set([
     'plan',
@@ -141,9 +151,25 @@ export function readWorkspaceContext(rootPath: string, stackId: string): string 
     const srcPath = path.join(rootPath, 'src');
     if (!fs.existsSync(srcPath)) { return ''; }
 
+    // Dois tetos aqui ja cegaram a funcao inteira:
+    //
+    // 1) `depth > 6` — num projeto Maven padrao os .java ficam em
+    //    src/main/java/br/com/empresa/proj/camada/ (profundidade 8+). O walk morria no nivel 6
+    //    e so alcancava src/main/resources/. O qa-coverage, que decide "pronto para
+    //    homologacao", reprovava TODA entrega porque nunca via uma classe: no teste de
+    //    13/08/2026 ele recebeu application.yml e global.properties e reprovou uma feature com
+    //    25 arquivos e 100 testes passando. Mesmo bug ja corrigido em readProjectMap.
+    //
+    // 2) o teto de coleta parava a BUSCA nos 6 primeiros arquivos encontrados. Como o sort por
+    //    mtime vem depois, ele escolhia "os 2 mais recentes entre 6 arbitrarios" (sempre os
+    //    mesmos, na ordem alfabetica de pastas) em vez dos 2 mais recentes do projeto — que e
+    //    justamente o que torna o snippet relevante.
+    //
+    // Corrigir os dois NAO aumenta token: WORKSPACE_CONTEXT_MAX_FILES continua 2 e so esses
+    // 2 sao enviados. O que muda e QUAIS 2. O custo extra e varredura de disco.
     const collected: { filePath: string; mtime: number }[] = [];
     const walk = (dir: string, depth: number) => {
-        if (depth > 6 || collected.length >= WORKSPACE_CONTEXT_MAX_FILES * 3) { return; }
+        if (depth > PROJECT_MAP_MAX_DEPTH || collected.length >= WORKSPACE_CONTEXT_MAX_CANDIDATES) { return; }
         let entries: fs.Dirent[];
         try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
         for (const entry of entries) {

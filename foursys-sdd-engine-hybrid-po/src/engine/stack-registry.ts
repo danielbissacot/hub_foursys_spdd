@@ -10,6 +10,14 @@ export interface StackConfig {
     playbookFolder: string;
     skillsFolder: string;
     agentFileName: string;
+    /** Como o Implement pede a persona no prompt do chat. O prefixo TEM que ser `/`:
+     *  no Copilot Chat `@nome` invoca chat participant, `/nome` invoca skill ou agente do
+     *  "Sincronizar Skills Nativas", e `#` serve para referenciar arquivo (`#file:`) — nao
+     *  invoca nada. Estas tags nasceram com `#` e por isso a persona nunca era carregada.
+     *  Passou despercebido ate 13/08/2026 porque os comandos implementSession1/2 sequer
+     *  enviavam a tag: um bug escondia o outro. O nome depois da barra tem que bater com o
+     *  arquivo em ~/.copilot/agents/<slug>.agent.md, que personal-copilot-sync grava como
+     *  `agente-${stackId}-foursys`. */
     implementSkillTag: string;
     globalFilesExample: string;
     /** Pasta em catalog/instructions/ com as regras de arquitetura no formato nativo do Copilot
@@ -35,7 +43,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         playbookFolder: 'angular',
         skillsFolder: 'agents_skills/angular',
         agentFileName: 'AGENTE_ANGULAR_FOURSYS.md',
-        implementSkillTag: '#agente-angular-foursys',
+        implementSkillTag: '/agente-angular-foursys',
         instructionsFolder: 'angular-vertical-slice-arch',
         globalFilesExample: '| `app.config.ts` | Adicionar providers (provideHttpClient, provideRouter) | Descrição da mudança |\n| `app.routes.ts` | Registrar rota da feature | Descrição da mudança |\n| `index.html` | Adicionar fonte/biblioteca global | Descrição da mudança |'
     },
@@ -49,7 +57,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         playbookFolder: 'android',
         skillsFolder: 'agents_skills/android',
         agentFileName: 'AGENTE_ANDROID_FOURSYS.md',
-        implementSkillTag: '#agente-android-foursys',
+        implementSkillTag: '/agente-android-foursys',
         globalFilesExample: '| `app/build.gradle.kts` | Adicionar dependência (Retrofit, Room, Hilt, etc.) | Descrição da mudança |\n| `app/src/main/AndroidManifest.xml` | Declarar permissão ou Activity/Service | Descrição da mudança |\n| `app/src/main/res/values/strings.xml` | Adicionar string de recurso | Descrição da mudança |'
     },
     spring_boot: {
@@ -65,7 +73,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         // persona (`agente-${stackId}-foursys`). Estava 'agente-spring-foursys' e o Implement
         // do Java pedia uma persona que nao existia com esse nome — as outras 5 stacks tem o
         // stackId igual ao prefixo, so o spring_boot divergia.
-        implementSkillTag: '#agente-spring_boot-foursys',
+        implementSkillTag: '/agente-spring_boot-foursys',
         instructionsFolder: 'springboot-hexagonal-arch',
         globalFilesExample: '| `pom.xml` | Adicionar dependência (Feign/Kafka/MongoDB) | Descrição da mudança |\n| `src/main/resources/application.yml` | Configurar datasource, kafka, resilience4j | Descrição da mudança |\n| `src/main/java/.../config/[Nome]Config.java` | Declarar @Bean, habilitar @EnableFeignClients | Descrição da mudança |'
     },
@@ -78,7 +86,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         playbookFolder: 'node',
         skillsFolder: 'agents_skills/node',
         agentFileName: 'AGENTE_NODE_FOURSYS.md',
-        implementSkillTag: '#agente-node-foursys',
+        implementSkillTag: '/agente-node-foursys',
         globalFilesExample: '| `package.json` | Adicionar dependência (prisma, class-validator, etc.) | Descrição da mudança |\n| `src/app.module.ts` | Registrar módulo da feature | Descrição da mudança |\n| `src/main.ts` | Configurar pipes globais, prefixos de rota | Descrição da mudança |'
     },
     cobol: {
@@ -90,7 +98,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         playbookFolder: 'cobol',
         skillsFolder: 'agents_skills/cobol',
         agentFileName: 'AGENTE_COBOL_FOURSYS.md',
-        implementSkillTag: '#agente-cobol-foursys',
+        implementSkillTag: '/agente-cobol-foursys',
         globalFilesExample: '| `JCL/[NOME].jcl` | Adicionar step de execução do programa | Descrição da mudança |\n| `COPY/[NOME].cpy` | Definir estrutura de dados compartilhada (copybook) | Descrição da mudança |\n| `PROC/[NOME].prc` | Procedure de execução batch | Descrição da mudança |'
     },
     ios: {
@@ -102,7 +110,7 @@ export const STACK_REGISTRY: Record<string, StackConfig> = {
         playbookFolder: 'ios',
         skillsFolder: 'agents_skills/ios',
         agentFileName: 'AGENTE_IOS_FOURSYS.md',
-        implementSkillTag: '#agente-ios-foursys',
+        implementSkillTag: '/agente-ios-foursys',
         globalFilesExample: '| `[Projeto].xcodeproj` | Adicionar target / dependência Swift Package | Descrição da mudança |\n| `Info.plist` | Declarar permissão (câmera, notificações, localização) | Descrição da mudança |\n| `Podfile` | Adicionar pod de terceiro (pod install após) | Descrição da mudança |'
     },
 };
@@ -122,7 +130,7 @@ const UNKNOWN_STACK_CONFIG: StackConfig = {
     playbookFolder: 'generic',
     skillsFolder: 'agents_skills/unknown',
     agentFileName: 'AGENTE_UNKNOWN.md',
-    implementSkillTag: '#agente-nao-definido',
+    implementSkillTag: '/agente-nao-definido',
     globalFilesExample: '| `[arquivo de configuração]` | Registrar nova dependência ou configuração | Descrição da mudança |\n| `[ponto de entrada principal]` | Inicializar módulo/feature | Descrição da mudança |'
 };
 

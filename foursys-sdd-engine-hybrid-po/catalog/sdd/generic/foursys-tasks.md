@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD — Genérico
 description: Decompõe um plano técnico em tarefas granulares, atômicas e testáveis. Agnóstico de stack — exemplos de arquivos globais são substituídos em runtime pelo catalog-loader.
 metadata:
-  version: "1.8.0"
+  version: "1.9.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -21,7 +21,7 @@ Sua tarefa é analisar o Plano de Implementação (Implementation Plan) e a Cons
 - 🌐 IDIOMA DE NOMENCLATURA: nomes de classe/componente e caminhos de arquivo citados nas tarefas (títulos, "Arquivo impactado") DEVEM seguir a regra de nomenclatura da Constituição do projeto — termos de domínio em português (pt-BR), sufixos técnicos (Controller/Service/UseCase/Dto/etc.) em inglês. NUNCA traduza o termo de negócio para inglês só porque é mais comum em código.
 - NÃO GERE CÓDIGO FONTE.
 - NÃO dê explicações longas.
-- NÃO crie arquivos de documentação ou checklists extras que não foram solicitados. Se gerar evidências automáticas de teste/acessibilidade, salve-as obrigatoriamente em `doc_projeto/evidencias/`.
+- NÃO crie arquivos de documentação ou checklists extras que não foram solicitados. As duas únicas exceções, ambas obrigatórias e já previstas abaixo: as evidências automáticas de teste/acessibilidade, que vão para `doc_projeto/evidencias/`, e o Relatório de Implementação, que é a última tarefa da lista.
 - Gere APENAS o checklist em Markdown.
 - Se uma tarefa é estimada em M ou L, QUEBRE em subtarefas antes de listar. Tarefas L não são aceitas.
 - Tarefas de TESTE devem ser listadas em seção separada das tarefas de implementação.
@@ -93,6 +93,29 @@ Cada tarefa deve ser:
   - Estimativa: XS | S
   - Critério de conclusão: [Cobertura ou cenário validado]
   - Depende de: Tarefa XX
+
+### 📄 Relatório de Implementação (SEMPRE a última tarefa)
+> Executada ao final da **Sessão 2**, depois das Tarefas de Teste — é o fechamento da entrega.
+
+- [ ] **Tarefa ZZ: Gerar o Relatório de Implementação**
+  - Descrição técnica: Consolidar o que foi entregue nesta história em um relatório único.
+  - Arquivo impactado: `doc_projeto/<pasta-da-história>/relatorio_implementacao.md`
+  - Estimativa: XS
+  - Critério de conclusão: Relatório salvo com as 8 seções obrigatórias abaixo, todas preenchidas.
+  - Depende de: todas as tarefas anteriores, inclusive as de Teste
+
+  Seções obrigatórias do relatório:
+  1. **Status** — build passou ou não; total de testes executados e quantos passaram.
+  2. **Resumo executivo** — em até 5 linhas, o que a feature faz do ponto de vista de negócio.
+  3. **Artefatos criados** — lista por camada, com o caminho real de cada arquivo.
+  4. **Cobertura medida** — o percentual **TOTAL** e a **fonte do número** (qual arquivo/relatório foi lido). Se o contexto trouxer um bloco de cobertura calculado pelo Hub, use esse número e diga que veio dele. **Nunca** apresente cobertura por componente como se fosse o total, e **nunca** declare que uma classe está fora da conta sem citar a linha da configuração que a exclui.
+  5. **Conformidade com a Constituição** — item a item, com ✅ ou ⚠️. ⚠️ exige uma frase dizendo o que falta.
+  6. **Contrato exposto** — endpoint, tela ou interface pública criada, com exemplo de entrada e saída e os códigos de retorno que o código **realmente** implementa (confira o handler, não a documentação).
+  7. **Pendências e desvios** — o que ficou fora, o que foi feito diferente do planejado e por quê. Se não houver nada, escreva "Nenhuma pendência". **Seção obrigatória**: relatório sem pendências declaradas e com cobertura abaixo do mínimo é contraditório.
+  8. **Próximos passos** — o que o time precisa fazer antes de homologar.
+
+  ⚠️ Este relatório é lido por quem NÃO acompanhou a implementação. Um "✅ pronto para produção"
+  que não se sustenta nos números das seções 4 e 7 custa mais caro que não ter relatório nenhum.
 
 ### 🏁 FINALIZAÇÃO
 Ao finalizar, pergunte:

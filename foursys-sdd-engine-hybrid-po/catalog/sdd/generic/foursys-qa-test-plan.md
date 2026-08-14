@@ -2,7 +2,7 @@
 name: Plano de Testes — Genérico
 description: Gera o Plano de Testes com cenários de QA derivados da User Story — agnóstico de stack.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Playbook: Foursys QA — Plano de Testes
@@ -51,5 +51,25 @@ Execute as seguintes etapas:
 - Liste explicitamente o que está fora do escopo deste ciclo de testes.
 - Documente os riscos como uma **matriz de risco em tabela Markdown**, com colunas `| Risco | Impacto (Alto/Médio/Baixo) | Probabilidade (Alta/Média/Baixa) | Prioridade | Mitigação |`. Foque em risco de negócio (o que o usuário/processo perde se o cenário falhar), não em risco técnico de implementação.
 
-Gere o documento no formato Markdown estruturado com as seções acima, pronto para ser versionado no projeto.
+### ✅ FORMATO DE SAÍDA (Obrigatório)
+
+As etapas acima são o seu roteiro de análise. O DOCUMENTO gerado tem exatamente estas seções, nesta ordem — nenhuma pode ser omitida ou renumerada:
+
+1. **Cenários de Teste** — a tabela da Etapa 1, com ID, origem, tipo, nível, tags e prioridade.
+2. **⚠️ Cenários que Dependem de Confirmação (OBRIGATÓRIA)** — resultado da Etapa 2:
+
+   | Suposição | Cenário afetado | O que muda no teste se ela estiver errada | Quem confirma |
+   |---|---|---|---|
+   | S1 | CR-01, CR-02 | entrada deixa de ser REST e os cenários viram teste de consumo de fila | PO |
+
+   Se a User Story não trouxer a seção "Suposições a Confirmar", escreva **"Nenhuma suposição pendente registrada na história."** Seção sempre presente, nunca omitida por estar vazia.
+3. **Estratégia de Testes** — Etapa 3.
+4. **Critérios de Entrada e Saída** — Etapa 4.
+5. **Ambientes e Dados** — Etapa 5.
+6. **Tags de Classificação** — Etapa 6.
+7. **Exclusões e Riscos de Negócio** — Etapa 7, com a matriz de risco.
+
+⚠️ A seção 2 é o contrato com o PO: ela lista o que o time ASSUMIU e ainda não foi confirmado. Sem ela, a suposição atravessa o QA como se fosse requisito aprovado — e o cenário que a testa entra como bloqueador de release apoiado em premissa que ninguém validou.
+
+Gere o documento em Markdown, pronto para ser versionado no projeto.
 ```

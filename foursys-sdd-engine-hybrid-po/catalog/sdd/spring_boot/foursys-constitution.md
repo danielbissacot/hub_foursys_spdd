@@ -2,7 +2,7 @@
 name: Geração da Constituição Foursys SDD
 description: Define os princípios, padrões técnicos e regras de ouro que regem o desenvolvimento de um projeto Java 21 + Spring Boot com Arquitetura Hexagonal.
 metadata:
-  version: "1.8.0"
+  version: "1.9.0"
 ---
 
 # Playbook: Foursys Constitution Generator — Java 21 + Spring Boot
@@ -89,5 +89,6 @@ A saída deve ser um arquivo Markdown contendo:
 
 ### 🏁 FINALIZAÇÃO
 Ao gerar o documento, adicione no final:
-"Constituição Foursys SDD v1.6.0 gerada com sucesso. Este projeto Java 21 + Spring Boot agora está sob a governança oficial do Hub."
+"Constituição Foursys SDD gerada com sucesso. Este projeto Java + Spring Boot agora está sob a governança oficial do Hub."
+Não escreva número de versão do Java nessa frase: a versão real vem do bloco STACK REAL DO PROJETO e já está declarada no item 2. Um Kit em Java 17 fechando com "projeto Java 21" contradiz a própria constituição duas seções acima.
 ```

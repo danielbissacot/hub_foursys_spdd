@@ -56,7 +56,11 @@ Sempre que precisar executar tarefas técnicas repetitivas, seguirei os manuais 
 - Não misture concerns de infraestrutura com domínio.
 - Evite dependências circulares entre camadas.
 - **NUNCA** logue dados sensíveis (CPF, senha, token, número de conta). Use Mappers de mascaramento.
-- **NUNCA** crie um UseCase sem a correspondente classe `@Configuration` com `@Bean` no pacote `config/`. Isso causa `NoSuchBeanDefinitionException`.
+- **NUNCA** deixe uma UseCase sem registro de bean — a ausência causa `NoSuchBeanDefinitionException`. Registre de UMA das duas formas, seguindo o padrão que o projeto já usa:
+  - **Projeto hexagonal puro**: classe `@Configuration` com `@Bean` no pacote `config/`, e a UseCase fica sem anotação de estereótipo.
+  - **Projeto que usa component scan**: a UseCase leva `@Service`/`@Component` e **NÃO** se cria `@Bean` para ela.
+
+  ⚠️ **Nunca as duas juntas.** `@Service` + `@Bean` com o mesmo nome geram bean duplicado e a aplicação **não sobe** (`BeanDefinitionOverrideException`, desde o Spring Boot 2.1). Confira como as classes existentes do projeto são registradas antes de escolher.
 
 ---
 

@@ -1197,3 +1197,102 @@ contaminou o teste A6 de ontem: aqui o pedido delimitava escopo de forma inequí
 **Impacto:** baixo neste caso (as tarefas seriam executadas na sequência de qualquer forma), mas
 mostra que a separação em sessões — pensada para dar ao dev um ponto de revisão entre domínio e
 infraestrutura — não está sendo respeitada.
+
+---
+
+# Rodada de 14/08 — resultado das correções
+
+## ✅ Correção 8 validada — `qa-test-cases` com o mapa do projeto
+
+| | Antes (13/08) | Depois (14/08) |
+|---|---|---|
+| Classes citadas no Gherkin | 5 inventadas | **6 reais, 0 inventadas** |
+| Exemplos | `IngestaoBoletoController`, `RelogioPort`, `AuditoriaLogPort`, `BoletoRepositoryPort` | `BoletoController`, `BoletoService`, `BoletoPersistence`, `BoletoMapper`, `ConsultarBoletoPort`, `SalvarBoletoPort` |
+| Xray export | exportava os nomes fictícios | 12 cenários, só nome real |
+
+## ⚠️ Correção 7 — melhorou, mas não resolveu o `qa-coverage`
+
+| | Antes (13/08) | Depois (14/08) |
+|---|---|---|
+| Arquivos recebidos | `application.yml`, `global.properties` | `BoletoControllerTest`, `BoletoEntityTest` |
+| Veredito dos critérios | ❌ todos reprovados | ⚠️ aprovados com ressalvas |
+| Relatório final | ❌ "Não pronta para homologação" | ❌ REPROVADO (com critérios ⚠️) |
+
+Ele passou a receber `.java` — mas os **2 mais recentes são arquivos de teste**, porque o
+Implement escreve os testes por último e a ordenação é por `mtime`. A própria resposta aponta:
+
+> *"foram fornecidos trechos de **testes**, sem arquivos de produção (Controller/Service/UseCase/
+> Repository/Handler completos). Logo, a validação de entrega fica **parcial por evidência
+> indireta**"*
+
+**Realidade:** feature 100% implementada, 58 testes passando, cobertura 121/121 = 100%.
+
+### 🔴 Achado (a) — `qa-coverage` recebe teste em vez de produção
+
+Para uma fase que valida **se a entrega existe**, código de produção vale mais que teste. E
+`mtime` sempre favorece os testes.
+
+**Correções candidatas** (`readWorkspaceContext`):
+
+| Opção | Efeito |
+|---|---|
+| **Priorizar `src/main/` sobre `src/test/` na ordenação** | os 2 arquivos seriam de produção; beneficia o `plan` também, que quer ver padrão de código |
+| Aumentar `MAX_FILES` só para `qa-coverage` | mais arquivos, mais tokens |
+| Filtrar `src/test/` quando a fase é `qa-coverage` | mais direto, mas específico demais |
+
+Recomendada: a primeira.
+
+### 🟡 Achado (b) — `qa-test-plan` ignora a seção de suposições
+
+O `user_story.md` tem 113 linhas e a seção 6 está na linha 106 — dentro do corte de 200 do
+`CONTEXT_FILE_MAX_LINES`. **Ele recebeu e não usou:** zero menções a suposição no plano de testes.
+
+O plano testa `REST síncrono`, que é a **suposição S1**. Se o PO confirmar Kafka, o plano
+inteiro precisa ser refeito — e nada no documento avisa.
+
+**Correção candidata:** instruir `foursys-qa-test-plan.md` a ler a seção 6 e sinalizar quais
+cenários dependem de suposição não confirmada. Mesma abordagem da correção 9.
+
+### 🟡 Achado (c) — `qa-report` não gerou o HTML
+
+Ontem gerou `relatorio_qualidade.html` (7.984 bytes); hoje só o `.md`. O `extractHtmlBlock` só
+extrai se a IA produzir o bloco ```` ```html ````, e desta vez ela não produziu.
+Variação de execução, não regressão — mas mostra que o HTML executivo não é garantido.
+
+### 🟡 Achado (d) — veredito incoerente no `qa-report`
+
+```
+Status geral: ❌ REPROVADO
+C1 a C4:      ⚠️ Aprovado com ressalvas
+```
+
+Todos os critérios com ressalva, e o geral reprovado. Consequência do achado (a).
+
+## ❌ Correção 10 — `/agente-x` não é interpretado (confirmado)
+
+Terceira tentativa, terceiro resultado igual: Controller sem `@Tag`/`@Operation`.
+Encerrada essa linha — a orientação foi movida para a instruction (correção 1 abaixo).
+
+## ✅ Correções 1 e 2 aplicadas (aguardando push para `main`)
+
+**1. Swagger na instruction** — `springboot-hexagonal-arch.instructions.md`, de 333 para 363
+linhas. Seção própria `### Documentação OpenAPI/Swagger (OBRIGATÓRIA em todo Controller)`, no
+corpo do documento, com checklist e exemplo — **não** como bullet no rodapé, que é onde as
+regras não disparam (provado em A1 e na cobertura). Cobre também o padrão de interface separada
+(`<Nome>Swagger.java`), mandando conferir o `MAPA REAL DO PROJETO` antes de escolher o estilo.
+
+**2. `@Bean` no agente** — `AGENTE_SPRING_FOURSYS.md`. A regra dizia *"NUNCA crie um UseCase sem
+`@Configuration` com `@Bean`"*, contradizendo a instruction corrigida em 13/08. Como o agente
+passa a ser ferramenta de chat para o dev, a regra errada faria estrago real. Agora descreve as
+duas formas válidas e avisa do `BeanDefinitionOverrideException` se usar as duas juntas.
+
+## Resultado do Kit nesta rodada
+
+```
+12 classes de producao + 5 de teste
+58 testes, 0 falhas, 0 erros
+cobertura da feature: 121/121 = 100,0%
+Kit preservado: so o .gitignore alterado
+```
+
+Melhor resultado das 4 rodadas (anteriores: 97%, 91,6%, build quebrado).

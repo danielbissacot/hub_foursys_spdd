@@ -38,7 +38,7 @@ Um teste mínimo mostrando o comportamento esperado.
 
 ### Verificar RED — Assistir falhar
 
-**OBRIGATÓRIO. Nunca pule.**
+**OBRIGATÓRIO. Nunca pule.** "Assistir" significa rodar o comando de teste (em modo single-run, nunca watch) e ler o output — não é pedir permissão ao usuário a cada teste individual. Ao implementar um lote de testes de uma tarefa, rode a suíte completa e reporte o resultado agregado; pausar o chat teste a teste não é exigido por esta skill.
 
 ```bash
 # Java/Spring Boot

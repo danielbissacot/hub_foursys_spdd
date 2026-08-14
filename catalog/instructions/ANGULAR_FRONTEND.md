@@ -11,6 +11,7 @@
 - Encoraje e exija invariavelmente a adoção do framework primitivo lógico de `signal()`, `computed()`, `effect()` e `linkedSignal()` para o gerencimento do fluxo da tela, em vez de entulhar componentes modernos com variáveis mutáveis antigas ou instâncias verbosas puramente visuais (`BehaviorSubjects`).
 - **`linkedSignal()`**: Use para estado dependente que precisa se resetar automaticamente quando o signal fonte muda (ex: seleção de item que deve limpar ao trocar de lista).
 - **`httpResource()` e `resource()`** (v20+): Para requisições HTTP de leitura, prefira `httpResource()` em vez de `HttpClient` diretamente — integração nativa com Signals, loading/error states automáticos, sem subscription manual. Reserve `HttpClient` para mutações (POST/PUT/DELETE) ou quando precisar de operadores RxJS.
+- **Backend indisponível (pergunte, não assuma):** Antes de implementar qualquer chamada HTTP, pergunte: "Existe uma API real disponível? Deseja que eu gere um mock de dados de desenvolvimento para visualizar a tela funcionando enquanto o backend real não está pronto?". Se sim, planeje isso como decisão explícita (`environment.ts`/`environment.development.ts` com flag `useMock`, interceptor leve, ou MSW) — nunca crie esse mock depois, fora do escopo combinado. Isso é diferente de mock de teste (`HttpTestingController`), que é só para `.spec.ts`.
 
 ## 2. Bloqueio Fatal contra Memory Leaks
 
@@ -37,3 +38,9 @@
 - **OBRIGATÓRIO em Angular 20+**: Use `inject()` no nível de campo. Nunca use constructor injection para serviços.
 - Combine com a regra de visibilidade: `protected readonly svc = inject(MeuService);`
 - A injeção via construtor (`constructor(private svc: MeuService)`) é considerada padrão legado e deve ser migrada progressivamente.
+
+## 7. Calibragem ao Projeto Real (não empurre a versão "ideal" por cima do que já existe)
+
+- Antes de aplicar as regras acima (v20+, Signal Forms, Vitest) a um projeto **já existente**, verifique a versão real do Angular e o framework de teste já configurado (`package.json`, presença de `karma.conf.js`/Jasmine vs Vitest).
+- Se o projeto for anterior à v20 ou já usar Jasmine/Karma funcionando, calibre suas sugestões ao que já está instalado — não peça `npm install` de bibliotecas novas nem proponha migração de framework de teste apenas para bater com este documento. Migração de stack só deve ser proposta se o usuário pedir explicitamente.
+- Testes: sempre rode em modo single-run (`--watch=false`), nunca em watch; gere e rode em lote, sem pausar para confirmação a cada teste individual.

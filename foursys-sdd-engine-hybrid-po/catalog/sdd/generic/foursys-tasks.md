@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD — Genérico
 description: Decompõe um plano técnico em tarefas granulares, atômicas e testáveis. Agnóstico de stack — exemplos de arquivos globais são substituídos em runtime pelo catalog-loader.
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -98,6 +98,28 @@ Cada tarefa deve ser:
 > que não compila deixa o build verde e a entrega sem cobertura — é regressão disfarçada de sucesso.
 > Se o teste não puder ser adaptado ao projeto, a tarefa fica `[ ]` e o bloqueio vai para a seção 7
 > do Relatório de Implementação.
+
+#### Regra de cobertura: uma tarefa de teste por classe criada (OBRIGATÓRIO)
+
+**Percorra a lista de tarefas de implementação e confirme que TODA classe criada nelas aparece em
+alguma tarefa de teste.** Não existe classe entregue sem teste: se ela foi criada nesta história,
+conta no gate de cobertura, e o que não é exercitado derruba o percentual.
+
+Vale para toda classe com lógica própria, sem exceção de camada:
+
+- serviço de domínio, caso de uso;
+- **todo adapter de saída** — persistência, **log/auditoria**, cliente HTTP, produtor de mensagem;
+- adapter de entrada — controller, consumidor de mensagem;
+- mapper escrito à mão (o gerado por anotação não conta — ver observação abaixo);
+- classes de dados, conforme o bloco de teste de contrato acima.
+
+Medido em 17/08/2026: a lista saiu com teste para Service, Persistence, Controller e as 4 classes
+de dados, mas **esqueceu o adapter de log**. Resultado: `LogBoleto` ficou com 0 de 11 linhas
+cobertas e sozinho segurou a entrega em 92,6%, abaixo do mínimo de 95% — todo o resto estava
+coberto. Uma classe esquecida na lista custa a entrega inteira.
+
+> **Código gerado por anotação** (MapStruct `*MapperImpl`, metamodelo JPA) **não** entra nesta
+> regra: sai em `target/generated-sources`, o Sonar não analisa e não deve receber teste.
 
 #### Teste de contrato para classe de dados (OBRIGATÓRIO quando não há gerador de boilerplate)
 

@@ -592,6 +592,34 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
     try { pomXml = fs.readFileSync(path.join(rootPath, 'pom.xml'), 'utf-8'); } catch { /* segue sem exclusoes */ }
     const exclusoes = parseSonarExclusions(pomXml);
 
+    // Relatorio mais velho que o codigo e relatorio de OUTRA entrega. Sem esta checagem o Hub
+    // injeta um numero da rodada passada com a mesma autoridade ("use ELE, não recalcule"), e a
+    // fase de QA aprova ou reprova a entrega errada. Compara com o .java mais novo de src/.
+    let fonteDesatualizada = '';
+    try {
+        const mtimeCsv = fs.statSync(csvPath).mtimeMs;
+        let maisNovo = 0;
+        const varrer = (dir: string, nivel: number) => {
+            if (nivel > PROJECT_MAP_MAX_DEPTH) { return; }
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                if (e.name.startsWith('.')) { continue; }
+                const full = path.join(dir, e.name);
+                if (e.isDirectory()) { varrer(full, nivel + 1); }
+                else if (e.name.endsWith('.java')) {
+                    const m = fs.statSync(full).mtimeMs;
+                    if (m > maisNovo) { maisNovo = m; }
+                }
+            }
+        };
+        varrer(path.join(rootPath, 'src'), 0);
+        if (maisNovo > mtimeCsv) {
+            const min = Math.round((maisNovo - mtimeCsv) / 60000);
+            fonteDesatualizada = `⚠️ MEDIÇÃO DESATUALIZADA: há código-fonte alterado ${min} minuto(s) DEPOIS deste relatório. `
+                + 'Os números abaixo são da execução anterior e podem não refletir a entrega atual. '
+                + 'Rode `mvn -o clean test` de novo antes de concluir qualquer coisa por cobertura.\n';
+        }
+    } catch { /* sem src/ ou sem permissao: segue sem o aviso */ }
+
     try {
         const linhas = fs.readFileSync(csvPath, 'utf-8').trim().split('\n').slice(1);
         let lm = 0, lc = 0, bm = 0, bc = 0, excluidas = 0;
@@ -615,6 +643,7 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
         const ok = pctLinha >= COVERAGE_MIN_LINE && pctBranch >= COVERAGE_MIN_BRANCH;
 
         let info = '\n--- COBERTURA MEDIDA PELO HUB (lida de target/site/jacoco/jacoco.csv) ---\n';
+        info += fonteDesatualizada;
         info += 'Este número foi calculado pelo Hub a partir do arquivo em disco, já aplicando o '
              + '<sonar.coverage.exclusions> do pom. É o número que o Sonar oficial vai ver. Use ELE: '
              + 'não recalcule, não apresente cobertura por classe como se fosse o total, e não trate '

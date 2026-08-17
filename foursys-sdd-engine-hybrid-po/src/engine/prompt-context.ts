@@ -494,18 +494,23 @@ function readMavenStackInfo(rootPath: string): string {
 }
 
 /**
- * Codigo que NENHUM humano escreveu: o compilador ou um processador de anotacao gerou. Nao mora no
- * repositorio (sai em target/generated-sources) e por isso nao deveria pesar num gate de cobertura.
+ * Codigo que NENHUM humano escreveu: um processador de anotacao gerou durante o build.
  *
- * Medido em 17/08/2026: depois que as classes de dados foram cobertas (correcao 29), o maior deficit
- * da entrega passou a ser `BoletoCobrancaMapperImpl` — faltando 22 de 42 linhas de codigo GERADO
- * pelo MapStruct. O pom do Kit exclui `*Mapper.java`, padrao que nao casa com `*MapperImpl.java`.
- * O `ContaCorrenteMapperImpl` original do Kit tem o mesmo problema, o que confirma que e limitacao
- * do pom e nao da feature.
+ * Sai da conta principal, e a razao e paridade com o Sonar — nao indulgencia.
  *
- * O Hub NAO tira isso da conta por conta propria: o numero principal precisa continuar sendo o que
- * o Sonar oficial vai ver, senao a mensagem "use ELE" passa a mentir. Em vez disso, informa quanto
- * do deficit e codigo gerado e recomenda o ajuste do pom — a decisao fica com o time.
+ * Conferido no Kit em 17/08/2026: o `ContaCorrenteMapperImpl` do MapStruct e gerado em
+ * `target/generated-sources/annotations/`, o pom nao declara `sonar.sources` nem usa build-helper
+ * para acrescentar essa pasta, e o default do Sonar e `src/main/java`. Ou seja: o Sonar NAO
+ * analisa esse arquivo. O JaCoCo analisa, porque trabalha sobre `target/classes/*.class` e o
+ * `.class` esta la.
+ *
+ * Consequencia da versao anterior desta funcao, que mantinha o gerado na conta: o Hub reportava
+ * 88,0% de linha afirmando ser "o numero que o Sonar oficial vai ver", quando o Sonar veria 93,2%.
+ * Reportar abaixo do real e tao ruim quanto reportar acima — manda escrever teste para arquivo que
+ * nao existe no repositorio, exatamente a armadilha que a skill springboot-testing evita.
+ *
+ * Por isso tambem NAO adianta acrescentar `*MapperImpl.java` ao `sonar.coverage.exclusions` do pom:
+ * nao ha o que excluir de uma analise que nunca incluiu.
  */
 function ehCodigoGerado(classe: string): boolean {
     // `/^Q[A-Z]/` para QueryDSL foi retirado: casava com QRCodeService e QRCodeGenerator, classes
@@ -590,18 +595,18 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
     try {
         const linhas = fs.readFileSync(csvPath, 'utf-8').trim().split('\n').slice(1);
         let lm = 0, lc = 0, bm = 0, bc = 0, excluidas = 0;
-        let gerLm = 0, gerLc = 0, gerBm = 0, gerBc = 0;
-        const piores: { classe: string; faltando: number; total: number; gerada: boolean }[] = [];
+        let geradas = 0, gerLm = 0;
+        const piores: { classe: string; faltando: number; total: number }[] = [];
         for (const linha of linhas) {
             const c = linha.split(',');
             if (c.length < 9) { continue; }
             const [liM, liC, brM, brC] = [Number(c[7]), Number(c[8]), Number(c[5]), Number(c[6])];
             if ([liM, liC, brM, brC].some(Number.isNaN)) { continue; }
+            if (ehCodigoGerado(c[2])) { geradas++; gerLm += liM; continue; }
             const fora = exclusoes.some(r => r.pkgRe.test(c[1]) && r.classRe.test(c[2]));
             if (fora) { excluidas++; continue; }
             lm += liM; lc += liC; bm += brM; bc += brC;
-            if (liM > 0) { piores.push({ classe: c[2], faltando: liM, total: liM + liC, gerada: ehCodigoGerado(c[2]) }); }
-            if (ehCodigoGerado(c[2])) { gerLm += liM; gerLc += liC; gerBm += brM; gerBc += brC; }
+            if (liM > 0) { piores.push({ classe: c[2], faltando: liM, total: liM + liC }); }
         }
         if (lm + lc === 0) { return ''; }
 
@@ -617,33 +622,19 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
         info += `Linha:  ${lc}/${lm + lc} = ${pctLinha.toFixed(1)}% (mínimo ${COVERAGE_MIN_LINE}%)\n`;
         info += `Branch: ${bc}/${bm + bc} = ${pctBranch.toFixed(1)}% (mínimo ${COVERAGE_MIN_BRANCH}%)\n`;
         if (excluidas) { info += `Classes fora da conta pelas exclusões do Sonar: ${excluidas}\n`; }
+        if (geradas) {
+            info += `Classes de código GERADO fora da conta: ${geradas}`
+                 + (gerLm ? ` (poupou ${gerLm} linhas descobertas)` : '')
+                 + ' — MapStruct `*MapperImpl`, metamodelo JPA. Ficam em `target/generated-sources`, '
+                 + 'que não está em `sonar.sources`: o Sonar também não as analisa. NÃO escreva teste para elas.\n';
+        }
         info += `VEREDITO: ${ok ? 'ATINGE os mínimos.' : 'ABAIXO DO MÍNIMO — a entrega não pode ser declarada pronta por cobertura.'}\n`;
 
         if (piores.length) {
             info += 'Classes que CONTAM e estão com linha descoberta (maior déficit primeiro) — é aqui que falta teste:\n';
             for (const p of piores.sort((a, b) => b.faltando - a.faltando).slice(0, 10)) {
-                info += `  ${p.classe}: faltam ${p.faltando} de ${p.total}${p.gerada ? '  ← CÓDIGO GERADO, não escreva teste para isto' : ''}\n`;
+                info += `  ${p.classe}: faltam ${p.faltando} de ${p.total}\n`;
             }
-        }
-
-        // Quanto do deficit e codigo gerado. Sem isso a IA tenta escrever teste para *MapperImpl,
-        // que e o mesmo tipo de trabalho inutil que a skill springboot-testing evita no CORSConfig.
-        if (gerLm > 0) {
-            // Guarda de divisao por zero: um modulo que so tem codigo gerado zera o denominador e
-            // imprimiria "a cobertura seria NaN%". A linha de branch abaixo ja tinha a guarda.
-            const linhasReais = lm + lc - gerLm - gerLc;
-            const semGer = linhasReais > 0 ? ((lc - gerLc) * 100) / linhasReais : 100;
-            const semGerBr = (bm + bc - gerBm - gerBc) > 0
-                ? ((bc - gerBc) * 100) / (bm + bc - gerBm - gerBc)
-                : 100;
-            info += `ATENÇÃO — CÓDIGO GERADO NA CONTA: ${gerLm} das ${lm} linhas descobertas são de código gerado `
-                 + '(MapStruct `*MapperImpl`, metamodelo JPA, QueryDSL). Esse código não existe no repositório: '
-                 + 'sai em `target/generated-sources` e NÃO deve receber teste.\n'
-                 + `Desconsiderando o gerado, a cobertura seria linha ${semGer.toFixed(1)}% e branch ${semGerBr.toFixed(1)}%.\n`
-                 + 'O número oficial acima continua valendo porque o `sonar.coverage.exclusions` do pom não exclui '
-                 + 'esses arquivos — o padrão `*Mapper.java` não casa com `*MapperImpl.java`. '
-                 + 'RECOMENDE ao time acrescentar o padrão de código gerado às exclusões do pom, e registre isso '
-                 + 'como pendência. NÃO escreva teste para código gerado só para subir o percentual.\n';
         }
 
         // O <excludes> do plugin JaCoCo nao aplica nesta configuracao (exige uma tag por padrao,

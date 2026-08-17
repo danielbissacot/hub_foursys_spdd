@@ -455,8 +455,19 @@ function readMavenStackInfo(rootPath: string): string {
         info += PRECEDENCIA_STACK;
         if (javaVersion) {
             info += `Java configurado no pom.xml: ${javaVersion}\n`;
-            if (Number(javaVersion) < 21) {
-                info += `IMPORTANTE: este projeto compila em Java ${javaVersion}. NÃO gere código com recursos exclusivos do Java 21 (pattern matching for switch, record patterns, virtual threads, SequencedCollection/getFirst/getLast) — o build quebra. Record, sealed classes e var são válidos neste nível.\n`;
+            // Só o major importa, e ele tem de sair de parse de INTEIRO. `Number('17.0.1')` é NaN, e
+            // `NaN < 21` é false — com um pom de três dígitos o aviso simplesmente não saía. O
+            // formato `1.8` do Java legado tambem cai aqui: major 1 → avisa, que é o correto.
+            const major = parseInt(javaVersion, 10);
+            if (Number.isFinite(major) && major < 21) {
+                // Record é 16+, sealed é 17+: afirmar que valem em Java 8 ou 11 mandaria a IA gerar
+                // código que não compila — o oposto do objetivo deste aviso.
+                const permitidos = major >= 17
+                    ? ' Record, sealed classes e var são válidos neste nível.'
+                    : major >= 16
+                        ? ' Record e var são válidos neste nível; sealed classes NÃO (exigem 17).'
+                        : ' Também NÃO use record (exige 16) nem sealed classes (exigem 17).';
+                info += `IMPORTANTE: este projeto compila em Java ${javaVersion}. NÃO gere código com recursos exclusivos do Java 21 (pattern matching for switch, record patterns, virtual threads, SequencedCollection/getFirst/getLast) — o build quebra.${permitidos}\n`;
             }
         }
         if (bootVersion) { info += `Spring Boot: ${bootVersion}\n`; }
@@ -480,6 +491,29 @@ function readMavenStackInfo(rootPath: string): string {
     } catch {
         return '';
     }
+}
+
+/**
+ * Codigo que NENHUM humano escreveu: o compilador ou um processador de anotacao gerou. Nao mora no
+ * repositorio (sai em target/generated-sources) e por isso nao deveria pesar num gate de cobertura.
+ *
+ * Medido em 17/08/2026: depois que as classes de dados foram cobertas (correcao 29), o maior deficit
+ * da entrega passou a ser `BoletoCobrancaMapperImpl` — faltando 22 de 42 linhas de codigo GERADO
+ * pelo MapStruct. O pom do Kit exclui `*Mapper.java`, padrao que nao casa com `*MapperImpl.java`.
+ * O `ContaCorrenteMapperImpl` original do Kit tem o mesmo problema, o que confirma que e limitacao
+ * do pom e nao da feature.
+ *
+ * O Hub NAO tira isso da conta por conta propria: o numero principal precisa continuar sendo o que
+ * o Sonar oficial vai ver, senao a mensagem "use ELE" passa a mentir. Em vez disso, informa quanto
+ * do deficit e codigo gerado e recomenda o ajuste do pom — a decisao fica com o time.
+ */
+function ehCodigoGerado(classe: string): boolean {
+    // `/^Q[A-Z]/` para QueryDSL foi retirado: casava com QRCodeService e QRCodeGenerator, classes
+    // escritas a mao, e o rotulo "CÓDIGO GERADO, não escreva teste" mandaria deixar codigo real sem
+    // teste. QueryDSL gera dentro de `com.querydsl` ou em pacote proprio, e nenhum projeto Foursys
+    // usa hoje — o risco de marcar producao como gerada e maior que o ganho.
+    return /MapperImpl$/.test(classe)        // MapStruct
+        || /_$/.test(classe);                 // metamodelo JPA (Entidade_)
 }
 
 /** Minimos da Foursys: abaixo disso nao passa no Sonar oficial, mesmo em legado. */
@@ -556,7 +590,8 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
     try {
         const linhas = fs.readFileSync(csvPath, 'utf-8').trim().split('\n').slice(1);
         let lm = 0, lc = 0, bm = 0, bc = 0, excluidas = 0;
-        const piores: { classe: string; faltando: number; total: number }[] = [];
+        let gerLm = 0, gerLc = 0, gerBm = 0, gerBc = 0;
+        const piores: { classe: string; faltando: number; total: number; gerada: boolean }[] = [];
         for (const linha of linhas) {
             const c = linha.split(',');
             if (c.length < 9) { continue; }
@@ -565,7 +600,8 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
             const fora = exclusoes.some(r => r.pkgRe.test(c[1]) && r.classRe.test(c[2]));
             if (fora) { excluidas++; continue; }
             lm += liM; lc += liC; bm += brM; bc += brC;
-            if (liM > 0) { piores.push({ classe: c[2], faltando: liM, total: liM + liC }); }
+            if (liM > 0) { piores.push({ classe: c[2], faltando: liM, total: liM + liC, gerada: ehCodigoGerado(c[2]) }); }
+            if (ehCodigoGerado(c[2])) { gerLm += liM; gerLc += liC; gerBm += brM; gerBc += brC; }
         }
         if (lm + lc === 0) { return ''; }
 
@@ -586,8 +622,28 @@ export function readCoverageReport(rootPath: string, stackId: string): string {
         if (piores.length) {
             info += 'Classes que CONTAM e estão com linha descoberta (maior déficit primeiro) — é aqui que falta teste:\n';
             for (const p of piores.sort((a, b) => b.faltando - a.faltando).slice(0, 10)) {
-                info += `  ${p.classe}: faltam ${p.faltando} de ${p.total}\n`;
+                info += `  ${p.classe}: faltam ${p.faltando} de ${p.total}${p.gerada ? '  ← CÓDIGO GERADO, não escreva teste para isto' : ''}\n`;
             }
+        }
+
+        // Quanto do deficit e codigo gerado. Sem isso a IA tenta escrever teste para *MapperImpl,
+        // que e o mesmo tipo de trabalho inutil que a skill springboot-testing evita no CORSConfig.
+        if (gerLm > 0) {
+            // Guarda de divisao por zero: um modulo que so tem codigo gerado zera o denominador e
+            // imprimiria "a cobertura seria NaN%". A linha de branch abaixo ja tinha a guarda.
+            const linhasReais = lm + lc - gerLm - gerLc;
+            const semGer = linhasReais > 0 ? ((lc - gerLc) * 100) / linhasReais : 100;
+            const semGerBr = (bm + bc - gerBm - gerBc) > 0
+                ? ((bc - gerBc) * 100) / (bm + bc - gerBm - gerBc)
+                : 100;
+            info += `ATENÇÃO — CÓDIGO GERADO NA CONTA: ${gerLm} das ${lm} linhas descobertas são de código gerado `
+                 + '(MapStruct `*MapperImpl`, metamodelo JPA, QueryDSL). Esse código não existe no repositório: '
+                 + 'sai em `target/generated-sources` e NÃO deve receber teste.\n'
+                 + `Desconsiderando o gerado, a cobertura seria linha ${semGer.toFixed(1)}% e branch ${semGerBr.toFixed(1)}%.\n`
+                 + 'O número oficial acima continua valendo porque o `sonar.coverage.exclusions` do pom não exclui '
+                 + 'esses arquivos — o padrão `*Mapper.java` não casa com `*MapperImpl.java`. '
+                 + 'RECOMENDE ao time acrescentar o padrão de código gerado às exclusões do pom, e registre isso '
+                 + 'como pendência. NÃO escreva teste para código gerado só para subir o percentual.\n';
         }
 
         // O <excludes> do plugin JaCoCo nao aplica nesta configuracao (exige uma tag por padrao,
@@ -757,42 +813,62 @@ export function extractFencedBlocks(content: string, lang: string): string[] {
  *
  * Retorna string vazia quando esta tudo resolvido.
  */
-export function detectarPlaceholders(conteudo: string): string {
-    // Cuidado com falso positivo: `<String>` e `List<Boleto>` sao generics de Java, `<div>` e HTML.
-    // O que distingue o placeholder dos nossos templates e comecar em minuscula E ter hifen ou
-    // espaco no meio (`<pasta-da-historia>`, `<nome do modulo>`). Sem a flag `i`, de proposito.
+export function detectarPlaceholders(conteudo: string, templateDoPlaybook = ''): string {
+    // Padroes inequivocos: nao existe documento legitimo com "Tarefa ZZ" nem com "???".
     const padroes: [RegExp, string][] = [
-        [/<[a-zà-ú][a-zà-ú0-9_]*[ -][a-zà-ú0-9 _-]{1,40}>/g, 'placeholder entre < >'],
         [/\bTarefa (ZZ|XX|NN)\b/g, 'numeração de tarefa não resolvida'],
-        // Texto entre colchetes que nao e link markdown (`[texto](url)`) nem checkbox (`- [ ]`).
-        // Filtrado depois pela allowlist: varios marcadores entre colchetes sao OBRIGATORIOS nos
-        // documentos do proprio Hub e acusa-los transforma o aviso em ruido de todo Specify.
-        [/\[[A-ZÀ-Úa-zà-ú][^\]\n]{4,60}\](?!\()/g, 'texto de template não substituído'],
         [/\?{3,}/g, 'interrogação de dúvida não resolvida'],
     ];
-    // Marcadores entre colchetes que os PROPRIOS playbooks mandam escrever. Sem esta lista o
-    // detector acusa todo documento do Specify: [SUPOSIÇÃO S1] vem da correcao 9, [RN01 — ...] e
-    // formato obrigatorio das Regras de Negocio Core, e [AJUSTADA]/[APROVADA] sao o status INVEST.
-    // Aviso que dispara sempre e aviso que ninguem le — e ai o placeholder de verdade passa.
-    const legitimos = [
-        /^SUPOSIÇÃO S\d+$/i,          // correcao 9 — marcacao no criterio de aceite
-        /^RN\d+\b/i,                  // regra de negocio: [RN01 — Atualizacao por operacao]
-        /^(AJUSTADA|APROVADA|REPROVADA|PENDENTE|BLOQUEADA)$/i,  // status INVEST do Specify
-        /^[A-Z]{2,3}-\d+$/,           // ID de cenario: [CR-01], [EC-02]
-        /^!/,                          // alerta GitHub: [!CAUTION], [!NOTE]
-        /^[x ]$/i,                     // checkbox
+    // Candidatos entre < > ou [ ]: só acusados se aparecerem LITERALMENTE no playbook — ver abaixo.
+    // Teto de 120 e nao 60: o placeholder `<PASTA DA HISTÓRIA ATIVA, copiada do bloco de mesmo nome
+    // no contexto>` tem 67 caracteres e escapava do limite anterior.
+    const candidatos: [RegExp, string][] = [
+        [/<[^<>\n]{3,120}>/g, 'placeholder entre < >'],
+        [/\[[^\]\n]{3,120}\](?!\()/g, 'texto de template não substituído'],
     ];
-    const ehLegitimo = (bruto: string) => {
-        const dentro = bruto.replace(/^\[|\]$/g, '').trim();
-        return legitimos.some(re => re.test(dentro));
-    };
+    // Trechos que aparecem no playbook como EXEMPLO do que a IA deve escrever, nao como lacuna a
+    // preencher. Comparar com o template nao basta para separar os dois casos: o playbook do Specify
+    // traz `[SUPOSIÇÃO S1]` e `[AJUSTADA]` como modelo, e o de Tasks usa `[!CAUTION]` (sintaxe de
+    // alerta do GitHub). Esta lista e curta e fechada de proposito — se crescer, e sinal de que o
+    // playbook esta usando colchete para conteudo e nao para lacuna.
+    const exemplosLegitimos = [
+        /^\[SUPOSIÇÃO S\d+\]$/i,
+        /^\[(AJUSTADA|APROVADA|REPROVADA|PENDENTE|BLOQUEADA)\]$/i,
+        /^\[![A-Z]+\]$/i,             // [!CAUTION], [!NOTE], [!IMPORTANT]
+        /^\[[x ]\]$/i,                 // checkbox
+    ];
 
     const achados = new Map<string, number>();
+    const anotar = (rotulo: string, achado: string) => {
+        const chave = `${rotulo}: ${achado}`;
+        achados.set(chave, (achados.get(chave) ?? 0) + 1);
+    };
+
     for (const [re, rotulo] of padroes) {
-        for (const m of conteudo.matchAll(re)) {
-            if (m[0].startsWith('[') && ehLegitimo(m[0])) { continue; }
-            const chave = `${rotulo}: ${m[0]}`;
-            achados.set(chave, (achados.get(chave) ?? 0) + 1);
+        for (const m of conteudo.matchAll(re)) { anotar(rotulo, m[0]); }
+    }
+
+    // Criterio para < > e [ ]: o trecho aparece IGUAL no texto do playbook que gerou o documento.
+    //
+    // Tentei antes o caminho inverso — acusar tudo entre colchetes e manter uma allowlist do que e
+    // legitimo — e nao funciona. Colchete e usado para conteudo real nos nossos proprios documentos:
+    // o playbook do Specify exige `[Nome da Regra] → [Condição] → [Ação]`, e no user_story de
+    // 17/08/2026 isso virou `[Atualização por Operação Elegível]`, `[Operação Não Elegível]`,
+    // `[Idempotência de Ingestão]` e `[Rastreabilidade]` — quatro alarmes falsos num documento
+    // correto. Nenhuma allowlist cobre nome de regra de negocio, que e texto livre.
+    //
+    // Comparar com o playbook resolve por construcao: `[Título Curto]` e
+    // `<PASTA DA HISTÓRIA ATIVA, ...>` estao escritos assim no template, entao sobreviver no
+    // documento significa que nao foram substituidos. Nome de regra inventado pela IA nao esta no
+    // template e nunca acusa. Tambem dispensa a lista de generics (`List<Boleto>`) e de alertas
+    // (`[!CAUTION]`): nao aparecem no playbook, logo nao entram.
+    if (templateDoPlaybook) {
+        for (const [re, rotulo] of candidatos) {
+            for (const m of conteudo.matchAll(re)) {
+                if (!templateDoPlaybook.includes(m[0])) { continue; }
+                if (exemplosLegitimos.some(ex => ex.test(m[0]))) { continue; }
+                anotar(rotulo, m[0]);
+            }
         }
     }
     if (achados.size === 0) { return ''; }

@@ -971,7 +971,7 @@ async function executeSDDPhase(
 
             // Rede de proteção determinística: placeholder que sobrevive no documento vira caminho
             // errado no disco na fase seguinte. Avisar é barato; descobrir depois custou uma rodada.
-            const placeholders = detectarPlaceholders(mdToSave);
+            const placeholders = detectarPlaceholders(mdToSave, systemPromptRaw);
             if (placeholders) {
                 outputChannel.appendLine(`[SDD] ${placeholders}`);
                 const aviso = `⚠️ O documento gerado tem placeholder não resolvido — confira antes de seguir:\n${placeholders}`;

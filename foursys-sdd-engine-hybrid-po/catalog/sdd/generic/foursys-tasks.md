@@ -117,7 +117,9 @@ com 86,9% de linha e 53,2% de branch** — o déficit inteiro vinha de 3 classes
 (`BoletoEntity`, `BoletoResponse` e o record `Boleto`). Cobrindo só essas três, os mesmos números
 iriam a 96,1% e 91,9%, passando nos dois gates sem tocar em mais nada.
 
-Se o projeto **tem** gerador de boilerplate, ignore este bloco: o código gerado não conta no gate.
+Se o projeto **tem** gerador de boilerplate, este bloco é dispensável: as anotações substituem o
+código escrito à mão, então não há dezenas de linhas de acessor e `equals` para cobrir. Continue
+testando o comportamento da classe normalmente — só não precisa de tarefa dedicada ao contrato.
 
 ### 📄 Relatório de Implementação (SEMPRE a última tarefa)
 > Executada ao final da **Sessão 2**, depois das Tarefas de Teste — é o fechamento da entrega.

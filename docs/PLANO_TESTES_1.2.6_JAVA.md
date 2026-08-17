@@ -1712,3 +1712,83 @@ O fluxo SDD está fechado. O que resta é **como o Hub é chamado**, e nada diss
 Prioridade sugerida: **F3 primeiro** (é o único com defeito já provado), depois **F1 e F2**
 (dois parâmetros que nenhuma rodada exercitou e que afetam todo mundo que usa chat em vez de
 botão), e por fim F4–F7.
+
+---
+
+# ✅ Testes F1, F2 e F3 — o canal do chat está validado (17/08, noite)
+
+Os três exercitam o que **só** o chat participant preenche. Todas as rodadas anteriores foram
+por botão, que manda esses campos vazios:
+
+```
+botão:  executeSDDPhase(fase, '',             '',                null)
+chat:   executeSDDPhase(fase, request.prompt, referencesContext, response)
+                              └─ F1           └─ F2
+```
+
+## F3 — `/implement` pelo chat ✅ (defeito corrigido)
+
+**Previsto por leitura de código, confirmado na tela:**
+
+```
+@foursys_sdd_po /implement
+❌ Erro: Playbook para 'implement' (stack: spring_boot) não encontrado.
+```
+
+`implement` era a única das 14 fases anunciadas no `package.json` sem playbook e sem tratamento
+próprio. O botão nunca passava por ali (usa `workbench.action.chat.open` direto), então os dois
+caminhos divergiam justamente na fase mais usada.
+
+**Corrigido** redirecionando o subcomando para o mesmo caminho do botão, com a instrução
+extraída para `instrucaoDeImplement()`. Conferido que o prompt do botão continua idêntico
+byte a byte. Resultado depois da correção:
+
+```
+🚀 Abrindo o Implement no chat do Copilot com as tarefas da história ativa...
+Leia os arquivos doc_projeto/constitution.md, doc_projeto/historia-202608172131/technical_spec.md,
+doc_projeto/historia-202608172131/implementation_plan.md e .../task_list.md deste workspace.
+```
+
+A pasta correta no prompt confirma a correção 24 valendo também neste caminho.
+
+## F2 — `#arquivo` de referência ✅
+
+```
+@foursys_sdd_po /plan #file:BoletoService.java
+```
+
+**Prova irrefutável:** o Plan gerado cita `logOperacaoNaoElegivel` — método chamado **dentro do
+corpo** do `BoletoService`. O MAPA REAL DO PROJETO lista só nomes de classe, nunca conteúdo de
+método, então a única origem possível é a leitura do arquivo. Também citou `America/Sao_Paulo`,
+`NaoEncontradoException` e `LogBoletoPort`, todos coerentes com o conteúdo real.
+
+⚠️ **Custo medido:** a referência consumiu **14.701 tokens (5% da janela)** para um arquivo de
+~120 linhas. O `CONTEXT_FILE_MAX_LINES` (200) **não se aplica** às referências — só aos
+documentos do SDD. Um arquivo de 2.000 linhas entraria inteiro. Não é problema hoje; é o tipo de
+coisa que aparece quando alguém referenciar um arquivo grande.
+
+## F1 — texto livre pelo chat ✅
+
+```
+@foursys_sdd_po /specify Preciso permitir o cancelamento de um boleto já registrado
+```
+
+```
+"cancel" no user_story gerado:      30 ocorrências
+história antiga (dataAlteracao):     0 ocorrências
+```
+
+E o documento cita o texto literalmente: *"História original: 'Preciso permitir o cancelamento
+de um boleto já registrado'"*. O `userInstruction` chega inteiro e substitui a história ativa
+(pediu confirmação antes de sobrescrever, como esperado).
+
+---
+
+## O que sobra dos testes F
+
+| | O quê | Peso |
+|---|---|---|
+| **F4** | `/playbook` pelo chat | baixo — `/skill` passou em 13/08 |
+| **F5** | Catálogo da sidebar | médio — nunca testado |
+| **F6** | Skill nativa `/nome` fora do participant | **alto** — é o canal que vale para IntelliJ e CLI |
+| **F7** | Command Palette + gate `@foursys.com.br` | médio |

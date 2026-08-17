@@ -406,6 +406,25 @@ export function readWorkspaceContextForPhase(command: string, rootPath: string, 
 }
 
 /**
+ * Regra de precedencia, anexada ao bloco de stack real de TODAS as stacks.
+ *
+ * Vive junto com o dado de proposito: se estivesse escrita nos playbooks, seriam 7 arquivos de
+ * constitution + 7 de plan para manter em sincronia, e ja erramos isso uma vez (a regra do
+ * @pendente-po ficou 4 rodadas num playbook que a stack Java nem le). Aqui e um ponto so e chega
+ * em toda fase que recebe o bloco.
+ *
+ * O caso que motivou: o technical_spec e escrito a mao pelo PO e pode pedir "MongoDB" ou "Java 21"
+ * num projeto que e JPA e Java 17. Em 16/08/2026 a IA resolveu bem por conta propria (registrou
+ * como suposicao S4 em vez de escolher em silencio), mas por interpretacao, nao por regra.
+ */
+const PRECEDENCIA_STACK =
+    'PRECEDÊNCIA: este bloco foi lido do arquivo de build do projeto e descreve o que EXISTE. '
+    + 'Se algum documento do contexto (technical_spec, História, Constituição) pedir tecnologia ou '
+    + 'versão diferente do que está aqui, NÃO escolha em silêncio: implemente conforme este bloco e '
+    + 'registre a divergência de forma visível — como suposição a confirmar no Specify, ou na tabela '
+    + 'de decisão arquitetural no Plan. Quem pediu precisa saber que o projeto não suporta o pedido.\n';
+
+/**
  * Le a versao real do Java e do Spring Boot do pom.xml.
  *
  * Ate 14/08/2026 readProjectStackInfo devolvia '' para tudo que nao fosse angular/node — nao por
@@ -433,6 +452,7 @@ function readMavenStackInfo(rootPath: string): string {
 
         let info = '\n--- STACK REAL DO PROJETO (detectado via pom.xml) ---\n';
         info += 'ATENÇÃO: calibre a Constituição/Plano ao que está instalado abaixo. NÃO empurre a versão "ideal" do playbook por cima de um projeto existente que já funciona — só proponha migração se o usuário pedir explicitamente.\n';
+        info += PRECEDENCIA_STACK;
         if (javaVersion) {
             info += `Java configurado no pom.xml: ${javaVersion}\n`;
             if (Number(javaVersion) < 21) {
@@ -626,6 +646,7 @@ export function readProjectStackInfo(rootPath: string, stackId: string): string 
 
         let info = '\n--- STACK REAL DO PROJETO (detectado via package.json) ---\n';
         info += 'ATENÇÃO: calibre a Constituição/Plano à versão e ferramentas já instaladas abaixo. NÃO empurre a versão "ideal" do playbook (ex: migrar para Vitest, forçar Angular v20+) por cima de um projeto existente que já funciona — só proponha migração se o usuário pedir explicitamente.\n';
+        info += PRECEDENCIA_STACK;
         if (angularVersion) { info += `Angular instalado: ${angularVersion}\n`; }
         if (usesVitest) { info += 'Framework de teste já configurado: Vitest\n'; }
         else if (usesJasmine) { info += 'Framework de teste já configurado: Jasmine/Karma — não sugerir npm install de Vitest para substituí-lo.\n'; }
@@ -673,8 +694,12 @@ export function assembleFinalPrompt(params: {
     contextFiles.forEach(file => {
         if (fs.existsSync(file)) {
             const raw = fs.readFileSync(file, 'utf8');
-            const capped = raw.split('\n').slice(0, CONTEXT_FILE_MAX_LINES).join('\n');
-            userContext += `\n## ${path.basename(file)}\n${capped}\n`;
+            const linhas = raw.split('\n');
+            const capped = linhas.slice(0, CONTEXT_FILE_MAX_LINES).join('\n');
+            const corte = linhas.length > CONTEXT_FILE_MAX_LINES
+                ? `\n... [truncado — ${path.basename(file)} tem ${linhas.length} linhas; leia o arquivo no workspace se precisar do resto]`
+                : '';
+            userContext += `\n## ${path.basename(file)}\n${capped}${corte}\n`;
         }
     });
     userContext += readWorkspaceContextForPhase(command, workspaceRoot, stackId);

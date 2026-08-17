@@ -853,8 +853,15 @@ async function executeSDDPhase(
         contextFiles.forEach(file => {
             if (fs.existsSync(file)) {
                 const raw = fs.readFileSync(file, 'utf8');
-                const capped = raw.split('\n').slice(0, CONTEXT_FILE_MAX_LINES).join('\n');
-                userContext += `\n## ${path.basename(file)}\n${capped}\n`;
+                // Avisar o corte importa tanto aqui quanto no codigo do workspace: um
+                // technical_spec de 300 linhas perde as 100 ultimas, e sem o aviso a IA le o fim
+                // do trecho como fim do documento e trata o que faltou como "nao especificado".
+                const linhas = raw.split('\n');
+                const capped = linhas.slice(0, CONTEXT_FILE_MAX_LINES).join('\n');
+                const corte = linhas.length > CONTEXT_FILE_MAX_LINES
+                    ? `\n... [truncado — ${path.basename(file)} tem ${linhas.length} linhas; leia o arquivo no workspace se precisar do resto]`
+                    : '';
+                userContext += `\n## ${path.basename(file)}\n${capped}${corte}\n`;
             }
         });
         userContext += readWorkspaceContextForPhase(command, rootPath, stackId);

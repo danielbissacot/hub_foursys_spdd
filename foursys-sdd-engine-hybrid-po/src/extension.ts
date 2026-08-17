@@ -91,6 +91,20 @@ function personaSkillTagIfAvailable(
     return existe ? config.implementSkillTag : null;
 }
 
+/** Instrucao do Implement completo (todas as tarefas), compartilhada pelo botao da sidebar e pelo
+ *  subcomando `/implement` do chat. Extraida para os dois nao divergirem: ate 17/08/2026 o botao
+ *  montava esse texto inline e o chat nem chegava aqui — terminava em "Playbook nao encontrado". */
+function instrucaoDeImplement(rootPath: string, context: vscode.ExtensionContext): string {
+    // So manda "invoque a Skill: /agente-x" se a persona existir de fato no catalogo. Stacks sem
+    // persona (node hoje, e o fallback 'unknown') mandavam uma tag que nao existe em lugar nenhum
+    // — o Copilot ignora ou, pior, inventa um comportamento pra ela.
+    const skillTag = personaSkillTagIfAvailable(getActiveStackId(context), rootPath, context);
+    const instrucao = skillTag
+        ? `Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${skillTag}.`
+        : 'Inicie a codificação estritamente de acordo com as tarefas listadas.';
+    return `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. ${instrucao}`;
+}
+
 async function openFile(filePath: string) {
     if (fs.existsSync(filePath)) {
         const doc = await vscode.workspace.openTextDocument(filePath);
@@ -135,6 +149,25 @@ export function activate(context: vscode.ExtensionContext) {
                     referencesContext += `\n--- REFERENCIA EXTERNA: ${path.basename(ref.value.fsPath)} ---\n${doc.getText()}\n`;
                 } catch { /* ignorar */ }
             }
+        }
+        // `implement` e a unica das 14 fases anunciadas no package.json que nao tem playbook nem
+        // tratamento proprio: caia em executeSDDPhase e loadPlaybookForStack lanca "Playbook para
+        // 'implement' nao encontrado". Confirmado na tela em 17/08/2026 (teste F3). Ninguem tinha
+        // notado porque o BOTAO de Implement nunca passa por aqui — ele chama
+        // workbench.action.chat.open direto, e os dois caminhos divergiam justamente na fase mais
+        // usada. Aqui o chat passa a fazer o mesmo que o botao.
+        if (request.command === 'implement') {
+            const rootPath = getWorkspaceRoot();
+            if (!rootPath) {
+                response.markdown('⚠️ Abra a pasta do projeto antes de rodar o Implement.');
+                return;
+            }
+            const extra = request.prompt.trim() ? ` ${request.prompt.trim()}` : '';
+            response.markdown('🚀 Abrindo o Implement no chat do Copilot com as tarefas da história ativa...');
+            await vscode.commands.executeCommand('workbench.action.chat.open', {
+                query: `${instrucaoDeImplement(rootPath, context)}${extra}`
+            });
+            return;
         }
         await executeSDDPhase(request.command || '', request.prompt, referencesContext, response, token, context, outputChannel);
     });
@@ -267,18 +300,10 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     context.subscriptions.push(registerGated('foursys.implement', async () => {
-        const stackId = getActiveStackId(context);
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
-        // So manda "invoque a Skill: #agente-x" se a persona existir de fato no catalogo.
-        // Stacks sem persona (node hoje, e o fallback 'unknown') mandavam uma tag que nao
-        // existe em lugar nenhum — o Copilot ignora ou, pior, inventa um comportamento pra ela.
-        const skillTag = personaSkillTagIfAvailable(stackId, rootPath, context);
-        const instrucao = skillTag
-            ? `Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${skillTag}.`
-            : 'Inicie a codificação estritamente de acordo com as tarefas listadas.';
         vscode.commands.executeCommand('workbench.action.chat.open', {
-            query: `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. ${instrucao}`
+            query: instrucaoDeImplement(rootPath, context)
         });
     }));
 

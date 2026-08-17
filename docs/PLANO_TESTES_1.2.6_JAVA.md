@@ -1637,3 +1637,78 @@ injeção de contexto, mesmo mecanismo já usado por readProjectMap e readCovera
 **Impacto se não corrigir:** o Implement cria uma segunda pasta em `doc_projeto/`, e o relatório
 e as evidências ficam fora da pasta da história. O QA, que lê pelo `storyDocPath` correto, não
 enxerga nenhum dos dois.
+
+---
+
+# ✅ Rodada de 17/08 noite — fluxo SDD do Java fechado
+
+História `historia-202608172131` (pasta com timestamp, deixada sem nome de propósito para
+validar o fallback). Kit zerado antes de começar.
+
+## Correções validadas nesta rodada
+
+| # | O quê | Evidência |
+|---|---|---|
+| **24** | Pasta da história injetada | Task List usou `doc_projeto/historia-202608172131/` — nome que a IA **não teria como adivinhar**. Antes chutava slug do título |
+| **25** | Não apagar entregável | 7 testes sobreviveram a erro de compilação e ambiguidade; ele **corrigiu** em vez de remover |
+| **26** | Lombok ausente | 15 classes de produção, zero `import lombok`, zero `builder()` |
+| **27** | Parada Honesta | Regra 11 na constituição, com a cláusula *"não apagar entregável da Task List para fazer build passar"* — que na rodada anterior tinha se perdido no resumo |
+| **29** | Teste de contrato | 4 tarefas geradas (`Boleto`, `Entity`, `Request`, `Response`) |
+| **PRECEDÊNCIA** | Divergência declarada | Constituição: *"O playbook base pede Java 21, porém o projeto está em Java 17"*. Plan: *"divergência registrada"* |
+| **19 + B1** | Número do Hub no QA | `qa-report`: *"linhas 93,6% (<95%) e branches 75,0% (<90%)"* — idêntico ao calculado |
+| **placeholder** | Aviso com nome e conteúdo | Pegou `<mensagem>` copiado literal do playbook para o `casos_teste.md` — **achado real**, e num arquivo que vai para o Xray |
+
+## O contraditório funcionou
+
+O `relatorio_implementacao.md` afirmou *"cobertura ≥95% em classes críticas"* — recorte que a
+própria IA definiu. O `qa-report` desmentiu com o número real e classificou como **MAJOR**.
+
+Três dias atrás isso passava como "pronto para produção". Agora o Hub se contradiz e o lado
+verificável ganha, porque o número vem do disco.
+
+## A descoberta sobre o gate de 95% num Kit
+
+```
+Kit tem 312 linhas contadas no gate
+  → 1 linha descoberta = 0,32% do total
+  → as 17 linhas de legado = 5,4% de déficit
+
+Mesmo déficit em projeto de 5.000 linhas  = 0,34%
+Mesmo déficit em projeto de 20.000 linhas = 0,09%
+```
+
+Composição do que faltou: **3 linhas da feature, 17 do legado do Kit**
+(`ContaCorrenteEntity` 14, `ServicosDependHealthIndicator` 3).
+
+Cobrindo 100% da feature daria **94,6%** — ainda abaixo. **A entrega perfeita não passa neste
+Kit**, porque o denominador é pequeno demais para absorver dívida anterior.
+
+Consequência para o PO: a premissa "95% inclusive no legado" é mais fácil em projeto novo ou
+já coberto (a feature domina o número) e **mais difícil em legado migrado**, onde o passivo é
+de milhares de linhas, não de 17.
+
+## Correções entregues nesta noite (não testadas ainda)
+
+- **30** — toda classe criada exige tarefa de teste. Causa: a lista esqueceu o adapter de log,
+  e `LogBoleto` sozinho com 0/11 segurou a entrega em 92,6%
+- **8** — aviso de `jacoco.csv` desatualizado (compara mtime com o `.java` mais novo de `src/`)
+
+---
+
+# ⬜ Testes F — canais de invocação (próximo passo)
+
+O fluxo SDD está fechado. O que resta é **como o Hub é chamado**, e nada disso foi exercitado.
+
+| Teste | O quê | Situação |
+|---|---|---|
+| **F1** | `@foursys_sdd_po /specify <texto livre>` | nunca — é o `userInstruction`, que o botão sempre manda vazio |
+| **F2** | `@foursys_sdd_po /plan #Arquivo.java` | nunca — é o `referencesContext`, idem |
+| **F3** | `@foursys_sdd_po /implement` | **defeito confirmado por leitura de código**: sem `case 'implement'` e sem `foursys-implement.md`, termina em `throw` |
+| **F4** | `/skill` e `/playbook` pelo chat | `/skill` passou em 13/08; `/playbook` nunca |
+| **F5** | Catálogo da sidebar (era C1 e C3) | nunca |
+| **F6** | Skill nativa `/nome` fora do participant | quase nunca — é o canal que vale para IntelliJ e CLI |
+| **F7** | Command Palette + gate `@foursys.com.br` (era E1) | nunca |
+
+Prioridade sugerida: **F3 primeiro** (é o único com defeito já provado), depois **F1 e F2**
+(dois parâmetros que nenhuma rodada exercitou e que afetam todo mundo que usa chat em vez de
+botão), e por fim F4–F7.

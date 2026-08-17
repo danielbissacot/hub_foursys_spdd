@@ -2,7 +2,7 @@
 name: Quebra de Tarefas Foursys SDD — Genérico
 description: Decompõe um plano técnico em tarefas granulares, atômicas e testáveis. Agnóstico de stack — exemplos de arquivos globais são substituídos em runtime pelo catalog-loader.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # Playbook: Foursys Task Generator
@@ -99,12 +99,32 @@ Cada tarefa deve ser:
 > Se o teste não puder ser adaptado ao projeto, a tarefa fica `[ ]` e o bloqueio vai para a seção 7
 > do Relatório de Implementação.
 
+#### Teste de contrato para classe de dados (OBRIGATÓRIO quando não há gerador de boilerplate)
+
+Se o bloco **STACK REAL DO PROJETO** indicar que o projeto **não** tem gerador de boilerplate
+(Lombok em Java, ou equivalente na stack), então **toda classe de modelo, entity, record ou DTO**
+criada nesta história leva **sua própria tarefa de teste de contrato**, cobrindo:
+
+- construção pelo construtor real (não por `builder()`, que não existe nesse cenário);
+- **todos** os getters/acessores;
+- `equals` e `hashCode` nos quatro casos: mesma instância, objeto igual, objeto diferente e `null`;
+- `toString` — e conferindo que **não** vaza PII.
+
+Por que isso é obrigatório e não "nice to have": sem gerador, esses métodos são escritos **à mão**
+e entram no gate de cobertura como código de produção normal. Um `equals` manual tem cerca de uma
+dúzia de ramos. Medido em 17/08/2026: a regra de negócio estava 100% coberta e a entrega **reprovou
+com 86,9% de linha e 53,2% de branch** — o déficit inteiro vinha de 3 classes de dados sem teste
+(`BoletoEntity`, `BoletoResponse` e o record `Boleto`). Cobrindo só essas três, os mesmos números
+iriam a 96,1% e 91,9%, passando nos dois gates sem tocar em mais nada.
+
+Se o projeto **tem** gerador de boilerplate, ignore este bloco: o código gerado não conta no gate.
+
 ### 📄 Relatório de Implementação (SEMPRE a última tarefa)
 > Executada ao final da **Sessão 2**, depois das Tarefas de Teste — é o fechamento da entrega.
 
-- [ ] **Tarefa ZZ: Gerar o Relatório de Implementação**
+- [ ] **Tarefa NN: Gerar o Relatório de Implementação** ← `NN` é o PRÓXIMO número da sequência das tarefas acima, nunca a letra literal
   - Descrição técnica: Consolidar o que foi entregue nesta história em um relatório único.
-  - Arquivo impactado: `doc_projeto/<pasta-da-história>/relatorio_implementacao.md`
+  - Arquivo impactado: `<PASTA DA HISTÓRIA ATIVA, copiada do bloco de mesmo nome no contexto>/relatorio_implementacao.md`
   - Estimativa: XS
   - Critério de conclusão: Relatório salvo com as 8 seções obrigatórias abaixo, todas preenchidas.
   - Depende de: todas as tarefas anteriores, inclusive as de Teste

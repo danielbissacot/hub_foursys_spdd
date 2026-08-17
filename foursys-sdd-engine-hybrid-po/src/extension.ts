@@ -969,7 +969,16 @@ async function executeSDDPhase(
                 outputChannel.appendLine(`[SDD] ${placeholders}`);
                 const aviso = `⚠️ O documento gerado tem placeholder não resolvido — confira antes de seguir:\n${placeholders}`;
                 if (chatResponse) { chatResponse.markdown(`\n\n${aviso}`); }
-                else { vscode.window.showWarningMessage(aviso.split('\n')[0], 'Ver detalhes').then(r => { if (r) { outputChannel.show(); } }); }
+                else {
+                    // O toast some sozinho e cabe pouco texto: cita o primeiro achado no titulo,
+                    // senao a pessoa le "tem placeholder" sem saber qual e ignora. Medido em
+                    // 17/08/2026: a Task List saiu com "Tarefa ZZ" literal e o aviso passou batido.
+                    const primeiro = placeholders.split('\n')[1]?.trim() ?? '';
+                    vscode.window.showWarningMessage(
+                        `⚠️ ${path.basename(outputPath)}: placeholder não resolvido — ${primeiro}`,
+                        'Ver todos'
+                    ).then(r => { if (r) { outputChannel.show(); } });
+                }
             }
 
             if (htmlReportPath && htmlReportContent) {

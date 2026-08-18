@@ -1,7 +1,12 @@
 # Plano de Testes — Foursys SDD Hub 1.2.6 (Java / Spring Boot)
 
-> **Versão:** 1.2.6 · **Data:** 13/08/2026 · **Projeto de teste:** `ensc-srv-kit-java`
+> **Versão:** 1.2.6 · **Iniciado em** 13/08/2026 · **Atualizado em** 17/08/2026
+> **Projeto de teste:** `ensc-srv-kit-java`
 > **Escopo:** somente stack Java / Spring Boot. Angular fica para depois, em outro repositório.
+>
+> ⚠️ **Este documento virou diário.** Para reexecutar os testes, use o
+> **🔁 ROTEIRO DE REEXECUÇÃO** logo abaixo. O resto é histórico das correções 9 a 29 e da
+> numeração antiga (A/B/C/D/E), que não descreve mais o estado atual.
 
 ## Como usar este documento
 
@@ -14,7 +19,67 @@
 
 **Legenda:** ⬜ pendente · ✅ passou · ❌ falhou · ⚠️ passou parcialmente
 
+---
+
+# 🔁 ROTEIRO DE REEXECUÇÃO — atualizado em 17/08/2026
+
+> **Leia esta seção e ignore a numeração antiga (A1–A7, B1, C1–C3, D1–D4, E1) que vem logo
+> abaixo.** Aquilo é o registro de 13/08 e já não descreve o estado atual. Tudo abaixo desta
+> seção virou **diário** das correções 9 a 29 — serve como histórico, não como roteiro.
+
+**`.vsix` a instalar:** `foursys-sdd-engine-hybrid-po-1.2.6.vsix` (452.983 bytes, gerado 17/08 19:32).
+Conferir na sidebar que aparece **v1.2.6** antes de começar.
+
+**Projeto de teste:** `ensc-srv-kit-java` · **História:** criar uma nova, pasta com timestamp.
+
+## Passo 1 — Ciclo SDD, botão a botão
+
+Rode na ordem e, a cada fase, confira **só a coluna da direita**:
+
+| Botão | O que precisa aparecer no documento gerado |
+|---|---|
+| **0 Constitution** | gera sem erro |
+| **1 Specify** | suposições **marcadas como suposição**, não afirmadas como fato |
+| **2 Plan** | Java lido do `pom.xml` (**17**, não 21) e, se divergir do playbook, a divergência **escrita no documento**; gate de transação financeira só se a história mexe em saldo; nenhum `@Bean` duplicando `@Service`; reuso dos componentes existentes em vez de criar paralelos |
+| **3 Tasks** | caminho das tarefas aponta para a **pasta real da história** (timestamp); **uma tarefa de teste por classe criada** — inclusive adapter de log; se o projeto não tem Lombok, tarefa de **teste de contrato** para cada classe de dados; última tarefa é o **Relatório de Implementação** numerado (`Tarefa 12`, não `Tarefa NN` nem `ZZ`) |
+| **4 Implement S1 + S2** | teste que não compila é **corrigido, não apagado**; sem `builder()` num projeto sem Lombok; Controller sai com Swagger |
+
+## Passo 2 — QA
+
+| Botão | O que precisa aparecer |
+|---|---|
+| **Plano de Testes** | itens sem informação suficiente marcados com `@pendente-po` |
+| **Casos de Teste** | gera BDD sem erro |
+| **Review de Entrega** | enxerga o código **de produção** da entrega e usa o **número de cobertura calculado pelo Hub** |
+| **Relatório de Qualidade** | se reprovar, faz a **Parada Honesta** — não declara "pronto para produção" contra os próprios números |
+
+## Passo 3 — Canais de invocação (testes F)
+
+Todos passaram em 17/08. Refazer só se quiser confirmar do zero:
+
+```
+F1  @foursys_sdd_po /specify implementar cancelamento de boleto
+F2  @foursys_sdd_po /plan #BoletoController.java
+F3  @foursys_sdd_po /implement
+F4  @foursys_sdd_po /skill springboot-testing
+    @foursys_sdd_po /playbook          → escolher no seletor do topo
+F5  sidebar → aba Catálogo → springboot-testing
+F6  /springboot-testing                → sozinho, no início da mensagem
+F7  Ctrl+Shift+P → digitar "Foursys"   → 25 comandos
+```
+
+## O que NÃO precisa mais ser testado
+
+`readCoverageReport` e `readMavenStackInfo` são exclusivos de Java. **Em projeto Angular o QA
+volta a usar cobertura declarada, não medida** — não é regressão, é funcionalidade que nunca
+existiu para essa stack.
+
+---
+
 ## ⭐ Se tiver pouco tempo, faça só estes 4
+
+> ⚠️ **Bloco de 13/08 — desatualizado.** O aviso abaixo sobre A3 e B1 dependerem de correções
+> "ainda não aplicadas" já não vale: as duas foram aplicadas e passaram. Mantido como registro.
 
 | Ordem | Teste | Por que é essencial | Tempo |
 |:---:|---|---|:---:|
@@ -1572,12 +1637,34 @@ cancelamento. É o `userInstruction`, que o botão sempre manda vazio.
 **Esperado hoje:** erro *"Playbook para 'implement' não encontrado"*. Confirmar e decidir: criar o
 playbook, remover o subcomando, ou redirecionar para o mesmo `chat.open` do botão.
 
-### F4 — `/skill` e `/playbook` pelo chat
+### F4 — `/skill` e `/playbook` pelo chat — ✅ passou (17/08/2026)
 ```
 @foursys_sdd_po /skill springboot-testing
 @foursys_sdd_po /playbook
 ```
-O `/skill` passou em 13/08 (C2). O `/playbook` nunca foi exercitado.
+O `/skill` passou em 13/08 (C2). O `/playbook` rodou em 17/08.
+
+**Mecânica: passou inteira.** Nome não reconhecido cai no `showQuickPick` (`extension.ts:692`),
+que lista os 21 playbooks de FASE0 a FASE5. Selecionado `FASE0_DIAGRAMA_SEQUENCIA_ARQUITETURA`,
+gerou `doc_projeto/playbook/FASE0_DIAGRAMA_SEQUENCIA_ARQUITETURA.md` e abriu o arquivo.
+
+**Ressalva medida: a saída teve 846 bytes pedindo ao dev que colasse o código.** O `/playbook`
+chama a IA sem NENHUM contexto de workspace, e com a instrução `"Apresente os próximos passos"`
+(`extension.ts:702-708`). A fase SDD faz o oposto (`extension.ts:928-932`): manda o contexto e,
+quando não há, manda `"Gere o documento AGORA... NÃO solicite contexto. NÃO faça perguntas."`.
+
+A IA obedeceu ao que foi pedido. O defeito é o prompt da chamada, não o modelo. Agrava que o
+playbook FASE0 pede explicitamente o arquivo ativo do editor, que o Hub não passa.
+
+Os playbooks FASE0–FASE5 são anteriores à 1.2.6 e foram desenhados para chat com o dev colando
+código. Não é regressão — é a parte do Hub que ficou para trás enquanto o SDD ganhou injeção de
+contexto. **Não corrigido**: fora do escopo pedido.
+
+**Achado lateral:** o seletor só varre pastas que começam com `fase` (`extension.ts:683-687`),
+então `playbook/sdd/` fica invisível na lista. Mas o `findBySlug` (`L659-670`) varre a raiz
+inteira — quem digitar `/playbook foursys-constitution` roda o playbook da Constituição cru, sem
+bloco de stack, sem mapa do projeto e sem pasta da história. Porta lateral que pula todo o
+contexto da 1.2.6. Não corrigido.
 
 ### F5 — Catálogo da sidebar (era C1 e C3)
 Abrir a aba Catálogo, confirmar que as 15 skills de Spring aparecem e que `springboot-testing`
@@ -1590,9 +1677,34 @@ Chat do Copilot, sem `@foursys_sdd_po`:
 ```
 **Passa se:** o Copilot reconhece a skill sincronizada. É o canal que vale para IntelliJ e CLI.
 
-### F7 — Command Palette
-`Ctrl+Shift+P` → `Foursys: ...` — confirmar que os 21 comandos aparecem e que os gated pedem
+### F7 — Command Palette — ✅ passou (17/08/2026)
+`Ctrl+Shift+P` → `Foursys: ...` — confirmar que os comandos aparecem e que os gated pedem
 o e-mail `@foursys.com.br` quando não autenticado (junta com o E1, que segue em aberto).
+
+**Metade 1 — paleta: passou.** Verificado em 17/08: o `package.json` declara **25 comandos**
+(não 21, como este documento dizia). O PO confirmou na tela que todos aparecem ao digitar
+`Foursys`. Sem print: a paleta fecha ao perder o foco, mesmo motivo do seletor do F4.
+
+**Metade 2 — trava de e-mail: continua em aberto por decisão.** A máquina do PO já está
+liberada (`access.email` ou `access.unlockedByCode` gravados em `globalState`), e a caixa de
+e-mail só aparece em máquina que nunca passou pela validação (`access-gate.ts:53-59`).
+
+Testar de verdade exigiria limpar o `globalState`, o que levaria junto a stack ativa, a história
+ativa e o e-mail de telemetria. **Não feito**: o custo de reconfigurar tudo não se justifica
+para exercitar uma trava que é declaradamente fraca — o próprio comentário do arquivo diz que
+"NÃO é segurança forte" e que controle real dependeria de SSO.
+
+Caminho seguro exercitado no lugar, e **passou em 17/08**: `Foursys: Liberar Acesso` com código
+errado devolveu na tela `❌ Codigo invalido. Fale com o time do Hub.` (`access-gate.ts:105-108`),
+sem gravar nada no `globalState`. O caminho negativo da trava está exercitado.
+
+O código válido é `FOURSYS-HUB-2026` (`access-gate.ts:21`) e existe para quem é da Foursys mas
+está em máquina de cliente sem e-mail corporativo. **Não é segredo forte** — o `.vsix` é um zip
+e quem abrir o pacote acha, igual ao token de telemetria.
+
+**Fica registrado como limite conhecido da 1.2.6**, não como teste pendente. Quem quiser fechar
+de verdade precisa de instância isolada — `code --user-data-dir C:\temp\vscode-teste`, que cria
+um `globalStorage` novo sem encostar no principal. Custo: instalar o `.vsix` de novo lá dentro.
 
 ---
 
@@ -1704,10 +1816,10 @@ O fluxo SDD está fechado. O que resta é **como o Hub é chamado**, e nada diss
 | **F1** | `@foursys_sdd_po /specify <texto livre>` | nunca — é o `userInstruction`, que o botão sempre manda vazio |
 | **F2** | `@foursys_sdd_po /plan #Arquivo.java` | nunca — é o `referencesContext`, idem |
 | **F3** | `@foursys_sdd_po /implement` | **defeito confirmado por leitura de código**: sem `case 'implement'` e sem `foursys-implement.md`, termina em `throw` |
-| **F4** | `/skill` e `/playbook` pelo chat | `/skill` passou em 13/08; `/playbook` nunca |
+| **F4** | `/skill` e `/playbook` pelo chat | ✅ ambos passaram — `/skill` 13/08, `/playbook` 17/08 (com ressalva: roda sem contexto de workspace) |
 | **F5** | Catálogo da sidebar (era C1 e C3) | nunca |
 | **F6** | Skill nativa `/nome` fora do participant | quase nunca — é o canal que vale para IntelliJ e CLI |
-| **F7** | Command Palette + gate `@foursys.com.br` (era E1) | nunca |
+| **F7** | Command Palette + gate `@foursys.com.br` (era E1) | ✅ paleta passou (25 comandos, 17/08); gate de e-mail exige máquina limpa — limite conhecido, não pendência |
 
 Prioridade sugerida: **F3 primeiro** (é o único com defeito já provado), depois **F1 e F2**
 (dois parâmetros que nenhuma rodada exercitou e que afetam todo mundo que usa chat em vez de
@@ -1786,9 +1898,14 @@ de um boleto já registrado'"*. O `userInstruction` chega inteiro e substitui a 
 
 ## O que sobra dos testes F
 
-| | O quê | Peso |
-|---|---|---|
-| **F4** | `/playbook` pelo chat | baixo — `/skill` passou em 13/08 |
-| **F5** | Catálogo da sidebar | médio — nunca testado |
-| **F6** | Skill nativa `/nome` fora do participant | **alto** — é o canal que vale para IntelliJ e CLI |
-| **F7** | Command Palette + gate `@foursys.com.br` | médio |
+| | O quê | Peso | Situação em 17/08 |
+|---|---|---|---|
+| **F4** | `/playbook` pelo chat | baixo | ✅ passou — mecânica inteira OK, saída sem contexto |
+| **F5** | Catálogo da sidebar | médio | ✅ passou |
+| **F6** | Skill nativa `/nome` fora do participant | **alto** — canal que vale para IntelliJ e CLI | ✅ passou |
+| **F7** | Command Palette + gate `@foursys.com.br` | médio | ✅ paleta (25 comandos) + código inválido rejeitado |
+
+**Os 7 testes F foram fechados em 17/08/2026.** Nenhum deixou defeito bloqueante. As duas
+ressalvas registradas — `/playbook` sem contexto de workspace (F4) e trava de e-mail não
+exercitável nesta máquina (F7) — estão documentadas nas seções acima e **não** foram corrigidas,
+por estarem fora do escopo pedido.

@@ -181,8 +181,14 @@ cobertura de branch ≥ 90%
 Medidos pelo Hub a partir do `jacoco.csv`, aplicando as exclusões do `pom.xml`.
 
 ⚠️ **Se o `pom.xml` tiver `<exclude>${sonar.coverage.exclusions}</exclude>`, o número local está
-errado** — o JaCoCo não expande a variável e conta o projeto inteiro, legado incluso. Traduza
-para uma tag `<exclude>` por padrão, com extensão `.class`.
+errado** e conta o projeto inteiro, legado incluso.
+
+O Maven **expande** a variável normalmente — o problema é o formato do que sai dela: uma única
+string com todos os caminhos separados por vírgula, apontando para arquivos **`.java`**. O JaCoCo
+espera **um padrão por tag**, apontando para **`.class`**. Uma tag com vírgulas e caminhos `.java`
+casa com zero classes, então nenhuma exclusão é aplicada.
+
+O conserto é traduzir a lista para uma tag `<exclude>` por padrão, com extensão `.class`.
 
 ## Skills — três formas de usar
 
@@ -202,28 +208,31 @@ Fora do fluxo SDD, você pode abrir um `.java` e simplesmente pedir o que quer n
 Hub instala uma **instruction** em `.github/instructions/` que se aplica automaticamente a
 `.java`, `pom.xml` e `application.yml`.
 
-**Ela ajuda, mas não garante.** Medimos três pedidos livres em 18/08, com o arquivo certo aberto:
+**Ela ajuda bastante — mas não garante.** Medimos três pedidos livres em 18/08, com o arquivo
+certo aberto. Dois saíram bem; **um falhou, e falhou justamente na regra mais crítica**:
 
 | Pedido | Resultado |
 |---|---|
-| “Adicione um método para cancelar o boleto” | ⚠️ Seguiu o padrão do projeto, não criou `@Bean` indevido, criou os testes. Mas usou `BusinessException` para “não encontrado” tendo `NaoEncontradoException` ao lado |
+| “Adicione um método para cancelar o boleto” | ✅ Seguiu o padrão do projeto, não criou `@Bean` indevido e escreveu os testes. Usou `BusinessException` para “não encontrado” tendo `NaoEncontradoException` ao lado — questão de preferência, não defeito |
 | “Crie um record ClienteBoleto com nome, cpf e email” | ❌ Escreveu `toString()` **imprimindo o CPF**, sem uma palavra de aviso |
-| “Minha feature deu 96,9% e o global 74,5%, por quê?” | ❌ Mandou escrever testes para os exception handlers — que o Sonar **já ignora** — e não achou o `<exclude>` quebrado |
+| “Minha feature deu 96,9% e o global 74,5%, por quê?” | ⚠️ Explicou a diferença de escopo e acertou 6 das 9 classes que apontou. Mas **não achou a causa** — o `<exclude>` quebrado — e 3 das classes sugeridas o Sonar já ignora |
 
-### O A/B que resolve
+### Sintoma × causa
 
 Mesma pergunta do terceiro caso, mesmo modelo, mesmo projeto:
 
 ```
-pedido livre (instruction)   →  "escreva mais testes"            ❌
-/springboot-testing          →  achou o <exclude> quebrado       ✅
+pedido livre (instruction)   →  descreveu o sintoma              (escopos diferentes)
+/springboot-testing          →  achou a causa                    (o <exclude> quebrado)
 ```
+
+Os dois estavam certos. Só um resolvia.
 
 ### A regra prática
 
-> **Pedido livre serve para trabalho de rotina.** Quando a regra importa de verdade — PII,
-> cobertura, contrato de API —, **chame a Skill explicitamente** em vez de contar com a
-> instruction.
+> **Pedido livre serve para trabalho de rotina** — e vai bem nisso. Quando a regra importa de
+> verdade — PII, cobertura, contrato de API —, **chame a Skill explicitamente**: ela vai à causa,
+> o pedido livre costuma parar no sintoma.
 
 E **nunca confie na instruction para PII**. Toda vez que criar classe com CPF, CNPJ, conta,
 cartão, senha ou token, escreva o `toString()` você mesmo, ou peça com a regra explícita:

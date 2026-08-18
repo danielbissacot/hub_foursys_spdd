@@ -160,7 +160,9 @@ testando o comportamento da classe normalmente — só não precisa de tarefa de
   1. **Status** — build passou ou não; total de testes executados e quantos passaram.
   2. **Resumo executivo** — em até 5 linhas, o que a feature faz do ponto de vista de negócio.
   3. **Artefatos criados** — lista por camada, com o caminho real de cada arquivo.
-  4. **Cobertura medida** — o percentual **TOTAL** e a **fonte do número** (qual arquivo/relatório foi lido). Se o contexto trouxer um bloco de cobertura calculado pelo Hub, use esse número e diga que veio dele. **Nunca** apresente cobertura por componente como se fosse o total, e **nunca** declare que uma classe está fora da conta sem citar a linha da configuração que a exclui.
+  4. **Cobertura medida** — a seção começa OBRIGATORIAMENTE por esta linha, com os números preenchidos:
+     `**Cobertura medida:** __% linha / __% branch — fonte: <arquivo lido>`
+     Só depois dela vem qualquer detalhamento. Se o contexto trouxer um bloco de cobertura calculado pelo Hub, use esse número e diga que veio dele. **Nunca** apresente cobertura por componente como se fosse o total, e **nunca** declare que uma classe está fora da conta sem citar a linha da configuração que a exclui. Sem essa linha preenchida a seção está incompleta, mesmo que haja tabela por classe abaixo.
   5. **Conformidade com a Constituição** — item a item, com ✅ ou ⚠️. ⚠️ exige uma frase dizendo o que falta.
   6. **Contrato exposto** — endpoint, tela ou interface pública criada, com exemplo de entrada e saída e os códigos de retorno que o código **realmente** implementa (confira o handler, não a documentação).
   7. **Pendências e desvios** — o que ficou fora, o que foi feito diferente do planejado e por quê. Se não houver nada, escreva "Nenhuma pendência". **Seção obrigatória**: relatório sem pendências declaradas e com cobertura abaixo do mínimo é contraditório.

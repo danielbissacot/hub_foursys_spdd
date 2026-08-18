@@ -68,7 +68,8 @@ A saída deve ser um arquivo Markdown contendo:
 5. 🔒 SEGURANÇA DE DADOS SENSÍVEIS (PII)
    - PROIBIDO logar dados sensíveis (CPF, CNPJ, senha, token, número de conta, número de cartão).
    - Mascaramento obrigatório no formato `***.***.***-XX` para CPF, `**.***.***/****.XX` para CNPJ.
-   - Em entidades JPA: mantenha PII fora do `toString()`. Se o projeto usa Lombok, `@ToString.Exclude` nos campos sensíveis; se NÃO usa (confira as bibliotecas ausentes no item 2), escreva o `toString()` à mão omitindo ou mascarando esses campos. Nunca cite Lombok numa constituição de projeto que não o tem.
+   - Mantenha PII fora do `toString()` em **qualquer** classe que carregue dado sensível — record de domínio, entity JPA ou DTO. Se o projeto usa Lombok, `@ToString.Exclude` nos campos sensíveis; se NÃO usa (confira as bibliotecas ausentes no item 2), escreva o `toString()` à mão omitindo ou mascarando esses campos. Nunca cite Lombok numa constituição de projeto que não o tem.
+   - Atenção a `record`: o `toString()` que o Java gera sozinho **imprime todos os componentes**, e `@ToString.Exclude` NÃO funciona nele. Se há PII num record, ou o PII não entra no record, ou o `toString()` é sobrescrito mascarando.
    - DTOs de resposta: nunca retorne campos sensíveis desnecessários ao front-end.
    - Valores monetários: SEMPRE BigDecimal — NUNCA Double ou Float.
 

@@ -196,6 +196,45 @@ para uma tag `<exclude>` por padrão, com extensão `.class`.
 
 ---
 
+## 🔴 Pedido livre no chat — e por que chamar a Skill importa
+
+Fora do fluxo SDD, você pode abrir um `.java` e simplesmente pedir o que quer no Copilot Chat. O
+Hub instala uma **instruction** em `.github/instructions/` que se aplica automaticamente a
+`.java`, `pom.xml` e `application.yml`.
+
+**Ela ajuda, mas não garante.** Medimos três pedidos livres em 18/08, com o arquivo certo aberto:
+
+| Pedido | Resultado |
+|---|---|
+| “Adicione um método para cancelar o boleto” | ⚠️ Seguiu o padrão do projeto, não criou `@Bean` indevido, criou os testes. Mas usou `BusinessException` para “não encontrado” tendo `NaoEncontradoException` ao lado |
+| “Crie um record ClienteBoleto com nome, cpf e email” | ❌ Escreveu `toString()` **imprimindo o CPF**, sem uma palavra de aviso |
+| “Minha feature deu 96,9% e o global 74,5%, por quê?” | ❌ Mandou escrever testes para os exception handlers — que o Sonar **já ignora** — e não achou o `<exclude>` quebrado |
+
+### O A/B que resolve
+
+Mesma pergunta do terceiro caso, mesmo modelo, mesmo projeto:
+
+```
+pedido livre (instruction)   →  "escreva mais testes"            ❌
+/springboot-testing          →  achou o <exclude> quebrado       ✅
+```
+
+### A regra prática
+
+> **Pedido livre serve para trabalho de rotina.** Quando a regra importa de verdade — PII,
+> cobertura, contrato de API —, **chame a Skill explicitamente** em vez de contar com a
+> instruction.
+
+E **nunca confie na instruction para PII**. Toda vez que criar classe com CPF, CNPJ, conta,
+cartão, senha ou token, escreva o `toString()` você mesmo, ou peça com a regra explícita:
+
+```
+Crie um record ClienteBoleto com nome, cpf e email.
+O toString() NÃO pode expor o CPF.
+```
+
+---
+
 # Parte 4 — Avisos que economizam tempo
 
 Coisas que parecem defeito e não são. Todas medidas rodando.

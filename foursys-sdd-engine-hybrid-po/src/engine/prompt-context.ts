@@ -580,7 +580,132 @@ function parseSonarExclusions(pomXml: string): { pkgRe: RegExp; classRe: RegExp 
     return regras;
 }
 
+/** Onde os runners de JS deixam cobertura. Nao existe um caminho unico como o jacoco.csv do
+ *  Maven: Jest sem `coverageReporters` explicito escreve `coverage/lcov.info` +
+ *  `coverage-final.json`; com o reporter `json-summary` escreve `coverage-summary.json`, que ja
+ *  vem com os totais somados. Karma costuma aninhar tudo em `coverage/<nome-do-projeto>/`, e
+ *  quando o karma.conf so pede `html`/`text-summary` NAO sobra arquivo legivel por maquina —
+ *  esse caso cai no aviso, que e o comportamento honesto. */
+function acharArquivoCobertura(rootPath: string, nome: string): string | null {
+    const base = path.join(rootPath, 'coverage');
+    const direto = path.join(base, nome);
+    if (fs.existsSync(direto)) { return direto; }
+    try {
+        for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+            if (!entry.isDirectory()) { continue; }
+            const aninhado = path.join(base, entry.name, nome);
+            if (fs.existsSync(aninhado)) { return aninhado; }
+        }
+    } catch { /* sem pasta coverage — cai no aviso */ }
+    return null;
+}
+
+/** Soma LF/LH (linhas) e BRF/BRH (branches) de todos os registros de um lcov.info. */
+function somarLcov(conteudo: string): { lf: number; lh: number; brf: number; brh: number } {
+    const total = { lf: 0, lh: 0, brf: 0, brh: 0 };
+    for (const linha of conteudo.split('\n')) {
+        const m = linha.match(/^(LF|LH|BRF|BRH):(\d+)/);
+        if (!m) { continue; }
+        const n = Number(m[2]);
+        if (!Number.isFinite(n)) { continue; }
+        if (m[1] === 'LF') { total.lf += n; }
+        else if (m[1] === 'LH') { total.lh += n; }
+        else if (m[1] === 'BRF') { total.brf += n; }
+        else { total.brh += n; }
+    }
+    return total;
+}
+
+/** Equivalente JS do bloco de cobertura que o spring_boot ja recebia. Sem isto o Angular ficava
+ *  com string vazia: nao chegava numero NEM o aviso de "nao invente percentual" — e o playbook
+ *  de qa-coverage/qa-report (que e o generic, compartilhado) continuava cobrando cobertura. Em
+ *  18/08/2026 o relatorio gerado no Angular trouxe uma tabela "Cobertura ESPERADA >= 90%" no
+ *  lugar da linha obrigatoria "Cobertura medida", justamente por falta desta guarda. */
+function lerCoberturaJs(rootPath: string): string {
+    const CABECALHO = '\n--- COBERTURA MEDIDA PELO HUB ---\n';
+    const AVISO_SEM_MEDICAO = CABECALHO
+        + 'Nenhum relatorio de cobertura legivel foi encontrado em coverage/ '
+        + '(procurados: coverage-summary.json e lcov.info): a suite nao foi executada neste '
+        + 'workspace, ou o runner so gerou relatorio HTML. NAO afirme percentual de cobertura — '
+        + 'registre que a medicao nao foi feita e qual comando precisa rodar '
+        + '(`npm test -- --coverage`). Se o runner so emite html/text-summary, registre tambem '
+        + 'que o reporter `json-summary` ou `lcov` precisa ser habilitado para haver medicao.\n';
+
+    let linhasPct: number | null = null;
+    let branchesPct: number | null = null;
+    let fonte = '';
+
+    // Degrau 1: coverage-summary.json ja traz os totais prontos.
+    const summaryPath = acharArquivoCobertura(rootPath, 'coverage-summary.json');
+    if (summaryPath) {
+        try {
+            const total = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'))?.total;
+            const l = total?.lines?.pct;
+            const b = total?.branches?.pct;
+            if (typeof l === 'number') { linhasPct = l; }
+            if (typeof b === 'number') { branchesPct = b; }
+            if (linhasPct !== null) { fonte = path.relative(rootPath, summaryPath).replace(/\\/g, '/'); }
+        } catch { /* json quebrado — tenta o lcov */ }
+    }
+
+    // Degrau 2: lcov.info e o que o Jest escreve por padrao quando ninguem configura reporter.
+    if (linhasPct === null) {
+        const lcovPath = acharArquivoCobertura(rootPath, 'lcov.info');
+        if (lcovPath) {
+            try {
+                const t = somarLcov(fs.readFileSync(lcovPath, 'utf-8'));
+                if (t.lf > 0) {
+                    linhasPct = (t.lh / t.lf) * 100;
+                    branchesPct = t.brf > 0 ? (t.brh / t.brf) * 100 : null;
+                    fonte = path.relative(rootPath, lcovPath).replace(/\\/g, '/');
+                }
+            } catch { /* lcov ilegivel — cai no aviso */ }
+        }
+    }
+
+    // Degrau 3: nada legivel. Mesmo tratamento que o spring_boot da quando falta o jacoco.csv.
+    if (linhasPct === null) { return AVISO_SEM_MEDICAO; }
+
+    // Relatorio mais velho que o codigo e relatorio de OUTRA entrega — mesma checagem que o
+    // caminho do Maven faz, comparando com o fonte mais novo de src/.
+    let fonteDesatualizada = '';
+    try {
+        const mtimeRelatorio = fs.statSync(path.join(rootPath, fonte)).mtimeMs;
+        let maisNovo = 0;
+        const varrer = (dir: string, nivel: number) => {
+            if (nivel > PROJECT_MAP_MAX_DEPTH) { return; }
+            let entries: fs.Dirent[];
+            try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+            for (const e of entries) {
+                if (e.name.startsWith('.') || e.name === 'node_modules' || e.name === 'out') { continue; }
+                const full = path.join(dir, e.name);
+                if (e.isDirectory()) { varrer(full, nivel + 1); }
+                else if (/\.(ts|html|scss)$/.test(e.name)) {
+                    try { maisNovo = Math.max(maisNovo, fs.statSync(full).mtimeMs); } catch { /* ignora */ }
+                }
+            }
+        };
+        varrer(path.join(rootPath, 'src'), 0);
+        if (maisNovo > mtimeRelatorio) {
+            fonteDesatualizada = 'ATENCAO: ha arquivo em src/ mais novo que este relatorio — a '
+                + 'medicao pode ser de uma entrega anterior. Rode a suite de novo antes de '
+                + 'afirmar o numero.\n';
+        }
+    } catch { /* sem src/ ou stat falhou — segue sem o aviso de validade */ }
+
+    const fmt = (n: number) => `${n.toFixed(2)}%`;
+    return CABECALHO
+        + `Linha: ${fmt(linhasPct)}\n`
+        + `Branch: ${branchesPct === null ? 'nao reportado pelo runner' : fmt(branchesPct)}\n`
+        + `Fonte: ${fonte}\n`
+        + fonteDesatualizada
+        + 'Este numero foi lido do disco pelo Hub. USE ELE no relatorio, nao recalcule nem estime. '
+        + 'A linha obrigatoria do Relatorio de Implementacao deve ser preenchida com estes valores '
+        + 'e com este caminho de arquivo como fonte.\n';
+}
+
 export function readCoverageReport(rootPath: string, stackId: string): string {
+    if (stackId === 'angular' || stackId === 'node') { return lerCoberturaJs(rootPath); }
     if (stackId !== 'spring_boot') { return ''; }
     const csvPath = path.join(rootPath, 'target', 'site', 'jacoco', 'jacoco.csv');
     if (!fs.existsSync(csvPath)) {
@@ -719,13 +844,70 @@ export function readProjectStackInfo(rootPath: string, stackId: string): string 
         const angularVersion: string | undefined = deps['@angular/core'];
         const usesVitest = !!deps['vitest'];
         const usesJasmine = !!deps['jasmine-core'] || fs.existsSync(path.join(rootPath, 'karma.conf.js'));
+        // Jest faltava aqui. Em 19/08/2026, num projeto Angular com jest 29.7 + jest-preset-angular,
+        // as duas flags acima davam falso, nenhuma linha de framework era injetada, e a Constituicao
+        // caia no padrao do playbook ("Vitest preferido em v21+") — orientando a stack errada.
+        const usesJest = !!deps['jest'] || !!deps['jest-preset-angular']
+            || ['jest.config.js', 'jest.config.ts', 'jest.config.mjs']
+                .some(f => fs.existsSync(path.join(rootPath, f)));
+
+        // Arquitetura real. A versao do package.json NAO responde isto: um projeto pode estar em
+        // Angular 21 e continuar sendo NgModule. Sem este fato a Constituicao afirmava
+        // "app.config.ts / app.routes.ts" e "NgModule e legado" em projeto modular — e a instruction
+        // sempre-ativa repetia "NgModule e proibido" em cima de codigo que e todo NgModule.
+        const temAppModule = fs.existsSync(path.join(rootPath, 'src', 'app', 'app.module.ts'));
+        const temAppConfig = fs.existsSync(path.join(rootPath, 'src', 'app', 'app.config.ts'));
+        const temRoutes = fs.existsSync(path.join(rootPath, 'src', 'app', 'app.routes.ts'));
+        const temDomains = fs.existsSync(path.join(rootPath, 'src', 'domains'))
+            || fs.existsSync(path.join(rootPath, 'src', 'app', 'domains'));
+        const arquivoDeRotas = fs.existsSync(path.join(rootPath, 'src', 'app', 'app.routing.module.ts'))
+            ? 'src/app/app.routing.module.ts'
+            : (temRoutes ? 'src/app/app.routes.ts' : null);
+
+        // Onde fica configuracao de ambiente. `environment.ts` as vezes e so o stub do Angular CLI
+        // (`{ production: false }`) e o endpoint real vive num JSON lido em runtime — comum em
+        // micro-frontend. Mandar declarar endpoint no arquivo errado custa uma tarefa inteira.
+        const envPath = path.join(rootPath, 'src', 'environments', 'environment.ts');
+        let envEhStub = false;
+        try {
+            if (fs.existsSync(envPath)) {
+                const env = fs.readFileSync(envPath, 'utf-8');
+                envEhStub = !/https?:|\bapi\b|endpoint|baseUrl/i.test(env);
+            }
+        } catch { /* ilegivel — nao afirma nada */ }
+        const configJson = ['src/assets/config/config.json', 'src/assets/config.json']
+            .find(p => fs.existsSync(path.join(rootPath, ...p.split('/'))));
 
         let info = '\n--- STACK REAL DO PROJETO (detectado via package.json) ---\n';
         info += 'ATENÇÃO: calibre a Constituição/Plano à versão e ferramentas já instaladas abaixo. NÃO empurre a versão "ideal" do playbook (ex: migrar para Vitest, forçar Angular v20+) por cima de um projeto existente que já funciona — só proponha migração se o usuário pedir explicitamente.\n';
         info += PRECEDENCIA_STACK;
         if (angularVersion) { info += `Angular instalado: ${angularVersion}\n`; }
-        if (usesVitest) { info += 'Framework de teste já configurado: Vitest\n'; }
+        if (usesJest) { info += 'Framework de teste já configurado: Jest — NÃO sugerir Vitest nem Karma. Mock com `jest.fn()`/`jest.spyOn()`, execução com `npm test -- --coverage`.\n'; }
+        else if (usesVitest) { info += 'Framework de teste já configurado: Vitest\n'; }
         else if (usesJasmine) { info += 'Framework de teste já configurado: Jasmine/Karma — não sugerir npm install de Vitest para substituí-lo.\n'; }
+
+        if (temAppModule) {
+            info += 'Arquitetura real: **NgModule** — existe `src/app/app.module.ts` e NÃO existe `src/app/app.config.ts`. '
+                + 'Esta é a arquitetura vigente e está correta: NÃO afirme que `NgModule` é legado ou proibido, '
+                + 'NÃO mande validar/criar `app.config.ts` nem `app.routes.ts`, e NÃO proponha migrar para Standalone. '
+                + 'Componente novo deve ser declarado no módulo da feature, no mesmo padrão dos vizinhos.\n';
+        } else if (temAppConfig) {
+            info += 'Arquitetura real: **Standalone** — existe `src/app/app.config.ts`. Providers globais vão nele.\n';
+        }
+        if (temDomains) {
+            info += 'Arquitetura real: há pasta `domains/` — projeto organizado em **Vertical Slice (DUPE)**. Respeite a fronteira entre domínios.\n';
+        }
+        if (arquivoDeRotas) { info += `Arquivo de rotas real: \`${arquivoDeRotas}\` — registre rota nova nele, não em outro nome.\n`; }
+
+        if (configJson) {
+            info += `Configuração de ambiente: o endpoint real vive em \`${configJson}\``;
+            info += envEhStub
+                ? ' (o `environment.ts` é só o stub do Angular CLI, sem endpoint — NÃO declare endpoint nele).\n'
+                : ' — confirme qual dos dois a feature deve usar antes de declarar endpoint.\n';
+        } else if (envEhStub) {
+            info += 'Atenção: `src/environments/environment.ts` não tem endpoint algum (parece stub do Angular CLI). '
+                + 'Procure onde este projeto realmente guarda configuração antes de mandar declarar endpoint nele.\n';
+        }
         return info;
     } catch {
         return '';

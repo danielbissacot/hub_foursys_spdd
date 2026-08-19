@@ -813,6 +813,26 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
             copySkillsFrom(activeSkillsPath);
             copySkillsFrom(path.join(activeSkillsPath, 'skills'));
 
+            // 2a. Persona da stack (AGENTE_*.md). Fica SOLTA na raiz da pasta da stack, e
+            // copySkillsFrom so percorre subpastas — por isso nenhuma persona chegava aqui, em
+            // nenhuma stack, desde sempre. O implementSkillTag apontava para uma skill que nao
+            // existia, personaSkillTagIfAvailable devolvia null e o Implement rodava sem ela.
+            //
+            // Ligado SO em angular/node de proposito: a persona acrescenta uma frase ao prompt do
+            // Implement ("invoque a Skill: ..."), o que MUDA o comportamento da fase. O fluxo de
+            // spring_boot foi validado ponta a ponta em 18/08/2026 justamente sem persona, e
+            // ligar aqui exigiria revalidar aquele fluxo. Para o Java passar a usar, basta somar
+            // 'spring_boot' a esta condicao e colocar o AGENTE_SPRING_FOURSYS.md no catalogo
+            // embutido — mas com teste dedicado, nao de carona.
+            if (stackId === 'angular' || stackId === 'node') {
+                const persona = path.join(activeSkillsPath, config.agentFileName);
+                if (fs.existsSync(persona)) {
+                    const nome = path.basename(config.agentFileName, '.md')
+                        .toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                    fs.copyFileSync(persona, path.join(skillsDir, `${nome}.md`));
+                }
+            }
+
             // 2b. Skills compartilhadas (agnósticas de stack: playwright, tdd, verificacao, code-review)
             const sharedSkillsPath = path.join(catalogPath, 'agents_skills', 'shared', 'skills');
             copySkillsFrom(sharedSkillsPath);

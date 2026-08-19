@@ -28,15 +28,22 @@ e comente a diferença em vez de impor.
 
 ---
 
-## Stack Obrigatória (projetos v20+)
+## Stack Alvo (para código NOVO em projeto v20+)
+
+> **Leia a arquitetura do projeto antes.** Existe `src/app/app.module.ts` e NÃO existe
+> `src/app/app.config.ts`? Então o projeto é **NgModule**, isso está correto, e as regras de
+> Standalone/Signals abaixo valem apenas como referência para código novo — nunca como motivo para
+> recusar mexer no que existe, nem para propor migração.
 
 - **Framework:** Angular v20+
-- **Componentes:** Standalone Components — `NgModule` é proibido
+- **Componentes:** Standalone para código novo. **Em projeto que já usa `NgModule`, declare o
+  componente novo no módulo da feature, no padrão dos vizinhos** — `NgModule` não é erro, é a
+  arquitetura vigente daquele projeto. Standalone e `NgModule` convivem desde a v15.
 - **Reatividade:** Signals (`signal()`, `computed()`, `effect()`, `linkedSignal()`) como primitivos principais
 - **HTTP:** `httpResource()` ou `resource()` como primeira opção **em v20+**; em v18/v19 use `HttpClient` (+ `toSignal()`), pois `httpResource()` não existe nessas versões
-- **Change Detection:** `OnPush` obrigatório em todos os componentes
-- **Injeção de Dependência:** `inject()` pattern obrigatório — proibido `constructor(private service: Service)`
-- **Control Flow:** `@if`, `@for` com `track` obrigatório, `@switch` — proibido `*ngIf`, `*ngFor`, `*ngSwitch`
+- **Change Detection:** `OnPush` em todo componente **novo**. Em componente existente sem OnPush, não altere só para adequar — mudar estratégia de detecção em código em produção pode quebrar comportamento.
+- **Injeção de Dependência:** `inject()` em código novo. Em arquivo existente que já usa constructor injection, siga o padrão do arquivo — misturar os dois estilos na mesma classe é pior que qualquer um deles
+- **Control Flow:** `@if`, `@for` com `track`, `@switch` em template novo. Em template existente que usa `*ngIf`/`*ngFor`, siga o padrão dele — não reescreva o arquivo só para trocar de sintaxe
 - **Visibilidade:** `protected` para membros acessados no template — proibido `private`
 - **Testes:** Vitest preferido (v21+); Jasmine aceito em projetos existentes
 
@@ -107,7 +114,7 @@ export class MyComponent {
   private readonly service = inject(MyService);
 }
 
-// ❌ Proibido
+// ❌ Evite em código novo (mas mantenha se o arquivo existente já usa este estilo)
 export class MyComponent {
   constructor(private service: MyService) {}
 }
@@ -126,9 +133,11 @@ export class MyComponent {
 })
 export class MyComponent {}
 
-// ❌ Proibido
+// ❌ NÃO crie um módulo novo só para declarar um componente novo
 @NgModule({ declarations: [MyComponent] })
 export class MyModule {}
+// (Em projeto que JÁ é NgModule, declarar o componente novo no módulo de feature
+//  que já existe é o certo — o errado acima é criar um módulo do zero.)
 ```
 
 ### Control Flow moderno
@@ -143,7 +152,7 @@ export class MyModule {}
   <li>{{ item.name }}</li>
 }
 
-<!-- ❌ Proibido -->
+<!-- ❌ Evite em template novo (mantenha se o template existente já usa este estilo) -->
 <span *ngIf="user">{{ user.name }}</span>
 <li *ngFor="let item of items">{{ item.name }}</li>
 ```
@@ -153,7 +162,8 @@ export class MyModule {}
 ## Roteamento
 
 ```typescript
-// app.routes.ts — lazy loading obrigatório para features
+// Arquivo de rotas do projeto (`app.routes.ts` em standalone, `app.routing.module.ts` em NgModule)
+// Lazy loading para features
 export const routes: Routes = [
   {
     path: 'pagamentos',
@@ -188,9 +198,9 @@ export const routes: Routes = [
 
 1. **Siga o Plano:** Não invente componentes ou serviços fora da task list
 2. **FILEPATH:** Todo arquivo gerado deve ter `// FILEPATH:` no topo
-3. **Standalone obrigatório:** Nunca gere `NgModule`
-4. **Signals primeiro:** Prefira `signal()` a `BehaviorSubject` para estado local
+3. **Standalone em código novo:** prefira Standalone ao criar do zero. Em projeto `NgModule`, respeite o módulo existente e declare nele — nunca proponha migração de arquitetura sem pedido explícito
+4. **Signals primeiro — se o projeto já os usa:** prefira `signal()` a `BehaviorSubject` para estado local. Em base 100% RxJS, não introduza Signals isolados: dois modelos de estado convivendo é pior que um só
 5. **httpResource primeiro — só se o projeto for v20+:** confira `@angular/core` antes. Em v18/v19 use `HttpClient` (+ `toSignal()`), porque `httpResource()` não existe nessas versões
 6. **OnPush sempre:** Todo componente deve ter `changeDetection: ChangeDetectionStrategy.OnPush`
-7. **inject() pattern:** Nunca use parâmetros no construtor para DI
+7. **inject() pattern:** use em código novo; em arquivo que já usa construtor, mantenha o padrão dele
 8. **Acessibilidade:** Aplique WCAG AA em todos os elementos interativos

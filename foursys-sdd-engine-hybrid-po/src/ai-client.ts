@@ -23,10 +23,24 @@ export interface SendPromptResult {
     credits?: number;
 }
 
+/** Imagem anexada ao prompt (mockup de tela). Ver PHASES_NEEDING_MOCKUP em extension.ts. */
+export interface PromptImage {
+    data: Uint8Array;
+    /** `image/png`, `image/jpeg` ou `image/webp` — o que LanguageModelDataPart.image aceita. */
+    mime: string;
+    name: string;
+}
+
 // Erros transitórios do provedor (limite de taxa) valem retry/fallback; outros erros (recusa,
 // permissão, resposta inválida) não se resolvem sozinhos e devem propagar na hora.
 function isRateLimitError(error: any): boolean {
     return /rate limit|too many requests|429/i.test(error?.message ?? String(error));
+}
+
+// Erros levantados pela nossa própria validação de saída (_sendToModel), não pela API. Reenviar
+// sem a imagem não resolveria nenhum dos dois — serve para não gastar uma segunda chamada à toa.
+function isValidacaoDeSaida(error: any): boolean {
+    return /IA recusou a solicitação|Resposta da IA muito curta/i.test(error?.message ?? String(error));
 }
 
 export class AIClient {
@@ -36,7 +50,8 @@ export class AIClient {
         outputChannel: vscode.OutputChannel,
         token: vscode.CancellationToken,
         onChunk?: (chunk: string) => void,
-        phaseType: 'light' | 'mini' | 'implement' | 'standard' = 'standard'
+        phaseType: 'light' | 'mini' | 'implement' | 'standard' = 'standard',
+        images?: PromptImage[]
     ): Promise<SendPromptResult> {
         outputChannel.appendLine(`[IA] Enviando prompt para o modelo de IA...`);
 
@@ -66,13 +81,26 @@ export class AIClient {
             // Padrão User/Assistant simula system message (vscode.lm não expõe role System).
             // O modelo trata a resposta prévia do assistente como "compromisso" com as instruções,
             // reduzindo drasticamente desvios e alucinações.
-            const messages = [
+            //
+            // O mockup vai como IMAGEM de verdade (LanguageModelDataPart.image), não como caminho
+            // de arquivo. Em 18/08/2026 medimos que o texto "existe um mockup em tal pasta" não faz
+            // o modelo abrir o arquivo: rodamos o Specify com e sem o mockup na pasta certa e o
+            // INVEST deu 68% nas duas, sem uma única menção à tela. O ponteiro não chega, a imagem chega.
+            const contextoTexto = `EXECUTAR AGORA SOBRE ESTE CONTEXTO:\n${userPrompt}`;
+            const temImagem = !!images && images.length > 0;
+            const montarMensagens = (comImagem: boolean): vscode.LanguageModelChatMessage[] => [
                 vscode.LanguageModelChatMessage.User(systemPrompt),
                 vscode.LanguageModelChatMessage.Assistant(
                     'Entendido. Seguirei estritamente o playbook.'
                 ),
-                vscode.LanguageModelChatMessage.User(`EXECUTAR AGORA SOBRE ESTE CONTEXTO:\n${userPrompt}`)
+                comImagem
+                    ? vscode.LanguageModelChatMessage.User([
+                        new vscode.LanguageModelTextPart(contextoTexto),
+                        ...images!.map(img => vscode.LanguageModelDataPart.image(img.data, img.mime))
+                    ])
+                    : vscode.LanguageModelChatMessage.User(contextoTexto)
             ];
+            const messages = montarMensagens(temImagem);
 
             // Rate limit costuma ser rajada de requisições da conta (não cota por modelo) — repetir
             // o MESMO modelo várias vezes só empilha mais pedidos na mesma rajada e piora o throttle.
@@ -87,6 +115,13 @@ export class AIClient {
                     return await AIClient._sendToModel(model, messages, outputChannel, token, onChunk);
                 } catch (error: any) {
                     lastError = error;
+                    // Nem todo modelo do Copilot aceita parte de imagem, e quem não aceita falha na
+                    // própria chamada. Refaz UMA vez sem a imagem para que anexar um mockup nunca
+                    // quebre uma fase que já funcionava sem ele — o pior caso volta a ser o de hoje.
+                    if (temImagem && !isRateLimitError(error) && !isValidacaoDeSaida(error)) {
+                        outputChannel.appendLine(`[IA] ${model.family} não aceitou o mockup como imagem — refazendo sem a imagem.`);
+                        return await AIClient._sendToModel(model, montarMensagens(false), outputChannel, token, onChunk);
+                    }
                     if (!isRateLimitError(error)) { throw error; } // erro definitivo — não adianta retry
 
                     const hasNext = i + 1 < candidates.length && i + 1 < MAX_TOTAL_ATTEMPTS;

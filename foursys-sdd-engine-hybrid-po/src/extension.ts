@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { AIClient } from './ai-client';
+import { AIClient, PromptImage } from './ai-client';
 import { ensureFoursysAccess, unlockAccessWithCode } from './access-gate';
 import { loadPlaybookForStack, findCatalogPath, detectTechnology, resolveSkillMdFile } from './engine/catalog-loader';
 import { FoursysSDDSidebarProvider } from './sidebar-provider';
@@ -550,6 +550,37 @@ Este design é o mockup da User Story em ${userStoryRelPath}`;
     context.subscriptions.push(registerGated('foursys.syncPersonalCopilot', () => syncPersonalCopilot(context, outputChannel)));
 }
 
+// Fases que recebem o mockup como IMAGEM anexada. São as três que decidem O QUE construir:
+// specify define os critérios de aceite, plan a arquitetura e tasks a lista de tarefas — se a
+// tela não entra aqui, o Implement nunca recebe tarefa para construí-la (medido em 18/08/2026:
+// a Task List do Angular não criou nenhuma tarefa para o card de retenção do mockup).
+// Fora dessa lista não anexa nada: história sem mockup (o caso normal em Java) segue idêntica.
+const PHASES_NEEDING_MOCKUP = new Set(['specify', 'plan', 'tasks']);
+
+// LanguageModelDataPart.image aceita imagem rasterizada. SVG fica de fora de propósito:
+// continua sendo citado por caminho no texto, como já era.
+const MOCKUP_MIME_POR_EXTENSAO: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+};
+
+/** Lê os mockups da pasta `screens/` da história ativa para anexar ao prompt. */
+function lerMockups(storyDir: string): PromptImage[] {
+    const screensDir = path.join(storyDir, 'screens');
+    if (!fs.existsSync(screensDir)) { return []; }
+    const imagens: PromptImage[] = [];
+    for (const nome of fs.readdirSync(screensDir)) {
+        const mime = MOCKUP_MIME_POR_EXTENSAO[path.extname(nome).toLowerCase()];
+        if (!mime) { continue; }
+        try {
+            imagens.push({ data: new Uint8Array(fs.readFileSync(path.join(screensDir, nome))), mime, name: nome });
+        } catch { /* arquivo ilegível: segue sem ele, não derruba a fase */ }
+    }
+    return imagens;
+}
+
 async function executeSDDPhase(
     command: string,
     userInstruction: string,
@@ -906,18 +937,21 @@ async function executeSDDPhase(
             userContext += readProjectMap(rootPath, stackId);
         }
 
-        // Nota de mockup de tela (apenas para specify). Usa path.dirname(outputPath) em vez de
-        // storyDocPath porque o slug da história pode ter acabado de ser criado/trocado acima.
-        if (command === 'specify') {
-            const activeStoryDir = path.dirname(outputPath);
-            const screensDir = path.join(activeStoryDir, 'screens');
-            const screensRelPath = path.relative(rootPath, screensDir).replace(/\\/g, '/');
-            if (fs.existsSync(screensDir)) {
-                const mockupFiles = fs.readdirSync(screensDir).filter(f => /\.(png|jpg|jpeg|svg|webp)$/i.test(f));
-                if (mockupFiles.length > 0) {
-                    userContext += `\nATENÇÃO: Existe um mockup de tela em ${screensRelPath}/ (${mockupFiles.join(', ')}). Use-o como referência visual para refinar os critérios de aceite e detalhar a User Story.\n`;
-                }
+        // Mockup de tela. Usa path.dirname(outputPath) em vez de storyDocPath porque o slug da
+        // história pode ter acabado de ser criado/trocado acima.
+        const activeStoryDir = path.dirname(outputPath);
+        let mockups: PromptImage[] = [];
+        if (PHASES_NEEDING_MOCKUP.has(command)) {
+            mockups = lerMockups(activeStoryDir);
+            if (mockups.length > 0) {
+                userContext += `\nATENÇÃO: o mockup da tela está ANEXADO como imagem nesta mensagem `
+                    + `(${mockups.map(m => m.name).join(', ')}). Olhe a imagem e trate o que ela mostra como `
+                    + `a tela a ser entregue. Se a imagem contiver mais de uma região (ex.: uma tela de fundo `
+                    + `que já existe e um card/modal por cima), a entrega é a região destacada pela história — `
+                    + `descreva na sua saída qual região você entendeu como escopo, para o PO poder corrigir.\n`;
             }
+        }
+        if (command === 'specify') {
             const figmaRefPath = path.join(activeStoryDir, 'screens', 'figma_ref.txt');
             if (fs.existsSync(figmaRefPath)) {
                 const figmaUrl = fs.readFileSync(figmaRefPath, 'utf-8').trim();
@@ -944,7 +978,7 @@ async function executeSDDPhase(
 
         const { text: fullText, totalTokens, credits } = await AIClient.sendPrompt(systemPrompt, finalPrompt, outputChannel, token, (chunk) => {
             if (chatResponse) { chatResponse.markdown(chunk); }
-        }, phaseType);
+        }, phaseType, mockups);
 
         // qa-report/qa-coverage pedem ao playbook uma versão HTML executiva embutida num bloco
         // ```html``` — extrai esse bloco para um arquivo .html irmão e mantém o .md só com Markdown.

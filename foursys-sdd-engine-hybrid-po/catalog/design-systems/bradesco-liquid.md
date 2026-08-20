@@ -185,3 +185,19 @@ Exemplos: `brad-m-md-b` · `brad-p-lg` · `brad-m-none-t` · `brad-p-sm-x`
 4. **Painel que sobe de baixo é `brad-bottom-sheet`**, não `brad-modal`.
 5. Se precisar de componente que não está neste documento, **diga isso explicitamente** em vez de
    inventar a classe. O DS completo tem ~2.900 classes; este resumo cobre as mais usadas.
+
+### Quando o que você precisa não está aqui
+
+**Classe inventada é pior que classe ausente** — parece que funciona e não funciona, e só aparece
+quando alguém abre a tela.
+
+O caso mais comum é ilustração: o Liquid tem **centenas** de `brad-illustration__content--*`
+(nomes como `--cartao-suc-limite`, `--barra-de-progresso-ale-aumento-de-limite`) e este documento
+não lista nenhuma. Vale o mesmo para ícone, gráfico e variantes raras de componente.
+
+Nesses casos:
+
+1. **Não escreva a classe.** Deixe o elemento sem ela.
+2. Acrescente um comentário no HTML dizendo o que era esperado ali:
+   `<!-- TODO: ilustração de ajuste de limite — confirmar nome exato da classe com o time de design -->`
+3. Registre em **Pendências** do relatório que o nome precisa ser confirmado.

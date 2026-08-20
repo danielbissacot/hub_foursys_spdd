@@ -104,7 +104,24 @@ function instrucaoDeImplement(rootPath: string, context: vscode.ExtensionContext
     const instrucao = skillTag
         ? `Inicie a codificação estritamente de acordo com as tarefas listadas e invoque a Skill: ${skillTag}.`
         : 'Inicie a codificação estritamente de acordo com as tarefas listadas.';
-    return `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. ${instrucao}`;
+    // As fases de QA recebem essa guarda pelo prompt-context (readCoverageReport). O Implement nao
+    // passa por la — monta a instrucao aqui e abre o chat direto —, entao a tarefa de evidencia
+    // ficava sem regra nenhuma. Medido em 20/08/2026 no Projeto Hub, sem node_modules instalado: a
+    // evidencia saiu com "Status: APROVADO", "Cobertura esperada >= 95%" e "acessibilidade
+    // verificada via ARIA no DOM", e o relatorio final declarou "WCAG AA garantida" e "APROVADO
+    // PARA REVISAO DE CODIGO" — enquanto listava, nos proximos passos, executar os testes e validar
+    // a acessibilidade. Nada tinha rodado. No dia anterior, mesma situacao, ela foi honesta por
+    // conta propria: sem guarda o comportamento e sorteio.
+    return `Leia os arquivos ${buildImplementFileList(rootPath, context)} deste workspace. ${instrucao}\n\n`
+        + 'REGRA DE EVIDÊNCIA (vale para as tarefas de evidência e para o relatório final): '
+        + 'só afirme que algo foi testado, medido ou validado se você EXECUTOU o comando e VIU o '
+        + 'resultado nesta sessão. Se a execução falhar ou não for possível (dependência ausente, '
+        + 'rede indisponível, ferramenta não instalada), registre o bloqueio com o erro real, '
+        + 'mantenha a tarefa como `[ ]` e NÃO declare status de aprovação. '
+        + 'É proibido escrever percentual de cobertura, "testes passando", "acessibilidade '
+        + 'verificada/garantida" ou "aprovado" a partir de leitura de código: ler o teste não é '
+        + 'executá-lo, e ler um `aria-label` não é validar acessibilidade. '
+        + 'Contar o que existe no arquivo é permitido, desde que rotulado como contagem e não como resultado.';
 }
 
 async function openFile(filePath: string) {

@@ -61,6 +61,44 @@ async function ensureMendAdvise(
 
 /** Monta a lista "a, b, c e d" dos arquivos que o Implement precisa ler: constitution.md fica em
  *  doc_projeto/ (nível de projeto), os demais na subpasta da história ativa (se houver uma). */
+/**
+ * Copia o Design System selecionado para dentro do workspace, para o Implement poder ler.
+ *
+ * As fases que passam pelo executeSDDPhase recebem o DS injetado no prompt (readDesignSystem). O
+ * Implement nao passa por la: monta uma instrucao de texto e abre o chat, e o Copilot so enxerga
+ * arquivo que esteja DENTRO do workspace — o catalogo vive em globalStorage ou na pasta da
+ * extensao. Colar o conteudo na query nao serve: o arquivo do Liquid tem 7,7 KB.
+ *
+ * Medido em 20/08/2026: com o DS chegando so ate a Task List, o Implement acertou o componente
+ * (`brad-bottom-sheet`, que a Task List citava) mas errou o que ela nao citava — saiu
+ * `brad-btn--primary` e `brad-btn--secondary` (o Liquid usa traco simples nessas duas) e
+ * `brad-text-align-center`, que nao existe. Sem o documento na frente, ela generaliza a partir do
+ * `brad-btn--md` que viu e aplica traco duplo em tudo.
+ *
+ * @returns caminho relativo do arquivo escrito, ou null se nao ha DS selecionado.
+ */
+function materializarDesignSystem(rootPath: string, context: vscode.ExtensionContext): string | null {
+    const ativo = context.workspaceState.get<string>('activeDesignSystem');
+    if (!ativo || ativo === 'none') { return null; }
+    const bases = [
+        findCatalogPath(rootPath, context.globalState.get<string>('catalogPath') || ''),
+        path.join(context.extensionUri.fsPath, 'catalog')
+    ].filter((p): p is string => !!p);
+
+    for (const base of bases) {
+        const origem = path.join(base, 'design-systems', `${ativo}.md`);
+        if (!fs.existsSync(origem)) { continue; }
+        try {
+            const destino = path.join(getDocPath(rootPath), 'design_system.md');
+            const cabecalho = `<!-- Copia do Design System "${ativo}" do catalogo do Hub, gerada para o Implement.\n`
+                + '     Nao edite aqui: a fonte e o catalogo, e este arquivo e sobrescrito a cada Implement. -->\n\n';
+            fs.writeFileSync(destino, cabecalho + fs.readFileSync(origem, 'utf-8'), 'utf-8');
+            return path.relative(rootPath, destino).replace(/\\/g, '/');
+        } catch { /* sem permissao de escrita — segue sem DS, como antes */ }
+    }
+    return null;
+}
+
 function buildImplementFileList(rootPath: string, context: vscode.ExtensionContext): string {
     const storyDocPath = resolveStoryDocPath(rootPath, context);
     const rel = (p: string) => path.relative(rootPath, p).replace(/\\/g, '/');
@@ -70,6 +108,8 @@ function buildImplementFileList(rootPath: string, context: vscode.ExtensionConte
         rel(path.join(storyDocPath, 'implementation_plan.md')),
         rel(path.join(storyDocPath, 'task_list.md')),
     ];
+    const ds = materializarDesignSystem(rootPath, context);
+    if (ds) { files.push(ds); }
     return `${files.slice(0, -1).join(', ')} e ${files[files.length - 1]}`;
 }
 
@@ -121,7 +161,14 @@ function instrucaoDeImplement(rootPath: string, context: vscode.ExtensionContext
         + 'É proibido escrever percentual de cobertura, "testes passando", "acessibilidade '
         + 'verificada/garantida" ou "aprovado" a partir de leitura de código: ler o teste não é '
         + 'executá-lo, e ler um `aria-label` não é validar acessibilidade. '
-        + 'Contar o que existe no arquivo é permitido, desde que rotulado como contagem e não como resultado.';
+        + 'Contar o que existe no arquivo é permitido, desde que rotulado como contagem e não como resultado.'
+        // Sem esta frase a IA le o arquivo do DS mas generaliza a convencao: em 20/08 saiu
+        // `brad-btn--primary` porque ela tinha visto `brad-btn--md` e assumiu traco duplo para tudo.
+        + '\n\nREGRA DE DESIGN SYSTEM: se a lista acima incluir `design_system.md`, ele é a fonte '
+        + 'dos nomes de classe de tela. Copie cada nome LETRA POR LETRA de lá. O Liquid mistura '
+        + 'traço simples e duplo dependendo do componente — `brad-btn-primary` tem um traço, '
+        + '`brad-btn--md` tem dois; não deduza um a partir do outro. Classe que não estiver no '
+        + 'documento não existe: se precisar de algo que não está lá, diga isso em vez de inventar.';
 }
 
 /** Stacks cujo entregavel tem tela — as unicas em que perguntar por imagem faz sentido. */

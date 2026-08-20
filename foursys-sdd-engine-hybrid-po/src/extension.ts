@@ -18,6 +18,8 @@ import {
     readCoverageReport,
     PHASES_NEEDING_PROJECT_MAP,
     PHASES_NEEDING_COVERAGE,
+    PHASES_NEEDING_DESIGN_SYSTEM,
+    readDesignSystem,
     PHASES_NEEDING_STORY_FOLDER,
     readStoryFolderInfo,
     detectarPlaceholders,
@@ -926,6 +928,12 @@ async function executeSDDPhase(
         }
         if (PHASES_NEEDING_COVERAGE.has(command)) {
             userContext += readCoverageReport(rootPath, stackId);
+        }
+        if (PHASES_NEEDING_DESIGN_SYSTEM.has(command)) {
+            userContext += readDesignSystem(
+                [catalogPath, builtinCatalogPath],
+                context.workspaceState.get<string>('activeDesignSystem')
+            );
         }
         if (PHASES_NEEDING_STORY_FOLDER.has(command)) {
             userContext += readStoryFolderInfo(rootPath, storyDocPath);

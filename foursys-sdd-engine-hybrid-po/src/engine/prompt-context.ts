@@ -527,6 +527,47 @@ export const COVERAGE_MIN_BRANCH = 90;
 /** Fases que decidem "pronto para homologacao" e por isso precisam do numero medido. */
 export const PHASES_NEEDING_COVERAGE = new Set(['qa-coverage', 'qa-report']);
 
+/** Fases que decidem OU escrevem componente de tela. `specify` fica de fora de proposito: ele
+ *  trata de negocio, e encher o prompt dele com nome de classe CSS so gasta token. */
+export const PHASES_NEEDING_DESIGN_SYSTEM = new Set(['plan', 'tasks', 'implement']);
+
+/**
+ * Injeta o Design System selecionado pelo usuario no contexto da fase.
+ *
+ * O DS ja era copiado para as customizacoes do Copilot (ver _injectCopilotCustomizations), o que
+ * cobre o chat livre — mas as fases do SDD montam o proprio prompt e nunca o incluiam. Resultado
+ * medido em 20/08/2026 no Projeto Hub, gerando um modal com o Liquid selecionado: a IA acertou
+ * `brad-modal` e `brad-modal__content` por IMITACAO do codigo que ja existia no projeto, e
+ * inventou o resto — saiu `brad-button brad-button--primary brad-button--lg` quando o Liquid
+ * define `brad-btn brad-btn-primary` e nem tem tamanho `lg`; e `brad-modal__close`, que nao existe
+ * no DS. Onde ha exemplo no projeto ela copia, onde nao ha ela inventa.
+ *
+ * Sem DS selecionado devolve string vazia — nenhuma fase muda de comportamento, e stack que nao
+ * usa DS (Java) segue exatamente como hoje.
+ */
+export function readDesignSystem(
+    catalogPaths: (string | null)[],
+    activeDesignSystem: string | undefined
+): string {
+    if (!activeDesignSystem || activeDesignSystem === 'none') { return ''; }
+    for (const base of catalogPaths) {
+        if (!base) { continue; }
+        const dsPath = path.join(base, 'design-systems', `${activeDesignSystem}.md`);
+        if (!fs.existsSync(dsPath)) { continue; }
+        try {
+            const conteudo = fs.readFileSync(dsPath, 'utf-8');
+            return '\n--- DESIGN SYSTEM DO PROJETO (obrigatorio) ---\n'
+                + `Este projeto usa o Design System **${activeDesignSystem}**. Use EXATAMENTE os nomes de `
+                + 'classe, a estrutura e as APIs definidos abaixo ao criar ou alterar componente de tela. '
+                + 'NAO invente variacao de nome de classe nem tamanho que nao esteja aqui. '
+                + 'Se precisar de um componente que o Design System nao cobre, diga isso explicitamente '
+                + 'em vez de inventar a classe.\n\n'
+                + conteudo + '\n';
+        } catch { /* ilegivel — segue sem DS, como antes */ }
+    }
+    return '';
+}
+
 /**
  * Le target/site/jacoco/jacoco.csv e injeta o percentual JA CALCULADO.
  *

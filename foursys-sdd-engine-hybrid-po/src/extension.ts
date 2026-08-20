@@ -229,7 +229,8 @@ async function avisarSpecifyNaoRodado(
         {
             modal: true,
             detail: 'Ele avalia a história por INVEST e marca as suposições que o Plan vai assumir. '
-                + 'Histórias que vêm de outro sistema costumam ter lacunas que só aparecem aqui.'
+                + 'Rode para sua segurança: é aqui que aparecem as lacunas da história, antes de '
+                + 'virarem decisão técnica.'
         },
         RODAR, SEGUIR
     );

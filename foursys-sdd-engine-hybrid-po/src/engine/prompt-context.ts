@@ -558,10 +558,18 @@ export function readDesignSystem(
             const conteudo = fs.readFileSync(dsPath, 'utf-8');
             return '\n--- DESIGN SYSTEM DO PROJETO (obrigatorio) ---\n'
                 + `Este projeto usa o Design System **${activeDesignSystem}**. Use EXATAMENTE os nomes de `
-                + 'classe, a estrutura e as APIs definidos abaixo ao criar ou alterar componente de tela. '
-                + 'NAO invente variacao de nome de classe nem tamanho que nao esteja aqui. '
-                + 'Se precisar de um componente que o Design System nao cobre, diga isso explicitamente '
-                + 'em vez de inventar a classe.\n\n'
+                + 'classe, a estrutura e as APIs definidos abaixo ao criar ou alterar componente de tela.\n\n'
+                + 'REGRAS DE USO (o documento abaixo e um RESUMO, nao a lista completa):\n'
+                + '1. Copie o nome da classe LETRA POR LETRA do documento. Nao adapte para outra convencao.\n'
+                + '2. NAO use convencao BEM com dois tracos (`--`) a menos que o proprio documento use. '
+                + 'Se ele escreve `brad-btn-primary`, e com UM traco: `brad-btn--primary` esta errado.\n'
+                + '3. Modificador (variante, tamanho, estado) que NAO aparece no documento NAO EXISTE. '
+                + 'Nao invente `--block`, `--lg`, `--sm` e afins por analogia com outros frameworks.\n'
+                + '4. Elemento interno (`__algo`) so vale se estiver listado na estrutura do componente. '
+                + 'Se precisar de um elemento que nao esta la, use um elemento HTML comum com as classes '
+                + 'de layout/tipografia que existem, em vez de inventar um `__nome` novo.\n'
+                + '5. Se o Design System nao cobrir o componente de que voce precisa, diga isso '
+                + 'explicitamente na sua saida, em vez de inventar a classe.\n\n'
                 + conteudo + '\n';
         } catch { /* ilegivel — segue sem DS, como antes */ }
     }

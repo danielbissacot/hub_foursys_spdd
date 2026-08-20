@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { readProjectMap } from '../src/engine/prompt-context';
+import { readProjectMap, readCoverageReport } from '../src/engine/prompt-context';
 
 function escrever(root: string, relativo: string, conteudo = ''): void {
     const full = path.join(root, relativo);
@@ -122,4 +122,78 @@ describe('prompt-context.ts', () => {
             assert.ok(!mapa.includes('.cache'));
         });
     });
+
+    // A cobertura do Angular tem tres degraus: coverage-summary.json, lcov.info e, sem nenhum
+    // dos dois, o aviso de "nao afirme percentual". So o terceiro tinha sido exercitado — o
+    // ambiente do cliente esta com o npm install travado no Nexus, entao nunca houve arquivo real
+    // para ler. Numero errado e PIOR que numero nenhum aqui: o texto injetado manda a IA usar o
+    // valor sem recalcular, entao um erro de soma vira percentual errado afirmado com autoridade.
+    describe('readCoverageReport — leitura de cobertura JS', () => {
+        it('soma LF/LH e BRF/BRH de TODOS os registros do lcov, nao so do primeiro', () => {
+            escrever(tmpRoot, 'coverage/lcov.info', [
+                'TN:', 'SF:src/a.ts', 'LF:100', 'LH:85', 'BRF:20', 'BRH:15', 'end_of_record',
+                'TN:', 'SF:src/b.ts', 'LF:50', 'LH:40', 'BRF:10', 'BRH:8', 'end_of_record',
+                'TN:', 'SF:src/c.ts', 'LF:50', 'LH:25', 'BRF:10', 'BRH:2', 'end_of_record',
+            ].join(String.fromCharCode(10)));
+
+            const saida = readCoverageReport(tmpRoot, 'angular');
+
+            // 150/200 linhas e 25/40 branches
+            assert.ok(saida.includes('75.00%'), `esperava 75.00% de linha, veio: ${saida}`);
+            assert.ok(saida.includes('62.50%'), `esperava 62.50% de branch, veio: ${saida}`);
+            assert.ok(saida.includes('lcov.info'), 'deveria citar a fonte lida');
+        });
+
+        it('prefere coverage-summary.json quando existe, e usa os pct de la', () => {
+            escrever(tmpRoot, 'coverage/coverage-summary.json', JSON.stringify({
+                total: { lines: { pct: 91.5 }, branches: { pct: 88.25 } }
+            }));
+            // lcov com numeros DIFERENTES: se a saida trouxer estes, a precedencia esta invertida
+            escrever(tmpRoot, 'coverage/lcov.info',
+                ['SF:src/a.ts', 'LF:10', 'LH:1', 'BRF:10', 'BRH:1', 'end_of_record'].join(String.fromCharCode(10)));
+
+            const saida = readCoverageReport(tmpRoot, 'angular');
+
+            assert.ok(saida.includes('91.50%'), `esperava 91.50% do summary, veio: ${saida}`);
+            assert.ok(saida.includes('88.25%'), `esperava 88.25% do summary, veio: ${saida}`);
+            assert.ok(!saida.includes('10.00%'), 'nao podia ter usado o lcov havendo summary');
+        });
+
+        it('acha o lcov aninhado por nome de projeto, como o Karma escreve', () => {
+            escrever(tmpRoot, 'coverage/meu-projeto/lcov.info',
+                ['SF:src/a.ts', 'LF:200', 'LH:100', 'BRF:0', 'BRH:0', 'end_of_record'].join(String.fromCharCode(10)));
+
+            const saida = readCoverageReport(tmpRoot, 'angular');
+
+            assert.ok(saida.includes('50.00%'), `esperava 50.00% de linha, veio: ${saida}`);
+        });
+
+        it('diz que branch nao foi reportado quando BRF e zero, em vez de dividir por zero', () => {
+            escrever(tmpRoot, 'coverage/lcov.info',
+                ['SF:src/a.ts', 'LF:80', 'LH:60', 'BRF:0', 'BRH:0', 'end_of_record'].join(String.fromCharCode(10)));
+
+            const saida = readCoverageReport(tmpRoot, 'angular');
+
+            assert.ok(saida.includes('75.00%'), 'linha deveria sair normal');
+            assert.ok(!saida.includes('NaN'), 'nao pode vazar NaN para o prompt');
+            assert.ok(/nao reportado|não reportado/i.test(saida), `esperava aviso de branch ausente, veio: ${saida}`);
+        });
+
+        it('sem relatorio legivel, avisa para NAO afirmar percentual e nao inventa numero', () => {
+            const saida = readCoverageReport(tmpRoot, 'angular');
+
+            assert.ok(/NAO afirme|NÃO afirme/i.test(saida), 'deveria proibir afirmar percentual');
+            assert.ok(!/\d+[.,]\d+%/.test(saida), `nao podia conter percentual nenhum: ${saida}`);
+        });
+
+        it('nao dispara para spring_boot — o caminho do Maven segue intocado', () => {
+            escrever(tmpRoot, 'coverage/lcov.info',
+                ['SF:src/a.ts', 'LF:100', 'LH:99', 'BRF:0', 'BRH:0', 'end_of_record'].join(String.fromCharCode(10)));
+
+            const saida = readCoverageReport(tmpRoot, 'spring_boot');
+
+            assert.ok(!saida.includes('99.00%'), 'spring_boot nao pode ler lcov de projeto JS');
+        });
+    });
+
 });

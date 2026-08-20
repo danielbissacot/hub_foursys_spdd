@@ -61,6 +61,8 @@ Liste defeitos não resolvidos com:
 
 Caso contrário, detalhe as condições para aprovação.
 
+**Não encerre a resposta aqui.** Esta seção fecha apenas a parte em Markdown; a resposta só está completa depois da seção 8, que é obrigatória.
+
 ### 8. Versão HTML Executiva
 Além do relatório em Markdown acima, gere TAMBÉM uma versão HTML autocontida para apresentação executiva, em um único bloco de código de linguagem html (delimitado por três crases seguidas da palavra html, e três crases de fechamento). Use como base o arquivo `qa-report-template.html` fornecido no contexto do projeto: copie sua estrutura e CSS exatamente como estão, e substitua **todos** os placeholders `{{...}}` pelos dados reais deste relatório (nenhum placeholder pode restar no HTML final). Para as seções com comentário "Repita esta linha/item", duplique o elemento uma vez por item real (fluxo, defeito, lacuna, recomendação) e remova o comentário. Se algum dado não estiver disponível no contexto, escreva "não informado" no lugar do placeholder em vez de deixá-lo em branco.
 ```

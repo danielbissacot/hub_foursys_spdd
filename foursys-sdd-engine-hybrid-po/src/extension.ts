@@ -194,6 +194,61 @@ async function garantirReferenciaVisual(
     return false;
 }
 
+/**
+ * Avisa quando o Plan vai rodar sobre uma historia que nunca passou pelo Specify.
+ *
+ * Nao ha trava de ordem entre as fases: o Plan le o user_story.md do jeito que estiver. Em
+ * 18/08/2026, no Angular, a primeira rodada pulou o Specify e a ambiguidade central da historia
+ * ("o contrato chega selecionado ou o usuario escolhe?") nunca virou pergunta escrita — o Implement
+ * adivinhou e construiu a tela errada. O Specify e a unica fase que transforma lacuna em
+ * `[SUPOSICAO]` explicita antes de qualquer decisao tecnica.
+ *
+ * Aviso, nao bloqueio: historia vinda do fluxo de PO ja nasce refinada (po-stories gera no formato
+ * INVEST), e rodar o Specify por cima refina o refinamento — o proprio Specify sobrescreve o
+ * user_story.md, entao reexecutar cria eco. Quem ja refinou tem motivo legitimo para seguir.
+ *
+ * @returns true se o Plan pode prosseguir.
+ */
+async function avisarSpecifyNaoRodado(
+    userStoryPath: string,
+    outputChannel: vscode.OutputChannel
+): Promise<boolean> {
+    let conteudo = '';
+    try { conteudo = fs.readFileSync(userStoryPath, 'utf-8'); } catch { return true; }
+
+    // Marcas que so existem em documento que passou pelo Specify. Cobre tambem historia refinada
+    // por outro caminho (importada do fluxo de PO), que nao precisa do aviso.
+    const jaRefinada = /Pontua(ç|c)(ã|a)o.*INVEST|\[SUPOSI(Ç|C)(Ã|A)O|Diagn(ó|o)stico Original|Hist(ó|o)ria Refinada/i
+        .test(conteudo);
+    if (jaRefinada) { return true; }
+
+    const RODAR = '▶️ Rodar Specify agora';
+    const SEGUIR = '➡️ Seguir para o Plan mesmo assim';
+    const escolha = await vscode.window.showWarningMessage(
+        'O Specify não rodou nesta história.',
+        {
+            modal: true,
+            detail: 'Ele avalia a história por INVEST e marca as suposições que o Plan vai assumir. '
+                + 'Histórias que vêm de outro sistema costumam ter lacunas que só aparecem aqui.'
+        },
+        RODAR, SEGUIR
+    );
+
+    if (escolha === RODAR) {
+        outputChannel.appendLine('[SDD] Plan adiado — rodando o Specify primeiro.');
+        await vscode.commands.executeCommand('foursys.specify');
+        return false;
+    }
+    if (escolha === SEGUIR) {
+        outputChannel.appendLine('[SDD] Plan seguindo sem Specify (escolha do usuário).');
+        return true;
+    }
+    // Fechou sem escolher: nao roda nada. Diferente do popup de referencia visual, aqui nao ha
+    // aviso na tela — quem fechou a caixa quis sair, nao ficou preso.
+    outputChannel.appendLine('[SDD] Plan cancelado.');
+    return false;
+}
+
 async function openFile(filePath: string) {
     if (fs.existsSync(filePath)) {
         const doc = await vscode.workspace.openTextDocument(filePath);
@@ -972,6 +1027,12 @@ async function executeSDDPhase(
 
         // Historia ja escrita: este e o clique que ANALISA. Ultimo momento util para anexar a tela.
         if (!await garantirReferenciaVisual(rootPath, stackId, storyDocPath, context, outputChannel)) {
+            return;
+        }
+    }
+
+    if (command === 'plan') {
+        if (!await avisarSpecifyNaoRodado(path.join(storyDocPath, 'user_story.md'), outputChannel)) {
             return;
         }
     }

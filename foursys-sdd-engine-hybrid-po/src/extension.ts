@@ -167,8 +167,8 @@ async function garantirReferenciaVisual(
         'Esta história tem tela?',
         {
             modal: true,
-            detail: 'O Specify usa a imagem para entender o que deve ser construído. '
-                + 'Sem ela, a tela é deduzida do texto — e foi assim que já saiu componente errado.'
+            detail: 'Qual componente ou tela será criada? Anexe a imagem — esta informação é '
+                + 'necessária para apoiar a história.'
         },
         MOCKUP, FIGMA, SEM
     );

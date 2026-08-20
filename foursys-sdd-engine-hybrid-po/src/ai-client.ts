@@ -14,7 +14,19 @@ const PHASE_MODELS: Record<string, string[]> = {
     mini:      ['claude-haiku-4-5', 'gpt-5-mini'],
     implement: ['claude-haiku-4-5', 'claude-sonnet-4-6'],
     standard:  ['claude-haiku-4-5', 'gpt-5-mini'],
+    'qa-html': ['claude-haiku-4-5', 'gpt-5-mini'],
 };
+
+/** Cap de saida por fase, para respeitar cota empresarial. */
+const MAX_TOKENS_PADRAO = 3500;
+
+/** `qa-coverage` e `qa-report` pedem DOIS documentos numa resposta so: o Markdown mais uma versao
+ *  HTML executiva completa, com o CSS do template copiado inteiro. Medido em 20/08/2026 no
+ *  Angular: o Markdown sozinho saiu com 5.109 bytes (~1.400 tokens) e o template de HTML a
+ *  reproduzir tem 5.779 bytes (~1.600) — juntos raspam os 3.500 do teto, e a IA cortou a secao do
+ *  HTML sem avisar. O arquivo .html simplesmente nao era criado, e nada sinalizava a falta.
+ *  Nenhuma outra fase produz dois artefatos numa chamada, entao o teto maior fica so nestas duas. */
+const MAX_TOKENS_QA_HTML = 8000;
 
 export interface SendPromptResult {
     text: string;
@@ -50,7 +62,7 @@ export class AIClient {
         outputChannel: vscode.OutputChannel,
         token: vscode.CancellationToken,
         onChunk?: (chunk: string) => void,
-        phaseType: 'light' | 'mini' | 'implement' | 'standard' = 'standard',
+        phaseType: 'light' | 'mini' | 'implement' | 'standard' | 'qa-html' = 'standard',
         images?: PromptImage[]
     ): Promise<SendPromptResult> {
         outputChannel.appendLine(`[IA] Enviando prompt para o modelo de IA...`);
@@ -107,12 +119,13 @@ export class AIClient {
             // Por isso: no máximo 2 tentativas no total, cada uma num modelo candidato diferente,
             // com uma pausa entre elas em vez de martelar em sequência.
             const MAX_TOTAL_ATTEMPTS = 2;
+            const capSaida = phaseType === 'qa-html' ? MAX_TOKENS_QA_HTML : MAX_TOKENS_PADRAO;
 
             let lastError: any;
             for (let i = 0; i < candidates.length && i < MAX_TOTAL_ATTEMPTS; i++) {
                 const model = candidates[i];
                 try {
-                    return await AIClient._sendToModel(model, messages, outputChannel, token, onChunk);
+                    return await AIClient._sendToModel(model, messages, outputChannel, token, onChunk, capSaida);
                 } catch (error: any) {
                     lastError = error;
                     // Nem todo modelo do Copilot aceita parte de imagem, e quem não aceita falha na
@@ -120,7 +133,7 @@ export class AIClient {
                     // quebre uma fase que já funcionava sem ele — o pior caso volta a ser o de hoje.
                     if (temImagem && !isRateLimitError(error) && !isValidacaoDeSaida(error)) {
                         outputChannel.appendLine(`[IA] ${model.family} não aceitou o mockup como imagem — refazendo sem a imagem.`);
-                        return await AIClient._sendToModel(model, montarMensagens(false), outputChannel, token, onChunk);
+                        return await AIClient._sendToModel(model, montarMensagens(false), outputChannel, token, onChunk, capSaida);
                     }
                     if (!isRateLimitError(error)) { throw error; } // erro definitivo — não adianta retry
 
@@ -145,7 +158,8 @@ export class AIClient {
         messages: vscode.LanguageModelChatMessage[],
         outputChannel: vscode.OutputChannel,
         token: vscode.CancellationToken,
-        onChunk?: (chunk: string) => void
+        onChunk?: (chunk: string) => void,
+        capSaida: number = MAX_TOKENS_PADRAO
     ): Promise<SendPromptResult> {
         // Conta tokens de entrada — falha silenciosa se modelo não suportar countTokens
         let inputTokens = 0;
@@ -157,7 +171,7 @@ export class AIClient {
         // Temperatura 0.1: determinístico. maxTokens: cap de saída para respeitar cota empresarial.
         const response = await model.sendRequest(
             messages,
-            { modelOptions: { temperature: 0.1, maxTokens: 3500 } },
+            { modelOptions: { temperature: 0.1, maxTokens: capSaida } },
             token
         );
 

@@ -967,12 +967,17 @@ async function executeSDDPhase(
 
         if (chatResponse) { chatResponse.progress('IA gerando o documento SDD...'); }
 
-        const PHASE_TYPE: Record<string, 'light' | 'implement' | 'standard' | 'mini'> = {
+        const PHASE_TYPE: Record<string, 'light' | 'implement' | 'standard' | 'mini' | 'qa-html'> = {
             constitution:    'light',
             specify:         'mini',
             plan:            'light',
             tasks:           'light',
             implement:       'implement',
+            // Estas duas produzem Markdown E uma versão HTML executiva na MESMA resposta (ver a
+            // extração do bloco ```html``` logo abaixo). Com o cap padrão de 3.500 o Markdown
+            // consome quase tudo e o HTML é cortado sem aviso: o .html não é criado e nada sinaliza.
+            'qa-coverage':   'qa-html',
+            'qa-report':     'qa-html',
         };
         const phaseType = PHASE_TYPE[command] ?? 'standard';
 

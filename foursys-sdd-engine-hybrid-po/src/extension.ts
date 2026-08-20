@@ -401,6 +401,21 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(registerGated('foursys.addMockup', async () => {
         const rootPath = getWorkspaceRoot();
         if (!rootPath) { return; }
+
+        // Sem historia ativa, resolveStoryDocPath cai na raiz de doc_projeto/ e o mockup vai parar
+        // em doc_projeto/screens/ — pasta que NENHUMA fase procura, porque todas olham dentro da
+        // pasta da historia. Em 19/08/2026 isso custou uma rodada inteira: o Specify rodou "com
+        // mockup" e nao viu imagem nenhuma, sem nada avisando. Melhor barrar aqui.
+        if (!getActiveStorySlug(context)) {
+            const escolha = await vscode.window.showWarningMessage(
+                'Nenhuma história ativa. O mockup precisa ficar dentro da pasta da história para as fases '
+                + 'enxergarem — salvo agora, ele iria para uma pasta que ninguém lê.',
+                'Criar história primeiro'
+            );
+            if (escolha) { await vscode.commands.executeCommand('foursys.specify'); }
+            return;
+        }
+
         const files = await vscode.window.showOpenDialog({
             canSelectMany: false,
             filters: { 'Imagens': ['png', 'jpg', 'jpeg', 'svg', 'webp'] },

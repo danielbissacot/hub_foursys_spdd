@@ -1376,6 +1376,13 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                        </button>`
                 }
             </div>` : ''}
+            ${stackId === 'angular' || isMobile ? `
+            <div class="mockup-row">
+                <button class="btn-mockup-sm ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')"
+                    title="${mockupExists ? 'Ver/trocar mockup' : 'Adicionar Mockup de Tela — anexe ANTES de rodar o Specify'}">
+                    ${mockupExists ? '📸 ✅ Mockup' : '📸 Mockup'}
+                </button>
+            </div>` : ''}
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Constitution')">
                 <span class="step-number">0</span>
                 <span class="step-label"><span class="step-title">🏛️ Constitution</span><span class="step-sub">Governança & padrões</span></span>
@@ -1395,16 +1402,6 @@ export class FoursysSDDSidebarProvider implements vscode.WebviewViewProvider {
                     📁 Selecionar Arquivo
                 </button>
             </div>
-            ${stackId === 'angular' ? `
-            <div class="mockup-row">
-                <button class="btn-mockup-sm ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')"
-                    title="${mockupExists ? 'Ver/trocar mockup' : 'Adicionar Mockup de Tela'}">
-                    ${mockupExists ? '📸 ✅ Mockup' : '📸 Mockup'}
-                </button>
-            </div>` : isMobile ? `
-            <button class="btn-mockup ${mockupExists ? 'has-mockup' : ''}" onclick="sendAction('AddMockup')">
-                ${mockupExists ? '📸 Mockup: ✅ ver/trocar' : '📸 Adicionar Mockup de Tela'}
-            </button>` : ''}
             <button class="btn ${stackUnknown ? 'btn-alert' : ''}" onclick="sendAction('Plan')">
                 <span class="step-number">2</span>
                 <span class="step-label"><span class="step-title">📐 Plan (Técnico)</span><span class="step-sub">Especificação técnica</span></span>

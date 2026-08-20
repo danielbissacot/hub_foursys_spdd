@@ -124,6 +124,76 @@ function instrucaoDeImplement(rootPath: string, context: vscode.ExtensionContext
         + 'Contar o que existe no arquivo é permitido, desde que rotulado como contagem e não como resultado.';
 }
 
+/** Stacks cujo entregavel tem tela — as unicas em que perguntar por imagem faz sentido. */
+const STACKS_COM_TELA = new Set(['angular', 'ios', 'android']);
+
+/**
+ * Antes de o Specify ANALISAR a historia, obriga uma escolha sobre a referencia visual.
+ *
+ * Nenhuma posicao do botao de Mockup na barra lateral consegue representar o momento certo de
+ * anexar: e entre o 1o clique do Specify (que cria a pasta da historia) e o 2o (que analisa).
+ * Antes da pasta existir o arquivo vai para doc_projeto/screens/, que nenhuma fase le; depois do
+ * 2o clique ja e tarde, o refinamento saiu sem enxergar a tela. Em 19/08/2026 isso custou uma
+ * rodada inteira, com INVEST identico ao da rodada sem mockup e nada avisando.
+ *
+ * Modal e sem saida silenciosa: fechar no ESC cancela a fase, em vez de seguir sem imagem por
+ * omissao. Quem nao tem tela escolhe "seguir sem" e a escolha fica gravada na historia, para o
+ * popup nao voltar a cada reexecucao.
+ *
+ * @returns true se o Specify pode prosseguir.
+ */
+async function garantirReferenciaVisual(
+    rootPath: string,
+    stackId: string,
+    storyDocPath: string,
+    context: vscode.ExtensionContext,
+    outputChannel: vscode.OutputChannel
+): Promise<boolean> {
+    if (!STACKS_COM_TELA.has(stackId)) { return true; }
+
+    const screensDir = path.join(storyDocPath, 'screens');
+    const temImagem = fs.existsSync(screensDir)
+        && fs.readdirSync(screensDir).some(f => /\.(png|jpg|jpeg|svg|webp)$/i.test(f));
+    const temFigma = fs.existsSync(path.join(screensDir, 'figma_ref.txt'));
+    if (temImagem || temFigma) { return true; }
+
+    const chaveDispensa = `semImagem:${path.basename(storyDocPath)}`;
+    if (context.workspaceState.get<boolean>(chaveDispensa)) { return true; }
+
+    const MOCKUP = '📸 Adicionar mockup';
+    const FIGMA = '🎨 Importar do Figma';
+    const SEM = '➡️ Seguir sem imagem';
+    const escolha = await vscode.window.showInformationMessage(
+        'Esta história tem tela?',
+        {
+            modal: true,
+            detail: 'O Specify usa a imagem para entender o que deve ser construído. '
+                + 'Sem ela, a tela é deduzida do texto — e foi assim que já saiu componente errado.'
+        },
+        MOCKUP, FIGMA, SEM
+    );
+
+    if (escolha === MOCKUP) {
+        await vscode.commands.executeCommand('foursys.addMockup');
+        // Se o seletor de arquivo for cancelado, nada foi anexado: pergunta de novo em vez de
+        // deixar passar por desistencia.
+        return garantirReferenciaVisual(rootPath, stackId, storyDocPath, context, outputChannel);
+    }
+    if (escolha === FIGMA) {
+        await vscode.commands.executeCommand('foursys.importFromFigma');
+        return garantirReferenciaVisual(rootPath, stackId, storyDocPath, context, outputChannel);
+    }
+    if (escolha === SEM) {
+        await context.workspaceState.update(chaveDispensa, true);
+        outputChannel.appendLine('[SDD] Specify seguindo sem referência visual (escolha do usuário).');
+        return true;
+    }
+
+    outputChannel.appendLine('[SDD] Specify cancelado — nenhuma opção de referência visual foi escolhida.');
+    vscode.window.showWarningMessage('Specify cancelado. Escolha uma das três opções para continuar.');
+    return false;
+}
+
 async function openFile(filePath: string) {
     if (fs.existsSync(filePath)) {
         const doc = await vscode.workspace.openTextDocument(filePath);
@@ -897,6 +967,11 @@ async function executeSDDPhase(
             outputChannel.appendLine(`[SDD] 📋 Para detalhamento técnico, use ${techSpecRelPath} (já criado).`);
             await openFile(outputPath);
             if (chatResponse) { chatResponse.markdown(`📝 Por favor, descreva sua necessidade no arquivo \`user_story.md\` e rode o comando novamente.\n\n> 💡 Detalhamento técnico (classes, endpoints, yml)? Use \`${techSpecRelPath}\`.`); }
+            return;
+        }
+
+        // Historia ja escrita: este e o clique que ANALISA. Ultimo momento util para anexar a tela.
+        if (!await garantirReferenciaVisual(rootPath, stackId, storyDocPath, context, outputChannel)) {
             return;
         }
     }

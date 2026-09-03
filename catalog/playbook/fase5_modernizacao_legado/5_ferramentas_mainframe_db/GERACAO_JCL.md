@@ -34,4 +34,5 @@ Sua tarefa é gerar um JCL completo e funcional para o cenário abaixo:
 ### ✅ O código gerado deve:
 - Seguir a sintaxe rigorosa do JCL do z/OS.
 - Incluir comentários explicativos sobre cada etapa.
+- Usar HLQ, nomes de dataset e bibliotecas (STEPLIB/SYSLIB) reais do ambiente. O que não foi informado entra como `[A DEFINIR]` — nunca invente qualificador ou nome de dataset.
 ```

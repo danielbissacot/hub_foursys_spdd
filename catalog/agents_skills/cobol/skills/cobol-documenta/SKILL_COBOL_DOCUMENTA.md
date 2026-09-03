@@ -28,4 +28,6 @@ Após o código comentado, gere um resumo técnico contendo:
 - **Saídas:** Arquivos gerados, mensagens de log ou retorno de interface.
 - **Regra de Negócio:** Descrição lógica do processamento principal.
 
+> Não transcreva valores de dado sensível (CPF, conta, cartão) que aparecerem em `VALUE`, literal ou comentário do código para o resumo — descreva o campo, não o valor.
+
 > Para uma análise ainda mais profunda voltada para modernização Java, utilize a skill `cobol-reversa-completa` após concluir esta etapa.

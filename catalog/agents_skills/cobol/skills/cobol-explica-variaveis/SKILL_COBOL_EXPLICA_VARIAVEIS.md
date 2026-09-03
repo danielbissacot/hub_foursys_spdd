@@ -18,7 +18,7 @@ Sua tarefa é explicar a lógica e a função do bloco de código COBOL fornecid
 Foco principal: Analisar como as variáveis-chave são inicializadas, modificadas (através de comandos como MOVE, ADD, COMPUTE) e como elas influenciam as decisões (IF, EVALUATE, PERFORM).
 
 ### 🔍 Variáveis para Focar
-- Identifique as variáveis de acumulador e contador no trecho (ex: WS-TOTAL-AMOUNT, WS-RECORD-COUNT ou equivalentes).
+- Identifique as variáveis de acumulador e contador no trecho (ex: `WS-TOT-VALOR`, `WS-QT-REG` ou equivalentes).
 - Se existirem variáveis explicitadas pelo usuário, priorize-as.
 
 ### ✅ Estrutura da Resposta Esperada

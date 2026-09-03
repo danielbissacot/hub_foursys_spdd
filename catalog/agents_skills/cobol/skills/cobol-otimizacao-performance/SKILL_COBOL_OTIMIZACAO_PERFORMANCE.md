@@ -25,3 +25,5 @@ Sua tarefa é analisar o loop ou rotina COBOL fornecido e sugerir melhorias de p
 - Identificação do ponto de ineficiência.
 - Explicação do ganho de performance estimado.
 - Código sugerido com a otimização aplicada.
+
+> A otimização não pode mudar o resultado de negócio: preserve a lógica, a precisão dos campos numéricos (COMP-3, casas decimais) e a ordem de saída. Se o ganho exigir mudar comportamento observável, sinalize em vez de aplicar.

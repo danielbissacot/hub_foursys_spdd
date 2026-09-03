@@ -67,4 +67,8 @@ padrão estrutural deve ser replicado, nunca a lógica de negócio de um program
 - Reaproveitar o framework de erro do Bradesco (`I#FRWKGE`, `I#FRWKAR`, `I#FRWKLI`, `I#FRWKDB`,
   `FRWK2999`, `BRAD0450`) — nunca criar tratamento de erro próprio.
 - Conter apenas variáveis, arquivos e tabelas efetivamente usados pelo programa.
+- Não escrever dado sensível (CPF, conta, cartão) em `DISPLAY`, no relatório de controle ou em
+  mensagem de erro — grave mascarado. Campo monetário/decimal em `COMP-3` com a escala correta,
+  nunca ponto flutuante.
+- Nomear data-names de conceito de negócio em português (8 caracteres úteis), como na Constituição.
 - Passar pelo checklist de `references/ESTRUTURA_E_CONVENCOES.md` antes de ser entregue.

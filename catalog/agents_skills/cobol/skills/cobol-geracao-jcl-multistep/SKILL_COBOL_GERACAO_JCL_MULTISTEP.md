@@ -57,6 +57,9 @@ Ver os templates de cada tipo de STEP em [`references/PADROES_STEPS.md`](referen
 4. Garanta que cada `SORTD` tenha `SORTIN`, `SORTOUT`, `SYSOUT`, `SYSUDUMP` e `SYSIN`.
 5. Garanta que cada `DB2A1HPU` tenha `SYSPUNCH`, `SYSREC00`, `SYSTSIN`, `SYSIN`, `SYSTSPRT`,
    `SYSPRINT`, `LISTING`, `SYSUDUMP` e `SYSOUT`.
+6. Unload que traga coluna sensível (CPF, conta, cartão): o dataset `SYSREC00` de saída precisa de
+   `DISP=(,CATLG)` com RACF/proteção adequada — sinalize isso no comentário do STEP, não gere o
+   dataset em HLQ público ou temporário sem proteção.
 
 ## Retorne
 

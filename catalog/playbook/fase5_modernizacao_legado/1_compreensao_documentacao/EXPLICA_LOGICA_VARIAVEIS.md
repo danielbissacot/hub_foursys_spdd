@@ -1,5 +1,5 @@
 ---
-applyTo: '**/*.cbl, **/*.ccp, **/*.cpy'
+applyTo: '**/*.cbl,**/*.cpy'
 name: Explicação de Lógica e Variáveis (COBOL)
 description: Analisa fluxos de controle e o propósito de variáveis específicas em blocos de código COBOL.
 metadata:
@@ -22,8 +22,8 @@ Sua tarefa é explicar a lógica e a função do bloco de código COBOL fornecid
 Foco principal: Analisar como as variáveis-chave são inicializadas, modificadas (através de comandos como MOVE, ADD, COMPUTE) e como elas influenciam as decisões (IF, EVALUATE, PERFORM).
 
 ### 🔍 Variáveis para Focar:
-- WS-TOTAL-AMOUNT
-- WS-RECORD-COUNT
+- WS-TOT-VALOR
+- WS-QT-REG
 (Note: Se estas variáveis não existirem no trecho, identifique as equivalentes de acumulador e contador).
 
 ### ✅ Estrutura da Resposta Esperada:

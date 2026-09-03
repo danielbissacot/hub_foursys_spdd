@@ -31,3 +31,4 @@ Informe no contexto:
 ### ✅ O código gerado deve
 - Seguir a sintaxe rigorosa do JCL do z/OS.
 - Incluir comentários explicativos sobre cada etapa.
+- Usar o HLQ, os nomes de dataset e as bibliotecas (STEPLIB/SYSLIB) reais do ambiente. O que não foi informado entra como `[A DEFINIR]` — nunca invente qualificador ou nome de dataset.

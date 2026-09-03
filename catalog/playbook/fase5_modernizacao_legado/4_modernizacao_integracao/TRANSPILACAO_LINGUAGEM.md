@@ -21,9 +21,11 @@ Atue como um Engenheiro de Software especialista em Replatforming e Migração d
 Sua tarefa é converter o programa COBOL abaixo para [Linguagem Alvo: ex: Python/Java], mantendo a lógica de negócios rigorosamente intacta.
 
 ### 📜 Diretrizes de Tradução:
-1. **Mapeamento de Dados:** Explique como a `DATA DIVISION` foi mapeada (ex: Dicionários em Python, Classes DTO em Java).
-2. **Lógica de Controle:** Converta PERFORMs e CALLs em métodos/funções equivalentes.
-3. **Comentários:** Inclua comentários no código traduzido apontando as diferenças de sintaxe e como o comportamento original foi preservado.
+1. **Mapeamento de Dados:** Explique como a `DATA DIVISION` foi mapeada (ex: Dicionários em Python, Classes DTO / Records em Java). Em Java, `record` exige 16+ e `sealed` exige 17 — sem confirmar a versão do projeto-alvo, use classe comum e sinalize a troca.
+2. **Precisão numérica:** campo `COMP-3` ou `PIC ...V...` de valor monetário vira `BigDecimal` em Java / `Decimal` em Python, NUNCA `double`/`float`. Preserve a escala do PIC original.
+3. **Lógica de Controle:** Converta PERFORMs e CALLs em métodos/funções equivalentes.
+4. **Nomenclatura:** identificador que represente conceito de negócio usa o termo em português da regra — ex.: `calcularJuros`, não `calculateInterest`.
+5. **Comentários:** Inclua comentários no código traduzido apontando as diferenças de sintaxe e como o comportamento original foi preservado.
 
 ### ✅ O que deve constar na resposta:
 - O código transformado.

@@ -21,18 +21,18 @@ Atue como um Especialista em QA e Testes para Sistemas de Missão Crítica.
 Sua tarefa é gerar no mínimo 5 casos de teste de borda (edge cases) para a rotina COBOL fornecida.
 
 ### 🎯 Alvo da Análise:
-- **Campo/Registro:** [Nome do Campo, ex: INCOME-VALUE].
-- **Tipo Dados:** [PIC, ex: PIC 9(9)V99].
+- **Campo/Registro:** [Nome do Campo, ex: `WS-VL-RENDA`].
+- **Tipo Dados:** [PIC, ex: `PIC S9(9)V99 COMP-3`].
 - **Contexto:** [Regra de negócio, ex: Cálculo de IR].
 
 ### 🛠️ O que gerar:
-1. **Valores Limite:** Mínimo (zero/vazio) e Máximo permitido pelo PIC.
-2. **Dados Inválidos:** Caracteres em campo numérico ou sinais inesperados.
-3. **Cenários de Exceção:** Valores negativos (se o campo não for assinado) ou arredondamentos complexos.
+1. **Valores Limite:** Mínimo (zero/vazio) e Máximo permitido pelo PIC — inclusive estouro de campo.
+2. **Dados Inválidos:** Caracteres em campo numérico, sinais inesperados, campo não inicializado (previne S0C7).
+3. **Cenários de Exceção:** Valores negativos (se o campo não for assinado); arredondamento com e sem `ROUNDED`, conferindo que a escala do resultado bate com o PIC de destino (dinheiro não perde centavo).
 
 ### ✅ Resultado Esperado:
 - Descrição do Cenário.
-- Valor de Entrada sugerido.
+- Valor de Entrada sugerido (fictício — nunca CPF/conta/cartão reais).
 - Resultado Esperado (Sucesso/Erro previsto).
 
 ### 💻 Código da Rotina:

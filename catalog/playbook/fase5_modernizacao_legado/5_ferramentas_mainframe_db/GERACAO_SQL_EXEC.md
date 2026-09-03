@@ -1,5 +1,5 @@
 ---
-applyTo: '**/*.cbl, **/*.ccp'
+applyTo: '**/*.cbl,**/*.cpy'
 name: Geração de SQL Embarcado (EXEC SQL)
 description: Cria a sintaxe de acesso a dados DB2 (SELECT, INSERT, CURSOR) para ser embutida em programas COBOL.
 metadata:
@@ -22,14 +22,15 @@ Sua tarefa é gerar o código SQL embarcado (`EXEC SQL`) necessário para a oper
 
 ### ⚙️ Especificação Técnica:
 - **Operação:** [SELECT / INSERT / UPDATE / CURSOR].
-- **Tabela:** [Nome da Tabela, ex: EMPREGADOS].
-- **Colunas Alvo:** [Colunas, ex: NOME, SALARIO].
-- **Variáveis Host:** Mapeie para as variáveis [ex: WS-EMP-NAME, WS-EMP-SALARY].
+- **Tabela:** [Nome da Tabela, ex: `EMPREGADOS`].
+- **Colunas Alvo:** só as necessárias (nunca `SELECT *`).
+- **Variáveis Host:** conceito de negócio em português [ex: `WS-NOME-EMP`, `WS-SAL-EMP`].
 
 ### 🛠️ Requisitos de Geração:
 1. **Sintaxe:** Incluir os delimitadores `EXEC SQL` e `END-EXEC`.
-2. **Tratamento de Erro:** Incluir a verificação do `SQLCODE` logo após a execução.
+2. **Tratamento de Erro:** verificar o `SQLCODE` após cada execução. Em erro, registre `SQLCODE`/tabela/operação — nunca o conteúdo das host variables (CPF, conta, salário) no log. `SQLCODE = +100` é fluxo, não erro.
 3. **Cursores:** Se for solicitado múltiplos registros, gere o `DECLARE`, `OPEN`, `FETCH` e `CLOSE`.
+4. **Precisão:** coluna monetária/decimal → host variable `COMP-3` com a mesma escala da tabela; nunca ponto flutuante.
 
 ### ✅ Resultado Esperado:
 - O bloco SQL pronto para ser copiado para a PROCEDURE DIVISION.

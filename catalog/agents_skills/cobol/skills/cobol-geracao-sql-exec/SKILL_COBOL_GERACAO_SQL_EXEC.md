@@ -19,14 +19,15 @@ Sua tarefa é gerar o código SQL embarcado (`EXEC SQL`) necessário para a oper
 ### ⚙️ Como Usar Esta Skill
 Informe no contexto:
 - **Operação:** SELECT / INSERT / UPDATE / CURSOR.
-- **Tabela:** Nome da tabela alvo (ex: EMPREGADOS).
-- **Colunas Alvo:** Colunas a acessar (ex: NOME, SALARIO).
-- **Variáveis Host:** Nomes das variáveis COBOL correspondentes (ex: WS-EMP-NAME, WS-EMP-SALARY).
+- **Tabela:** Nome da tabela alvo (ex: `EMPREGADOS`).
+- **Colunas Alvo:** só as colunas realmente necessárias (nunca `SELECT *` — traz coluna sensível à toa e quebra ao mudar o layout da tabela).
+- **Variáveis Host:** nomes das variáveis COBOL, com conceito de negócio em português (ex: `WS-NOME-EMP`, `WS-SAL-EMP`).
 
 ### 🛠️ Requisitos de Geração
 1. **Sintaxe:** Incluir os delimitadores `EXEC SQL` e `END-EXEC`.
-2. **Tratamento de Erro:** Incluir a verificação do `SQLCODE` logo após a execução.
+2. **Tratamento de Erro:** verificar o `SQLCODE` logo após cada execução. Em erro, registre `SQLCODE`, tabela e operação — **nunca** o conteúdo das host variables no log (podem ter CPF, conta, salário). Trate `SQLCODE = +100` (not found) como fluxo, não como erro.
 3. **Cursores:** Se for solicitado múltiplos registros, gere o `DECLARE`, `OPEN`, `FETCH` e `CLOSE`.
+4. **Precisão:** coluna monetária/decimal mapeia para host variable `COMP-3` com a mesma escala da tabela — nunca campo de ponto flutuante.
 
 ### ✅ Resultado Esperado
 - O bloco SQL pronto para ser copiado para a PROCEDURE DIVISION.

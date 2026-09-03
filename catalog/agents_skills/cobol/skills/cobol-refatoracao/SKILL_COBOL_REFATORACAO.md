@@ -22,5 +22,6 @@ Sua tarefa é refatorar o trecho de código COBOL fornecido para torná-lo mais 
 3. **Modularização:** Identifique blocos de lógica que poderiam ser extraídos para novos parágrafos (PERFORM) para diminuir a complexidade ciclomática.
 
 ### ✅ Resultado Esperado
-- O código refatorado mantendo **100% da lógica original intacta**.
+- O código refatorado mantendo **100% da lógica original intacta** — incluindo a precisão dos campos numéricos (COMP-3, casas decimais) e a ordem de processamento.
+- Se um parágrafo/variável opaco carregar conceito de negócio, sugira nome em português (`CALC-JUROS`, não `CALC-INT`).
 - Uma breve explicação das mudanças realizadas e por que elas melhoram o código.

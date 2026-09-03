@@ -26,3 +26,5 @@ Forneça no contexto:
 1. **Causa Raiz:** Explique o que o erro significa mecanicamente (ex: no OC7, um dado não numérico sendo usado em cálculo).
 2. **Correção Exata:** Forneça o snippet corrigido ou a alteração necessária na DATA DIVISION ou PROCEDURE DIVISION.
 3. **Prevenção:** Sugira uma validação (ex: `IF NUMERIC`) para evitar que o erro ocorra novamente.
+
+> Ao citar o conteúdo do dump/registro que causou o abend, mascare dado sensível (CPF, conta, cartão) — descreva o formato do dado inválido, não o valor real.

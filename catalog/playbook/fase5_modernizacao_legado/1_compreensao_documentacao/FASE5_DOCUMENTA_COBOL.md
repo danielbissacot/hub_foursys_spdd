@@ -1,5 +1,5 @@
 ﻿---
-applyTo: '**/*.cbl, **/*.ccp, **/*.cpy'
+applyTo: '**/*.cbl,**/*.cpy'
 name: Geração de Comentários e Documentação (COBOL)
 description: Adiciona comentários detalhados e gera um resumo técnico (input/output/negócio) de programas COBOL.
 metadata:
@@ -25,7 +25,7 @@ Este template faz parte da fase de **Compreensão e Documentação**. Ele é ide
 
 1.  **Copie** o [Comando Base](#-comando-base-do-sistema) abaixo.
 2.  **Cole** o comando na sua ferramenta de IA de preferência.
-3.  **Anexe** o código COBOL (CBL, CCP ou CPY) que deseja documentar.
+3.  **Anexe** o código COBOL (CBL ou CPY) que deseja documentar.
 4.  **Revise** os comentários inline gerados e o resumo de negócio ao final.
 
 ---
@@ -40,7 +40,7 @@ Sua tarefa é dobrar a legibilidade do código COBOL fornecido, realizando duas 
 ### 🛠️ Ação 1: Comentários Inline
 - Adicione comentários detalhados em **Português** precedendo cada Paragraph ou Section.
 - Explique o *objetivo* de cada bloco, não apenas repita a sintaxe.
-- Garanta que os comentários fiquem na área de comentários do COBOL (gerualmente iniciando na coluna 7 com um asterisco '*').
+- Garanta que os comentários fiquem na área de comentários do COBOL (geralmente iniciando na coluna 7 com um asterisco '*').
 
 ### 🛠️ Ação 2: Resumo Técnico (Documentação)
 Após o código comentado, gere um resumo técnico contendo:
@@ -48,6 +48,7 @@ Após o código comentado, gere um resumo técnico contendo:
 - **Entradas:** Arquivos (FD), COMMAREAs ou parâmetros de entrada.
 - **Saídas:** Arquivos gerados, mensagens de log ou retorno de interface.
 - **Regra de Negócio:** Descrição lógica do processamento principal.
+- **PII:** não transcreva valores de dado sensível (CPF, conta, cartão) de `VALUE`/literal/comentário para o resumo — descreva o campo, não o valor.
 
 ### 💻 Código para Documentar:
 [Cole o trecho de código COBOL aqui]

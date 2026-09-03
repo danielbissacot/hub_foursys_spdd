@@ -7,7 +7,7 @@ metadata:
 
 # Skill: springboot-service-bus
 
-Guia completo para implementar **mensageria com Azure Service Bus** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
+Guia completo para implementar **mensageria com Azure Service Bus** em projetos Java + Spring Boot com Arquitetura Hexagonal.
 
 > **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer mensageria corporativa com garantias de entrega via Azure Service Bus.
 
@@ -80,7 +80,7 @@ servicebus:
 
 ---
 
-### 3. Mensagem (Record Java 21)
+### 3. Mensagem (Record)
 
 ```java
 // FILEPATH: adapter/output/servicebus/dto/PagamentoMessage.java
@@ -238,7 +238,7 @@ O consumer deve habilitar `sessionEnabled = true` para processar sessões em ord
 - [ ] Dependência `spring-cloud-azure-starter-servicebus` adicionada
 - [ ] `AZURE_SERVICEBUS_CONNECTION_STRING` como variável de ambiente
 - [ ] Nomes de filas/tópicos configurados como variáveis de ambiente
-- [ ] Mensagem como Record Java 21 com `messageId` UUID
+- [ ] Mensagem como Record com `messageId` UUID
 - [ ] Adapter sender implementando `OutputPort`
 - [ ] Consumer com `@ServiceBusListener` e tratamento de DLQ
 - [ ] `@Bean` do `ServiceBusSenderClient` em `config/`

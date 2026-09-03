@@ -4,7 +4,7 @@ description: "Regras de arquitetura Java + Spring Boot Hexagonal sempre-ativas p
 applyTo: "**/*.java,**/pom.xml,**/application.yml,**/application.properties"
 ---
 
-# Arquitetura Java 21 + Spring Boot Hexagonal — Regras Foursys SDD
+# Arquitetura Java + Spring Boot Hexagonal — Regras Foursys SDD
 
 Estas instruções são aplicadas automaticamente pelo GitHub Copilot em qualquer workspace Spring Boot identificado.
 
@@ -18,11 +18,31 @@ que já existe antes de aplicar qualquer regra abaixo.**
 Este documento descreve o padrão-alvo da Foursys. Num projeto que já existe, ele não autoriza
 reescrever o que está lá.
 
+**Leia a versão do Java e do Spring Boot no `pom.xml`** (`<java.version>`, `<maven.compiler.release>`;
+para o Boot, o `<parent>`, a propriedade `<spring-boot.version>`, ou — com parent corporativo —
+`<spring-framework.version>`, onde Framework 7 = Boot 4 e Framework 6 = Boot 3). **Nunca presuma
+uma versão.** As regras abaixo valem em qualquer versão; o que muda é a tabela seguinte.
+
 | Situação do projeto | Faça |
 |---|---|
-| **Java 21 + Spring Boot 3.x, já hexagonal** | Aplique todas as regras abaixo |
-| **Java 17 ou Spring Boot 2.x** | Mantenha a versão do projeto. Records e Sealed Classes só se a versão suportar. Não proponha upgrade |
+| **Já hexagonal** | Aplique todas as regras abaixo, calibrando pela versão lida do `pom.xml` |
+| **Qualquer versão de Java/Spring Boot** | Mantenha a do projeto. Recurso de linguagem só se a versão suportar (`record` exige 16, `sealed` 17, pattern matching for switch e virtual threads 21). **Não proponha upgrade nem downgrade** |
 | **Arquitetura em camadas (MVC), não hexagonal** | **Siga a arquitetura que já está no projeto.** Não introduza `core/`, `port/`, `adapter/` num projeto MVC — isso cria duas arquiteturas concorrentes no mesmo código |
+
+### O que muda entre majors do Spring Boot
+
+| | Spring Boot 3.x | Spring Boot 4.x |
+|---|---|---|
+| Starter web | `spring-boot-starter-web` | `spring-boot-starter-webmvc` |
+| Starters de teste | `spring-boot-starter-test` (único) | `spring-boot-starter-<modulo>-test` (ex.: `-webmvc-test`) |
+| Mock de bean em teste | `@MockBean` (até 3.3) · `@MockitoBean` (3.4+) | **`@MockitoBean`** — `@MockBean` foi removido |
+| Jackson | 2 — `com.fasterxml.jackson.databind` | 3 — `tools.jackson.databind` (as **anotações** seguem em `com.fasterxml.jackson.annotation`) |
+| Nullability | `org.springframework.lang` | `org.jspecify.annotations` |
+| Cliente HTTP de saída | Feign, `RestClient` ou `@HttpExchange` | `@HttpExchange` (no `spring-web`); `RestClient`/`RestTemplate` exigem `spring-boot-starter-restclient` |
+
+⚠️ Só use **Feign** (`@FeignClient`, `@EnableFeignClients`) se `spring-cloud-starter-openfeign`
+estiver no `pom.xml`. Não está? Use `@HttpExchange` — e não mande adicionar a dependência.
+Na hexagonal os dois ocupam o mesmo lugar: `adapter/output/client/`, sufixo `Client`.
 
 Regras que valem em **qualquer** projeto: `BigDecimal` para dinheiro, sem PII em log, validação
 de input, injeção por construtor.
@@ -35,8 +55,8 @@ o padrão daqui e o que já está no código, **siga o do projeto** e comente a 
 
 ## Stack Obrigatória (projetos novos ou já hexagonais)
 
-- **Linguagem:** Java 21 com Records e Sealed Classes onde aplicável
-- **Framework:** Spring Boot 3.x
+- **Linguagem:** Java na versão do `pom.xml` — Records e Sealed Classes onde aplicável, **se a versão suportar**
+- **Framework:** Spring Boot na versão do `pom.xml` (ver tabela de majors acima)
 - **Arquitetura:** Hexagonal (Ports & Adapters)
 - **Validação:** Bean Validation (JSR 380) — `@NotNull`, `@Size`, `@Valid` em todos os inputs
 - **Injeção de Dependência:** via construtor — proibido `@Autowired` em campo
@@ -79,7 +99,7 @@ src/main/java/...
 
 ## Padrões de Código
 
-### Entidade de Domínio (Record Java 21)
+### Entidade de Domínio (Record)
 
 ```java
 // ✅ Correto — Record imutável sem anotações Spring/JPA
@@ -327,7 +347,7 @@ class RealizarPagamentoUseCaseTest {
 
 `cobertura ≥ 95%` é o piso do gate do Sonar. Nunca escreva que atingiu sem ter medido:
 
-1. **Rode** `mvn -o clean test` (o `jacoco:report` roda junto na fase `test`)
+1. **Rode** `mvn clean test` (o `jacoco:report` roda junto na fase `test`)
 2. **Leia** `target/site/jacoco/jacoco.csv` e calcule
    `LINE_COVERED / (LINE_COVERED + LINE_MISSED)`
 3. **Reporte o número real.** Abaixo de 95%: liste as classes com maior `LINE_MISSED`,
@@ -360,4 +380,4 @@ uma tag por padrão.
 9. **Proteção de Código Existente:** Nunca modifique código existente sem solicitação explícita
 10. **Bean Obrigatório:** Toda `UseCase` em `core/usecase/` exige `@Bean` correspondente em `config/` — **salvo se o projeto já registra por `@Service`/component scan; nesse caso siga o projeto e NÃO adicione `@Bean`** (os dois juntos duplicam o bean e a aplicação não sobe)
 11. **Core sem framework:** em projeto novo ou já hexagonal puro, a classe do UseCase não leva `@Component`/`@Service` — quem registra é a `@Configuration`
-12. **Cobertura medida:** nunca declare `cobertura ≥ 95%` sem ter rodado `mvn -o clean test` e lido o `jacoco.csv`. Número presumido é violação de governança
+12. **Cobertura medida:** nunca declare `cobertura ≥ 95%` sem ter rodado `mvn clean test` e lido o `jacoco.csv`. Número presumido é violação de governança

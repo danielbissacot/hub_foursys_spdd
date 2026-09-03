@@ -7,7 +7,17 @@ metadata:
 
 # Skill: springboot-feign-client
 
-Guia completo para implementar adapters de saída via **Feign Client** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
+Guia completo para implementar adapters de saída via **Feign Client** em projetos Java + Spring Boot com Arquitetura Hexagonal.
+
+> ⚠️ **Antes de usar esta skill, confira se `spring-cloud-starter-openfeign` está no `pom.xml`.**
+> Se **não** estiver, não a use e não mande adicionar a dependência: prefira **HTTP Interface**
+> (`@HttpExchange`) ou `RestClient`, que já vêm no `spring-web` e não exigem spring-cloud.
+> O `spring-cloud-openfeign` está em **modo manutenção** (feature-complete), e a recomendação
+> oficial da Spring para projeto novo é o HTTP Interface. Em projeto que **já** usa Feign, siga
+> usando Feign — trocar cliente HTTP de projeto que funciona não é escopo de história de negócio.
+>
+> Na hexagonal nada muda entre os dois: a interface fica em `adapter/output/client/` com sufixo
+> `Client`, implementando um `OutputPort`. Muda só a anotação.
 
 > **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer chamada a API externa via Feign.
 
@@ -86,7 +96,7 @@ public interface PagamentoClient {
 
 ---
 
-### 3. DTOs (Records Java 21)
+### 3. DTOs (Records)
 
 ```java
 // FILEPATH: adapter/output/client/dto/PagamentoRequest.java
@@ -221,11 +231,11 @@ public class PagamentoClientAdapter implements PagamentoOutputPort {
 - [ ] Dependência `spring-cloud-starter-openfeign` adicionada ao `pom.xml`
 - [ ] `@EnableFeignClients` na classe principal
 - [ ] Interface `@FeignClient` criada em `adapter/output/client/`
-- [ ] DTOs como Records Java 21 com Bean Validation
+- [ ] DTOs como Records com Bean Validation
 - [ ] `FeignConfig` com interceptor de autenticação
 - [ ] `ErrorDecoder` mapeando exceções de domínio
 - [ ] Circuit Breaker + Retry configurados em `application.yml`
 - [ ] Adapter implementando o `OutputPort` usando o Feign Client
 - [ ] `@Bean` do Adapter registrado em `config/`
-- [ ] Testes unitários com `@MockBean` do client (cobertura ≥ 95%)
+- [ ] Testes unitários com mock do client (cobertura ≥ 95%) — `@MockitoBean` no Boot 3.4+/4, `@MockBean` no Boot ≤ 3.3
 - [ ] Nenhum dado PII logado

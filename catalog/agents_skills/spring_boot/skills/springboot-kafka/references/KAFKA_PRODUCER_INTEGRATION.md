@@ -78,7 +78,7 @@ public interface AccountCreatedEventPort {
 
 ## 4. Adapter Layer (Kafka Producer)
 
-### Event DTO (Record Java 21)
+### Event DTO (Record)
 
 ```java
 package com.empresa.projeto.contacorrente.adapter.output.kafka.producer.dto;

@@ -7,7 +7,7 @@ metadata:
 
 # Skill: springboot-redis
 
-Guia completo para implementar **cache distribuído Redis** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal — Azure Cache for Redis via CSI Driver.
+Guia completo para implementar **cache distribuído Redis** em projetos Java + Spring Boot com Arquitetura Hexagonal — Azure Cache for Redis via CSI Driver.
 
 > **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história especifica TTL de cache por natureza dos dados.
 

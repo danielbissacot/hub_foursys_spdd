@@ -7,7 +7,7 @@ metadata:
 
 # Skill: springboot-kafka
 
-Guia completo para implementar **produtores e consumidores Kafka** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
+Guia completo para implementar **produtores e consumidores Kafka** em projetos Java + Spring Boot com Arquitetura Hexagonal.
 
 > **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer mensageria assíncrona via Kafka.
 
@@ -88,7 +88,7 @@ topics:
 
 ---
 
-### 3. Evento (Record Java 21)
+### 3. Evento (Record)
 
 ```java
 // FILEPATH: adapter/output/producer/dto/PagamentoCriadoEvent.java
@@ -230,7 +230,7 @@ if (idempotenciaPort.jaProcessado(payload.eventId())) {
 - [ ] Dependência `spring-kafka` adicionada ao `pom.xml`
 - [ ] Tópicos configurados como variáveis de ambiente em `application.yml`
 - [ ] `enable.idempotence: true` no producer
-- [ ] Evento como Record Java 21 com `eventId` UUID
+- [ ] Evento como Record com `eventId` UUID
 - [ ] Producer implementando `OutputPort` via `KafkaTemplate`
 - [ ] Consumer com `@KafkaListener` + `Acknowledgment` manual
 - [ ] Lógica de DLQ para erros irrecuperáveis

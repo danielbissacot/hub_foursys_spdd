@@ -50,7 +50,9 @@ config/
 
 ### 1. Dependência
 
-`RestClient` está incluído no `spring-boot-starter-web` desde Spring Boot 3.2 — sem dependência adicional.
+`RestClient` existe desde o Spring Boot 3.2. O starter depende da versão — confira no `pom.xml`:
+**Boot 3.x** → vem no `spring-boot-starter-web`, sem dependência adicional.
+**Boot 4.x** → o starter web chama-se `spring-boot-starter-webmvc`, e `RestClient`/`RestTemplate` exigem `spring-boot-starter-restclient`.
 
 ---
 
@@ -86,7 +88,7 @@ public class PagamentoRestClientConfig {
 
 ---
 
-### 3. DTOs (Records Java 21)
+### 3. DTOs (Records)
 
 ```java
 // FILEPATH: adapter/output/client/dto/ConsultaSaldoRequest.java
@@ -210,7 +212,7 @@ integrations:
 - [ ] `RestClient` configurado como `@Bean` em `config/` (não instanciar direto)
 - [ ] `baseUrl` e `api-key` como variáveis de ambiente
 - [ ] `defaultStatusHandler` para erros HTTP genéricos
-- [ ] DTOs como Records Java 21 com Bean Validation
+- [ ] DTOs como Records com Bean Validation
 - [ ] Adapter implementando `OutputPort` no `adapter/output/client/`
 - [ ] `.onStatus()` para erros de negócio específicos (404, 422)
 - [ ] Nenhum dado PII logado

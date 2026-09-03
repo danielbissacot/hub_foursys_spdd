@@ -1,13 +1,13 @@
 ---
 name: springboot-testing
-description: "Cria testes unitários significativos em Java 21 + Spring Boot com JUnit 5, Mockito e AssertJ. Cobre teste por camada hexagonal (Domain, UseCase, Adapter), padrão AAA com @Nested/@DisplayName, escolha entre teste de estado e de interação, metas de cobertura (linha ≥ 95%, branch ≥ 90%) medidas com JaCoCo, e os test smells que reprovam em review. Use quando a história exigir testes novos, correção de teste frágil ou aumento de cobertura para o gate do Sonar."
+description: "Cria testes unitários significativos em Java + Spring Boot com JUnit 5, Mockito e AssertJ. Cobre teste por camada hexagonal (Domain, UseCase, Adapter), padrão AAA com @Nested/@DisplayName, escolha entre teste de estado e de interação, metas de cobertura (linha ≥ 95%, branch ≥ 90%) medidas com JaCoCo, e os test smells que reprovam em review. Use quando a história exigir testes novos, correção de teste frágil ou aumento de cobertura para o gate do Sonar."
 metadata:
   version: "0.1.0"
 ---
 
 # Skill: springboot-testing
 
-Guia para escrever testes **significativos** — focados em comportamento, não em implementação — em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
+Guia para escrever testes **significativos** — focados em comportamento, não em implementação — em projetos Java + Spring Boot com Arquitetura Hexagonal.
 
 > **Invocado por:** `foursys-constitution.md` e `foursys-specify-tech.md` Spring Boot sempre que a história gerar código novo (todo código novo exige teste) ou quando a cobertura precisar subir para o gate do Sonar.
 
@@ -230,7 +230,7 @@ já atinge o mínimo. Ligado antes, o build quebra na hora, em código que ningu
 Nunca afirme "cobertura ≥ 95%" sem ter medido. O procedimento:
 
 ```bash
-mvn -o clean test          # jacoco:report roda junto na fase test
+mvn clean test          # jacoco:report roda junto na fase test
 ```
 
 Leia `target/site/jacoco/jacoco.csv` (uma linha por classe) e some:
@@ -281,6 +281,6 @@ e escreva mais teste — não conclua a tarefa.
 - [ ] Suite unitária rodando em menos de 5 s
 - [ ] Nenhum dado PII real na massa de teste
 - [ ] `<excludes>` do JaCoCo conferido: uma tag por padrão, extensão `.class`, espelhando o `sonar.coverage.exclusions`
-- [ ] `mvn -o clean test` executado de fato (não presumido)
+- [ ] `mvn clean test` executado de fato (não presumido)
 - [ ] Cobertura lida do `jacoco.csv` e **reportada com o número real**
 - [ ] Cobertura de linha ≥ 95% e de branch ≥ 90% atingidas — se não, mais testes antes de concluir

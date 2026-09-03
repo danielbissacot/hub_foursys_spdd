@@ -7,7 +7,7 @@ metadata:
 
 # Skill: springboot-blob-storage
 
-Guia completo para implementar **armazenamento de arquivos no Azure Blob Storage** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
+Guia completo para implementar **armazenamento de arquivos no Azure Blob Storage** em projetos Java + Spring Boot com Arquitetura Hexagonal.
 
 > **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer persistência ou servição de arquivos binários.
 

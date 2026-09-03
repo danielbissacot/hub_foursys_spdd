@@ -1,5 +1,21 @@
 # 🏛️ Instrução Global: Arquitetura Hexagonal (Java Spring)
 
+> ## ⚠️ DOCUMENTO LEGADO — não use como fonte de regra
+>
+> Foi substituído por **`catalog/instructions/springboot-hexagonal-arch/1.0.0/`**, que o Hub
+> instala sozinho em `.github/instructions/` do workspace (nada para copiar à mão) e é a versão
+> mantida. Este arquivo ficou para trás em pontos que **contradizem** a versão atual:
+>
+> | Ponto | Aqui (legado) | Versão atual |
+> |---|---|---|
+> | Sufixo de DTO | `Dto` único | `Request` / `Response` |
+> | `@Bean` por UseCase | obrigatório sempre | **salvo** se o projeto registra por `@Service`/component scan |
+> | PII em `record` | só cita `@ToString.Exclude` (Lombok) | trata `record` e projeto **sem** Lombok |
+> | Cobertura mínima | 90% | **95%** linha / 90% branch |
+> | Versão do Java/Spring | número fixo no texto | lida do `pom.xml` do projeto |
+>
+> Mantido apenas como referência histórica. **Em caso de divergência, vale a versão atual.**
+
 *Copie este conteúdo e cole diretamente no arquivo de configuração global da sua inteligência artificial (ex: `.cursorrules`, Github Copilot Custom Instructions, ou "System Prompt"). Isso garantirá que a IA pare de dar sugestões genéricas e codifique respeitando seu isolamento de camadas.*
 
 ---
@@ -58,7 +74,7 @@ Você nunca pode inventar nomes ou padrões aleatórios para as classes. O Namin
 | `adapter/output/repository/` | Repository | `UsuarioRepository` |
 | `dto/` (input ou output) | **Dto** (sufixo único) | `UsuarioDto` |
 
-**Nunca separe em `RequestDto`/`ResponseDto`** — um único sufixo `Dto` por classe, independente da direção (entrada ou saída). Prefira **`record`** (Java 21) para todo DTO imutável.
+**Nunca separe em `RequestDto`/`ResponseDto`** — um único sufixo `Dto` por classe, independente da direção (entrada ou saída). Prefira **`record`** (Java) para todo DTO imutável.
 
 ### UseCase vs Service — quando usar cada um
 

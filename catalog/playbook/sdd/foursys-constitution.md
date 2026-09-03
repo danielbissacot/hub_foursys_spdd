@@ -32,7 +32,7 @@ A saída deve ser um arquivo Markdown contendo:
 
 2. 💻 STACK TÉCNICA E PADRÕES (Baseado na tecnologia informada: Angular, Java ou COBOL)
    - Se Angular 18+: Uso de Signals, Standalone Components (obrigatório), OnPush Change Detection, provideHttpClient(withFetch()).
-   - Se Java 21+: Spring Boot 3.x, Records, Imutabilidade, Arquitetura Hexagonal, Validação de Bean (JSR 380).
+   - Se Java: Spring Boot, Imutabilidade, Arquitetura Hexagonal, Validação de Bean (JSR 380). Declare a versão real do Java e do Spring Boot lida do `pom.xml` — Records e Sealed Classes só se ela suportar (`record` exige 16, `sealed` 17).
    - Se COBOL: Padrões de mainframe, nomes de variáveis significativos, tratamento de arquivos.
 
 3. 📏 REGRAS DE OURO (GOLDEN RULES)

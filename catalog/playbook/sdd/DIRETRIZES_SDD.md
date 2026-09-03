@@ -17,7 +17,7 @@ metadata:
 ### 💻 STACK TÉCNICA E PADRÕES
 
 - **Angular 18+**: Signals, Standalone Components (OBRIGATÓRIO), OnPush Change Detection, provideHttpClient(withFetch()).
-- **Java 21+**: Spring Boot 3.x, Records, Arquitetura Hexagonal, Validação de Bean (JSR 380).
+- **Java**: Spring Boot, Arquitetura Hexagonal, Validação de Bean (JSR 380), Records e Sealed Classes **se a versão do `pom.xml` suportar** (`record` exige 16, `sealed` 17).
 
 ### 📏 REGRAS DE OURO (GOLDEN RULES)
 

@@ -1,7 +1,7 @@
 ---
 name: springboot-certificado
 description: |
-  Configura a lib ensc-lib-autogestao-certificadopub em projetos Spring Boot 3.x
+  Configura a lib ensc-lib-autogestao-certificadopub em projetos Spring Boot
   para resolver erros PKIX path building failed ao chamar serviços HTTPS internos Bradesco.
   Faz download automático do Root CA e registra como Spring SSL Bundle com hot-reload.
   Use quando: a aplicação precisar fazer chamadas HTTPS a serviços Bradesco e receber erro PKIX.

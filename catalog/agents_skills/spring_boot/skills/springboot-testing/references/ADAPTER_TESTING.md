@@ -8,6 +8,17 @@ Teste preocupações da camada HTTP: mapeamento de requisições, validação, f
 
 ### Configuração Básica de Teste de Controller
 
+> ⚠️ **Confira a versão do Spring Boot no `pom.xml` antes de copiar este exemplo** — a anotação de
+> mock de bean mudou de nome:
+>
+> | Spring Boot | Anotação | Import |
+> |---|---|---|
+> | **3.4+ e 4.x** | `@MockitoBean` | `org.springframework.test.context.bean.override.mockito.MockitoBean` |
+> | **3.3 e anterior** | `@MockBean` | `org.springframework.boot.test.mock.mockito.MockBean` |
+>
+> `@MockBean` foi **removido no Spring Boot 4** e `@MockitoBean` **não existe** antes do 3.4 —
+> usar a errada não compila. O exemplo abaixo está no formato 3.4+/4.
+
 ```java
 @WebMvcTest(PaymentController.class)
 @DisplayName("Payment REST Controller")
@@ -16,11 +27,11 @@ class PaymentControllerTest {
     @Autowired
     private MockMvc mockMvc;
     
-    @MockBean
+    @MockitoBean                    // Boot 3.4+ e 4.x — em Boot <= 3.3 use @MockBean
     private ProcessPaymentUseCase processPaymentUseCase;
     
     @Autowired
-    private ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;   // Boot 4: tools.jackson.databind.ObjectMapper (Jackson 3)
     
     // Tests go here
 }

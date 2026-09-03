@@ -105,7 +105,7 @@ public class ValidateAccountUseCase implements ValidateAccountInputPort {
 
 ## 5. Adapter Layer (Kafka Consumer)
 
-### Event DTO (Record Java 21)
+### Event DTO (Record)
 
 ```java
 package com.empresa.projeto.validation.adapter.input.kafka.consumer.dto;

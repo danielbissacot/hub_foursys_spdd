@@ -7,7 +7,7 @@ metadata:
 
 # Skill: springboot-mongodb
 
-Guia completo para implementar **persistência MongoDB** em projetos Java 21 + Spring Boot 3.x com Arquitetura Hexagonal.
+Guia completo para implementar **persistência MongoDB** em projetos Java + Spring Boot com Arquitetura Hexagonal.
 
 > **Invocado por:** `foursys-specify-tech.md` Spring Boot quando a história requer armazenamento em MongoDB.
 

@@ -65,7 +65,7 @@ public class Usuario {
 
 ### 📦 DTOs e Isolamento
 
-- Todo payload (entrada ou saída) reside em `dto/`, com sufixo único **`Dto`** — **nunca** separe em `RequestDto`/`ResponseDto`. Prefira **`record`** (Java 21) para DTOs imutáveis.
+- Todo payload (entrada ou saída) reside em `dto/`, com sufixo único **`Dto`** — **nunca** separe em `RequestDto`/`ResponseDto`. Prefira **`record`** (Java) para DTOs imutáveis.
 - A conversão entre `DTOs`, `Entities` e `Models` DEVE sempre ocorrer em classes `Mapper`. Não misture casting dentro de controllers.
 
 ## 3. Direção das Dependências (Layer Topologies)

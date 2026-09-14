@@ -7,3 +7,6 @@ dist/
 out/
 .claude/
 Analise_Skill/
+
+# o pacote instalavel da extensao e publicado aqui de proposito
+!foursys-sdd-engine-hybrid-po/*.vsix

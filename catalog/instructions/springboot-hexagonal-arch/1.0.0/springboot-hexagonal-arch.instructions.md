@@ -370,7 +370,7 @@ uma tag por padrão.
 ## Regras de Ouro
 
 1. **Siga o Plano:** Não invente classes fora da task list
-2. **FILEPATH:** Todo arquivo deve ter `// FILEPATH:` no topo
+2. **FILEPATH:** ao mostrar código numa resposta, a 1ª linha do bloco indica o destino (`// FILEPATH:` em Java; `# FILEPATH:` em YAML/properties; `<!-- FILEPATH: -->` em XML). **Não grave essa linha dentro do arquivo real** — nem em `.java`, nem em `pom.xml`/`application.yml` — e não a acrescente a arquivos existentes. Se a `constitution.md` do projeto disser que "todo código deve ter // FILEPATH", vale esta regra.
 3. **Build First:** Valide `pom.xml` e `application.yml` antes de gerar classes
 4. **Zero Teimosia:** Se houver violação de governança apontada, reabra este documento
 5. **Atomic Edits:** Toda edição mantém a integridade total do arquivo

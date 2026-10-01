@@ -197,7 +197,7 @@ export const routes: Routes = [
 ## Regras de Ouro
 
 1. **Siga o Plano:** Não invente componentes ou serviços fora da task list
-2. **FILEPATH:** Todo arquivo gerado deve ter `// FILEPATH:` no topo
+2. **FILEPATH:** ao mostrar código numa resposta, a 1ª linha do bloco indica o destino (`// FILEPATH:` em TS/SCSS; `<!-- FILEPATH: -->` em HTML). **Não grave essa linha dentro do arquivo real** — nem em `.ts`, nem em `.html`/`.scss` — e não a acrescente a arquivos existentes. Se a `constitution.md` do projeto disser que "todo código deve ter // FILEPATH", vale esta regra.
 3. **Standalone em código novo:** prefira Standalone ao criar do zero. Em projeto `NgModule`, respeite o módulo existente e declare nele — nunca proponha migração de arquitetura sem pedido explícito
 4. **Signals primeiro — se o projeto já os usa:** prefira `signal()` a `BehaviorSubject` para estado local. Em base 100% RxJS, não introduza Signals isolados: dois modelos de estado convivendo é pior que um só
 5. **httpResource primeiro — só se o projeto for v20+:** confira `@angular/core` antes. Em v18/v19 use `HttpClient` (+ `toSignal()`), porque `httpResource()` não existe nessas versões

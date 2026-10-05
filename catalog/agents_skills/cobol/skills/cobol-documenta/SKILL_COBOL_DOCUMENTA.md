@@ -46,8 +46,8 @@ Sempre que analisar um programa COBOL individual, siga rigorosamente a estrutura
 | Chamador / Coordenador | [Quem chama este programa] |
 | Próximas Transações / Encaminhamentos | [Programas/Transações para onde direciona o fluxo] |
 | Módulos de Suporte / Dependências | [Módulos utilitários, conversores, validadores] |
-| Tabelas DB2 | [Lista de tabelas DB2 acessadas: TTPO_..., THIST_...] |
-| Analista / Histórico | [Identificação de autores e marcadores nos REMARKS, ex: F1609, TGV001] |
+| Tabelas DB2 | [Lista de tabelas DB2 acessadas: TB_..., TB_HIST_...] |
+| Analista / Histórico | [Identificação de autores e marcadores nos REMARKS, ex: XP0001, XPT001] |
 
 ## 2. Objetivo de negócio
 
@@ -119,7 +119,7 @@ sequenceDiagram
 
  Padrão para Documento Aglomerador de Cadeia, Fluxo e Integração End-to-End (Macro Specification)
 
-Sempre que a solicitação for consolidar múltiplos programas, documentar uma jornada do usuário, mapear um ecossistema/sistema (ex: DCOM, GACD) ou responder a uma História de Usuário/Épico, utilize o **Modelo Aglomerador End-to-End**:
+Sempre que a solicitação for consolidar múltiplos programas, documentar uma jornada do usuário, mapear um ecossistema/sistema (ex: XPTO, ABCD) ou responder a uma História de Usuário/Épico, utilize o **Modelo Aglomerador End-to-End**:
 
 ```markdown
 # Fluxo [NOME_DO_FLUXO_OU_SISTEMA] - [Descrição do Processo / História de Usuário / Visão Integrada]
@@ -144,7 +144,7 @@ Consolidar, em uma única visão de arquitetura e negócio, como os programas CO
 ## 2. Achados principais e Rastreabilidade de Mudanças
 
 Resumo dos pontos críticos de alteração ou localização de código no ecossistema:
-- **Programa Alterado / Central:** `[NOME_PROGRAMA]` (comprovado por marcadores de fonte como `F1609`, `TGV001`, `REMARKS`).
+- **Programa Alterado / Central:** `[NOME_PROGRAMA]` (comprovado por marcadores de fonte como `XP0001`, `XPT001`, `REMARKS`).
 - **Pacotes / Changeman / Tickets:** `[Número de Ticket / Changeman / Release]`.
 - **Alteração Realizada:** [Descrever a alteração exata realizada no código e sincronismo de persistência/historização].
 
@@ -203,7 +203,7 @@ Legenda explicativa do diagrama ressaltando programas alterados, dependências e
 | Programa | Tipo | Fluxo / Trilha | Tabela(s) DB2 / Queues | Status da Evidência | Documento de Especificação |
 |---|---|---|---|---|---|
 | `PGM100A` | Coordenador | Trilha de Contratação | N/A | Cabeçalho apenas | [PGM100A-especificacao.md](./PGM100A-especificacao.md) |
-| `PGM300A` | Funcional | Trilha de Contratação | `TB_CONTRATO`, `TB_HIST` | **Confirmado (Marcador F1609)** | [PGM300A-especificacao.md](./PGM300A-especificacao.md) |
+| `PGM300A` | Funcional | Trilha de Contratação | `TB_CONTRATO`, `TB_HIST` | **Confirmado (Marcador XP0001)** | [PGM300A-especificacao.md](./PGM300A-especificacao.md) |
 | `PGM362A` | Funcional | Trilha Complementar | `TB_CANAL_HIST` | **Fonte ausente** | [PGM362A-especificacao.md](./PGM362A-especificacao.md) |
 
 ---
@@ -231,7 +231,7 @@ Legenda explicativa do diagrama ressaltando programas alterados, dependências e
 - Comparação entre valor da operação, limite aprovado, saldo disponível e regras de bloqueio.
 
 ### 7.4 Persistência, Sincronismo e Auditoria
-- Garantia de imutabilidade de registros históricos (tabelas `THIST_*` recebem apenas `INSERT`).
+- Garantia de imutabilidade de registros históricos (tabelas `TB_HIST_*` recebem apenas `INSERT`).
 - Sincronismo de timestamps e transações acopladas via `SYNCPOINT`.
 
 ---

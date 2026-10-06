@@ -15,6 +15,43 @@ Sua missão é apoiar desenvolvedores e arquitetos Mainframe na geração de doc
 
 ---
 
+## 🗺️ Uso do Mapa de conexões (`.cobol-graph/grafo.json`)
+
+Quando o projeto tiver o arquivo `.cobol-graph/grafo.json` (gerado pelo botão **Mapa de conexões** da extensão), ele é a **fonte de verdade** para as ligações entre programas e para saber quais fontes estão na pasta. Leia o arquivo **antes de escrever**.
+
+### Passo obrigatório: tabela "0. Ligações do mapa"
+
+Nos Modos 1 e 2, o documento **começa** por esta tabela, montada **só a partir do grafo** — antes de qualquer outra seção (no Modo 2, uma tabela para cada programa da cadeia; no Modo 3, não crie a tabela):
+
+## 0. Ligações do mapa (conferidas no grafo)
+
+| Direção | Programa / item | Tipo | Código ou comentário | Tem fonte na pasta? | Evidência (arquivo:linha) |
+|---|---|---|---|---|---|
+| sai dele | `<NOME>` | `CHAMA` / `NAVEGA_PARA` / `USA_TELA` / `DISPARA` / `LE` / `GRAVA` / `USA_COPYBOOK` / `CITADO` | comprovado / só cabeçalho | sim / não | `ARQUIVO:linha` |
+| chega nele | `<NOME>` | ... | ... | ... | ... |
+
+Como preencher:
+1. **sai dele:** uma linha para **cada** item da lista `arestas` com `"origem": "programa:<NOME>"`.
+2. **chega nele:** uma linha para **cada** item com `"destino": "programa:<NOME>"` — inclusive `NAVEGA_PARA` de **retorno** (programas que devolvem o usuário para um menu). Se não houver nenhuma, escreva a linha `chega nele | (nenhuma no grafo)`.
+   - Procure no arquivo por `"programa:<NOME>"`: cada ocorrência em `origem` ou `destino` é uma linha da tabela. Confira o total antes de seguir.
+3. **Tem fonte na pasta?:** "sim" quando o item correspondente na lista `nos` tem `"presente": true`; "não" quando tem `false`. **Nunca** escreva "sem fonte" ou "fora do pacote" sem conferir este campo.
+4. **Código ou comentário:** `"status": "comprovado"` → comprovado; `"status": "so-cabecalho"` → só cabeçalho.
+5. **Evidência:** `arquivo` e `linha` do primeiro item de `evidencias`.
+6. **CICS:** o mapa ainda não reconhece ligações próprias do CICS (`EXEC CICS LINK`/`XCTL`, `RETURN TRANSID`, mapas BMS). Inclua essas ligações na tabela 0 com "Código ou comentário" = **comprovado pelo fonte (fora do mapa)** e a linha do fonte — a falta delas no grafo não significa que não existam.
+
+### Como usar a tabela 0 no resto do documento
+
+- **Identificação → "Roteamento / Chamador":** liste **todos** os "chega nele" da tabela 0 — primeiro os **comprovados** (por exemplo, programas que voltam para este menu), depois os **só cabeçalho**, cada um marcado como tal. Nunca deixe só os de cabeçalho quando houver comprovados.
+- **Identificação → "Próximas Transações / LINKs":** os "sai dele" comprovados do tipo `NAVEGA_PARA` (e, no CICS, os LINK/XCTL confirmados no fonte).
+- **6. Mapeamento de Comandos EXEC CICS e Módulos de Suporte:** uma linha para cada item da tabela 0, inclusive os "chega nele" comprovados — com o papel "chamador" (ou "retorno ao menu", quando for `NAVEGA_PARA` de volta).
+- **7. Diagrama de Sequência CICS:** desenhe também as setas dos "chega nele" comprovados, não só as que saem do programa.
+- **Modo 2:** a cadeia de programas e a tabela-resumo de rastreabilidade devem conter todas as ligações das tabelas 0 dos programas da cadeia.
+- Se o código mostrar algo diferente do grafo, **aponte a divergência** em "Lacunas, riscos e pontos de atenção"; não troque o grafo pela sua interpretação.
+
+Sem o arquivo do mapa, não crie a tabela 0 e siga normalmente pelos fontes fornecidos.
+
+---
+
 ## 🛠️ Modos de Atuação e Escopo da Entrega
 
 A skill identifica automaticamente o contexto da solicitação ou o tipo de artefato a ser gerado e aplica a estrutura correspondente:

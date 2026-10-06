@@ -23,15 +23,15 @@ Nos Modos 1 e 2, o documento **começa** por esta tabela, montada **só a partir
 
 | Direção | Programa / item | Tipo | Código ou comentário | Tem fonte na pasta? | Evidência (arquivo:linha) |
 |---|---|---|---|---|---|
-| sai dele | `<NOME>` | `CHAMA` / `NAVEGA_PARA` / `USA_TELA` / `DISPARA` / `LE` / `GRAVA` / `USA_COPYBOOK` / `CITADO` | comprovado / só cabeçalho | sim / não | `ARQUIVO:linha` |
+| sai dele | `<NOME>` | `CHAMA` / `NAVEGA_PARA` / `USA_TELA` / `DISPARA` / `EXECUTA` / `LE` / `GRAVA` / `USA_COPYBOOK` / `CITADO` | comprovado / provável / só cabeçalho | sim / não / — | `ARQUIVO:linha` |
 | chega nele | `<NOME>` | ... | ... | ... | ... |
 
 Como preencher:
 1. **sai dele:** uma linha para **cada** item da lista `arestas` com `"origem": "programa:<NOME>"`.
 2. **chega nele:** uma linha para **cada** item com `"destino": "programa:<NOME>"` — inclusive `NAVEGA_PARA` de **retorno** (programas que devolvem o usuário para um menu). Se não houver nenhuma, escreva a linha `chega nele | (nenhuma no grafo)`.
    - Procure no arquivo por `"programa:<NOME>"`: cada ocorrência em `origem` ou `destino` é uma linha da tabela. Confira o total antes de seguir.
-3. **Tem fonte na pasta?:** "sim" quando o item correspondente na lista `nos` tem `"presente": true`; "não" quando tem `false`. **Nunca** escreva "sem fonte" ou "fora do pacote" sem conferir este campo.
-4. **Código ou comentário:** `"status": "comprovado"` → comprovado; `"status": "so-cabecalho"` → só cabeçalho.
+3. **Tem fonte na pasta?:** "sim" quando o item correspondente na lista `nos` tem `"presente": true`; "não" quando tem `false`; **—** quando o item é uma transação (`"tipo": "transacao"`, que não tem fonte). **Nunca** escreva "sem fonte" ou "fora do pacote" sem conferir este campo.
+4. **Código ou comentário:** `"status": "comprovado"` → comprovado; `"status": "provavel"` → provável (nunca escreva "comprovado" para ela); `"status": "so-cabecalho"` → só cabeçalho.
 5. **Evidência:** `arquivo` e `linha` do primeiro item de `evidencias`.
 
 ### Como usar a tabela 0 no resto do documento

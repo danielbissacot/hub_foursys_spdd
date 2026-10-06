@@ -27,21 +27,27 @@ Nos Modos 1 e 2, o documento **começa** por esta tabela, montada **só a partir
 
 | Direção | Programa / item | Tipo | Código ou comentário | Tem fonte na pasta? | Evidência (arquivo:linha) |
 |---|---|---|---|---|---|
-| sai dele | `<NOME>` | `CHAMA` / `NAVEGA_PARA` / `USA_TELA` / `DISPARA` / `LE` / `GRAVA` / `USA_COPYBOOK` / `CITADO` | comprovado / só cabeçalho | sim / não | `ARQUIVO:linha` |
+| sai dele | `<NOME>` | `CHAMA` / `NAVEGA_PARA` / `USA_TELA` / `DISPARA` / `EXECUTA` / `LE` / `GRAVA` / `USA_COPYBOOK` / `CITADO` | comprovado / provável / só cabeçalho | sim / não / — | `ARQUIVO:linha` |
 | chega nele | `<NOME>` | ... | ... | ... | ... |
 
 Como preencher:
 1. **sai dele:** uma linha para **cada** item da lista `arestas` com `"origem": "programa:<NOME>"`.
 2. **chega nele:** uma linha para **cada** item com `"destino": "programa:<NOME>"` — inclusive `NAVEGA_PARA` de **retorno** (programas que devolvem o usuário para um menu). Se não houver nenhuma, escreva a linha `chega nele | (nenhuma no grafo)`.
    - Procure no arquivo por `"programa:<NOME>"`: cada ocorrência em `origem` ou `destino` é uma linha da tabela. Confira o total antes de seguir.
-3. **Tem fonte na pasta?:** "sim" quando o item correspondente na lista `nos` tem `"presente": true`; "não" quando tem `false`. **Nunca** escreva "sem fonte" ou "fora do pacote" sem conferir este campo.
-4. **Código ou comentário:** `"status": "comprovado"` → comprovado; `"status": "so-cabecalho"` → só cabeçalho.
+3. **Tem fonte na pasta?:** "sim" quando o item correspondente na lista `nos` tem `"presente": true`; "não" quando tem `false`; **—** quando o item é uma transação (`"tipo": "transacao"`, que não tem fonte). **Nunca** escreva "sem fonte" ou "fora do pacote" sem conferir este campo.
+4. **Código ou comentário:** `"status": "comprovado"` → comprovado; `"status": "provavel"` → provável (nunca escreva "comprovado" para ela); `"status": "so-cabecalho"` → só cabeçalho.
 5. **Evidência:** `arquivo` e `linha` do primeiro item de `evidencias`.
-6. **CICS:** o mapa ainda não reconhece ligações próprias do CICS (`EXEC CICS LINK`/`XCTL`, `RETURN TRANSID`, mapas BMS). Inclua essas ligações na tabela 0 com "Código ou comentário" = **comprovado pelo fonte (fora do mapa)** e a linha do fonte — a falta delas no grafo não significa que não existam.
+6. **CICS no mapa:** o mapa gerado pela extensão COBOL 1.0.2 ou mais nova já traz as ligações do CICS:
+   - `EXEC CICS LINK` → `CHAMA` (detalhe "LINK"); `EXEC CICS XCTL` → `NAVEGA_PARA` (detalhe "XCTL");
+   - `SEND MAP` / `RECEIVE MAP` e o COPY do mapa simbólico → `USA_TELA` para a tela BMS (item `` `<MAPSET>` (tela) ``);
+   - `START TRANSID` / `RETURN TRANSID ... IMMEDIATE` / TRANSID em variável → `DISPARA` para a transação (item `` `<TRAN>` (transação) ``);
+   - a transação que roda o programa → `EXECUTA` (**chega nele**, sempre `"status": "provavel"`): o programa faz `RETURN TRANSID` para ela, mas quem define o programa de cada transação é o CICS.
+   - Se o nó do programa tiver a lista `avisos` (ex.: "Transação dinâmica ... só é conhecido na execução"), cite cada aviso em "Lacunas, riscos e pontos de atenção".
+   - **Mapa de versão anterior:** se o programa tem `EXEC CICS` e o grafo não traz nenhuma ligação dele com detalhe "LINK", "XCTL", "SEND MAP", "RECEIVE MAP" ou "TRANSID", inclua essas ligações na tabela 0 com "Código ou comentário" = **comprovado pelo fonte (fora do mapa)** e a linha do fonte — a falta delas no grafo não significa que não existam.
 
 ### Como usar a tabela 0 no resto do documento
 
-- **Identificação → "Roteamento / Chamador":** liste **todos** os "chega nele" da tabela 0 — primeiro os **comprovados** (por exemplo, programas que voltam para este menu), depois os **só cabeçalho**, cada um marcado como tal. Nunca deixe só os de cabeçalho quando houver comprovados.
+- **Identificação → "Roteamento / Chamador":** liste **todos** os "chega nele" da tabela 0 — primeiro os **comprovados** (por exemplo, programas que voltam para este menu), depois a **transação provável** (`EXECUTA`), depois os **só cabeçalho**, cada um marcado como tal. Nunca deixe só os de cabeçalho quando houver comprovados.
 - **Identificação → "Próximas Transações / LINKs":** os "sai dele" comprovados do tipo `NAVEGA_PARA` (e, no CICS, os LINK/XCTL confirmados no fonte).
 - **6. Mapeamento de Comandos EXEC CICS e Módulos de Suporte:** uma linha para cada item da tabela 0, inclusive os "chega nele" comprovados — com o papel "chamador" (ou "retorno ao menu", quando for `NAVEGA_PARA` de volta).
 - **7. Diagrama de Sequência CICS:** desenhe também as setas dos "chega nele" comprovados, não só as que saem do programa.

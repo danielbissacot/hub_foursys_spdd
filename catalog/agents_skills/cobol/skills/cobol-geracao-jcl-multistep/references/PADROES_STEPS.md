@@ -2,16 +2,16 @@
 
 ## Bibliotecas padrão (JOBLIB)
 
-- `AC.BIBGERAL`
-- `DB2A1.R2.DSNLOAD`
+- `XP.BIBGERAL`
+- `DB2X1.R2.DSNLOAD`
 - `SYS1.CEE.SCEERUN`
 
 ## Padrão de cabeçalho esperado
 
 ```jcl
-//JOBX0000 JOB 'JOBX,4510,PR31','B460076',MSGCLASS=Z,SCHENV=BATCH
-//JOBLIB   DD DSN=AC.BIBGERAL,DISP=SHR
-//         DD DSN=DB2A1.R2.DSNLOAD,DISP=SHR
+//JOBX0000 JOB 'JOBX,9999,XX99','USUARIO',MSGCLASS=Z,SCHENV=BATCH
+//JOBLIB   DD DSN=XP.BIBGERAL,DISP=SHR
+//         DD DSN=DB2X1.R2.DSNLOAD,DISP=SHR
 //         DD DSN=SYS1.CEE.SCEERUN,DISP=SHR
 //*
 //* ***           FREQUENCIA : [FREQUENCIA]
@@ -32,9 +32,9 @@
 //       DISP=SHR
 //SORTOUT  DD DSN=[ARQUIVO-SAIDA](+1),
 //       DISP=(,CATLG,DELETE),
-//       UNIT=DISCO,
+//       UNIT=SYSDA,
 //       SPACE=(TRK,(20000,8000),RLSE),
-//       DCB=(AC.A,LRECL=[LRECL],RECFM=FB)
+//       DCB=(XP.A,LRECL=[LRECL],RECFM=FB)
 //SYSOUT   DD SYSOUT=*
 //SYSUDUMP DD SYSOUT=Y
 //SYSIN    DD *
@@ -56,9 +56,9 @@
 //       DISP=SHR
 //[DDSAIDA] DD DSN=[ARQUIVO-SAIDA](+1),
 //       DISP=(,CATLG,DELETE),
-//       UNIT=DISCO,
+//       UNIT=SYSDA,
 //       SPACE=(TRK,(20000,8000),RLSE),
-//       DCB=(AC.A,LRECL=[LRECL],RECFM=FB)
+//       DCB=(XP.A,LRECL=[LRECL],RECFM=FB)
 //SYSOUT   DD SYSOUT=*
 //SYSUDUMP DD SYSOUT=Y
 //*
@@ -67,28 +67,28 @@
 ## Padrão para unload DB2 com HPU
 
 ```jcl
-//STEPn    EXEC DB2A1HPU
+//STEPn    EXEC DB2X1HPU
 //*
 //* ***    UNLOAD DA TABELA [TABELA] - [DESCRICAO]
 //*
 //SYSPUNCH DD DSN=[ARQUIVO-SYSPUNCH](+1),
 //       DISP=(,CATLG,DELETE),
-//       UNIT=DISCO,
+//       UNIT=SYSDA,
 //       SPACE=(TRK,(20000,8000),RLSE),
-//       DCB=(AC.A)
+//       DCB=(XP.A)
 //SYSREC00 DD DSN=[ARQUIVO-UNLOAD](+1),
 //       DISP=(,CATLG,DELETE),
-//       UNIT=DISCO,
+//       UNIT=SYSDA,
 //       SPACE=(TRK,(20000,8000),RLSE),
-//       DCB=(AC.A,LRECL=[LRECL],RECFM=FB)
-//SYSTSIN  DD DSN=DB2A1.R2.SYSIN(DSNTIAUL),
+//       DCB=(XP.A,LRECL=[LRECL],RECFM=FB)
+//SYSTSIN  DD DSN=DB2X1.R2.SYSIN(DSNTIAUL),
 //       DISP=SHR
 //SYSIN    DD *
  UNLOAD TABLESPACE [DATABASE].[TABLESPACE]
  DB2 NO
  QUIESCE YES
  SELECT [COLUNAS]
- FROM DB2PRD.[TABELA]
+ FROM XPTODB.[TABELA]
  WHERE [CONDICOES]
  OUTDDN ( SYSREC00 )
  LOADDDN SYSPUNCH
@@ -110,11 +110,11 @@
 5. Nomear passos sequencialmente como `STEP1`, `STEP2`, `STEP3`, etc.
 6. Quando houver ordenação ou formatação de arquivo, usar `EXEC SORTD`.
 7. Quando houver execução de programa aplicativo, usar `EXEC PGM=NNNNNNNN`.
-8. Quando houver unload DB2, usar `EXEC DB2A1HPU`.
+8. Quando houver unload DB2, usar `EXEC DB2X1HPU`.
 9. Encadear saídas de passos anteriores usando referências JCL no padrão
    `DSN=*.STEPx.SORT.SORTOUT`, `DSN=*.STEPx.HPU.SYSREC00` ou `DSN=*.STEPx.NOMEDD`, conforme aplicável.
 10. Incluir `SYSOUT DD SYSOUT=*` e `SYSUDUMP DD SYSOUT=Y` nos passos batch, salvo quando houver
     padrão específico.
-11. Para arquivos de saída catalogados, usar `DISP=(,CATLG,DELETE)`, `UNIT=DISCO`,
-    `SPACE=(TRK,(20000,8000),RLSE)`, `DCB=(AC.A,LRECL=nnnn,RECFM=FB)`.
+11. Para arquivos de saída catalogados, usar `DISP=(,CATLG,DELETE)`, `UNIT=SYSDA`,
+    `SPACE=(TRK,(20000,8000),RLSE)`, `DCB=(XP.A,LRECL=nnnn,RECFM=FB)`.
 12. Para arquivos de entrada existentes, usar `DISP=SHR`, exceto quando o passo exigir `DISP=OLD`.

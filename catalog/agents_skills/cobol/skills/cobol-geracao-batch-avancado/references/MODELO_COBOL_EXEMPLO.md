@@ -28,24 +28,24 @@
       *                   COMPLEMENTARES PARA FORMATACAO DO ARQUIVO    *
       *                   DE SAIDA.                                    *
       *----------------------------------------------------------------*
-      *    TABELAS.....:  DB2PRD.TABELA_SECUNDARIA_EX      - TERCB008 *
+      *    TABELAS.....:  XPTODB.TABELA_SECUNDARIA_EX      - SISTB008 *
       *----------------------------------------------------------------*
       *    ARQUIVOS....:  DDNAME    I/O  BOOK/LAYOUT                   *
       *                   EPARMENT   I    SISTW204                     *
       *                   EDETENT   I    SISTW011                     *
       *                   SSAIDA01   O    SISTW201                     *
-      *                   SRELCTRL   O    RELATORIO DE EXECUCAO        *
+      *                   XRELCTRL   O    RELATORIO DE EXECUCAO        *
       *----------------------------------------------------------------*
       *    BOOK'S......:                                               *
-      *    I#FRWKGE - BOOK DE COMUNICACAO COM FRWK2999                 *
-      *    I#FRWKAR - BOOK PARA TRATAMENTO DE ERROS DE ARQUIVOS        *
-      *    I#FRWKDB - BOOK PARA TRATAMENTO DE ERROS DE DB2             *
-      *    I#FRWKLI - BOOK PARA TRATAMENTO DE ERROS LIVRES             *
+      *    I#XPTOGE - BOOK DE COMUNICACAO COM XPTO2999                 *
+      *    I#XPTOAR - BOOK PARA TRATAMENTO DE ERROS DE ARQUIVOS        *
+      *    I#XPTODB - BOOK PARA TRATAMENTO DE ERROS DE DB2             *
+      *    I#XPTOLI - BOOK PARA TRATAMENTO DE ERROS LIVRES             *
       *----------------------------------------------------------------*
       *    MODULOS.....:                                               *
-      *    POOL7600 - OBTER DATA E HORA ATUAIS                         *
-      *    BRAD0450 - PROVOCAR ABEND COM OU SEM DUMP                   *
-      *    FRWK2999 - GRAVAR LOG DE ERRO P/ BATCH                      *
+      *    XPTO7600 - OBTER DATA E HORA ATUAIS                         *
+      *    XPTO0450 - PROVOCAR ABEND COM OU SEM DUMP                   *
+      *    XPTO2999 - GRAVAR LOG DE ERRO P/ BATCH                      *
       *================================================================*
 
       *================================================================*
@@ -71,8 +71,8 @@
          SELECT SSAIDA01 ASSIGN      TO   UT-S-SSAIDA01
             FILE STATUS          IS   WRK-FS-SSAIDA01.
 
-         SELECT SRELCTRL ASSIGN      TO   UT-S-SRELCTRL
-            FILE STATUS          IS   WRK-FS-SRELCTRL.
+         SELECT XRELCTRL ASSIGN      TO   UT-S-XRELCTRL
+            FILE STATUS          IS   WRK-FS-XRELCTRL.
 ```
 
 ### FILE SECTION
@@ -110,11 +110,11 @@
       *   OUTPUT:  RELATORIO DE CONTROLE DA EXECUCAO                   *
       *            ORG. SEQUENCIAL     -   LRECL   =  080              *
       *----------------------------------------------------------------*
-       FD  SRELCTRL
+       FD  XRELCTRL
          RECORDING MODE IS F
          LABEL RECORD IS STANDARD
          BLOCK CONTAINS 0 RECORDS.
-       01  FD-SRELCTRL                 PIC  X(080).
+       01  FD-XRELCTRL                 PIC  X(080).
 ```
 
 ### WORKING-STORAGE Essencial
@@ -141,7 +141,7 @@
 
        77  WRK-FS-EPARMENT             PIC X(002)          VALUE SPACES.
        77  WRK-FS-SSAIDA01             PIC X(002)          VALUE SPACES.
-       77  WRK-FS-SRELCTRL             PIC X(002)          VALUE SPACES.
+       77  WRK-FS-XRELCTRL             PIC X(002)          VALUE SPACES.
 
       *- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
        77  FILLER                      PIC  X(050)         VALUE
@@ -164,7 +164,7 @@
 
       *----------------------------------------------------------------*
        01  FILLER                      PIC  X(035)         VALUE
-         'AREA PARA POOL7600'.
+         'AREA PARA XPTO7600'.
       *----------------------------------------------------------------*
 
        01  WRK-DATA-HORA.
@@ -188,13 +188,13 @@
 ```cobol
       *----------------------------------------------------------------*
        01  FILLER                      PIC  X(035)         VALUE
-         'DEFINICOES DE CABECALHOS - SRELCTRL'.
+         'DEFINICOES DE CABECALHOS - XRELCTRL'.
       *----------------------------------------------------------------*
 
        01  WRK-CABEC1-REL1.
          05  FILLER                  PIC  X(001)         VALUE SPACES.
          05  FILLER                  PIC  X(017)         VALUE
-           'BRADESCO'.
+           'EMPRESA XPTO'.
          05  FILLER                  PIC  X(052)         VALUE
            'SISTEMA EXEMPLO DE NEGOCIO'.
          05  FILLER                  PIC  X(010)         VALUE
@@ -225,26 +225,26 @@
          03  WRK-LD1-REL1-TEXTO      PIC X(36)           VALUE SPACES.
          03  WRK-LD1-REL1-VALOR      PIC ZZZ.ZZZ.ZZ9     VALUE ZEROS.
 
-       01  WRK-FRWK2999                PIC  X(008)         VALUE
-         'FRWK2999'.
+       01  WRK-XPTO2999                PIC  X(008)         VALUE
+         'XPTO2999'.
 
        01  WRK-AREA-ERRO.
-         COPY 'I#FRWKGE'.
+         COPY 'I#XPTOGE'.
          05 WRK-BLOCO-INFO-ERRO.
           10 WRK-CHAR-INFO-ERRO    PIC  X(001) OCCURS 0 TO 526
                        TIMES DEPENDING ON
-                       FRWKGHEA-TAM-DADOS.
+                       XPTOGHEA-TAM-DADOS.
 
        01  WRK-AREA-ERRO-ARQUIVO.
-         COPY 'I#FRWKAR'.
+         COPY 'I#XPTOAR'.
 
        01  WRK-AREA-ERRO-LIVRE.
-         COPY 'I#FRWKLI'.
+         COPY 'I#XPTOLI'.
 
        01  WRK-AREA-ERRO-DB2.
-         COPY 'I#FRWKDB'.
+         COPY 'I#XPTODB'.
 
-       01  WRK-AREA-BRAD0450.
+       01  WRK-AREA-XPTO0450.
          05 WRK-0450-ABEND-BAT       PIC S9(004)  COMP   VALUE +1111.
          05 WRK-0450-DUMP-BAT        PIC  X(001)         VALUE 'S'.
 
@@ -284,16 +284,16 @@
        1000-INICIALIZAR                SECTION.
       *----------------------------------------------------------------*
 
-         MOVE '1000-INICIALIZAR'     TO FRWKGHEA-IDEN-PARAGRAFO.
+         MOVE '1000-INICIALIZAR'     TO XPTOGHEA-IDEN-PARAGRAFO.
 
-         INITIALIZE FRWKGHEA-REGISTRO
-              FRWKGLIV-REGISTRO
-              FRWKGARQ-REGISTRO
-              FRWKGDB2-REGISTRO.
+         INITIALIZE XPTOGHEA-REGISTRO
+              XPTOGLIV-REGISTRO
+              XPTOGARQ-REGISTRO
+              XPTOGDB2-REGISTRO.
 
          OPEN INPUT  EPARMENT
           OUTPUT SSAIDA01
-               SRELCTRL.
+               XRELCTRL.
 
          SET ARQ-OPEN                TO   TRUE.
 
@@ -311,7 +311,7 @@
 
          PERFORM 1140-TESTAR-FS-SSAIDA01.
 
-         PERFORM 1170-TESTAR-FS-SRELCTRL.
+         PERFORM 1170-TESTAR-FS-XRELCTRL.
 
       *----------------------------------------------------------------*
        1100-99-FIM.                    EXIT.
@@ -322,8 +322,8 @@
       *----------------------------------------------------------------*
 
          IF  WRK-FS-EPARMENT         NOT EQUAL '00' AND '10'
-           MOVE 'EPARMENT'         TO FRWKGARQ-NOME-ARQUIVO
-           MOVE WRK-FS-EPARMENT    TO FRWKGARQ-FILE-STATUS
+           MOVE 'EPARMENT'         TO XPTOGARQ-NOME-ARQUIVO
+           MOVE WRK-FS-EPARMENT    TO XPTOGARQ-FILE-STATUS
            PERFORM 9100-FORMATAR-ERRO-ARQUIVO
          END-IF.
 
@@ -336,8 +336,8 @@
       *----------------------------------------------------------------*
 
          IF  WRK-FS-SSAIDA01         NOT EQUAL '00'
-           MOVE 'SSAIDA01'         TO FRWKGARQ-NOME-ARQUIVO
-           MOVE WRK-FS-SSAIDA01    TO FRWKGARQ-FILE-STATUS
+           MOVE 'SSAIDA01'         TO XPTOGARQ-NOME-ARQUIVO
+           MOVE WRK-FS-SSAIDA01    TO XPTOGARQ-FILE-STATUS
            PERFORM 9100-FORMATAR-ERRO-ARQUIVO
          END-IF.
 
@@ -373,7 +373,7 @@
        2100-LER-EPARMENT               SECTION.
       *----------------------------------------------------------------*
 
-         MOVE '2100-LER-EPARMENT'    TO FRWKGHEA-IDEN-PARAGRAFO.
+         MOVE '2100-LER-EPARMENT'    TO XPTOGHEA-IDEN-PARAGRAFO.
 
          READ EPARMENT               INTO SISTW204-PARM.
 
@@ -397,13 +397,13 @@
 
          IF (SISTW204-TPO-PROC       NOT EQUAL 'D' AND 'R' AND 'E')
            MOVE 'TIPO DE PROCESSAMENTO DEVE SER D, R OU E'
-                       TO FRWKGLIV-PARAMETROS
+                       TO XPTOGLIV-PARAMETROS
            PERFORM 9200-FORMATAR-ERRO-LIVRE
          END-IF.
 
          IF (SISTW204-DT-PROC        NOT NUMERIC)
            MOVE 'DATA DO PARAM DEVE SER NUMERICA'
-                       TO FRWKGLIV-PARAMETROS
+                       TO XPTOGLIV-PARAMETROS
            PERFORM 9200-FORMATAR-ERRO-LIVRE
          END-IF.
 
@@ -425,7 +425,7 @@
            PERFORM 3200-OBTER-CONTRATO-SISTB008
 
            IF (SQLCODE             EQUAL ZEROS)
-             PERFORM 3300-OBTER-CLIENTE-TERCB008
+             PERFORM 3300-OBTER-CLIENTE-SISTB008
            END-IF
 
            IF (SQLCODE             EQUAL ZEROS)
@@ -445,7 +445,7 @@
       *----------------------------------------------------------------*
 
          MOVE '3200-OBTER-CONTRATO-SISTB008'
-                       TO FRWKGHEA-IDEN-PARAGRAFO.
+                       TO XPTOGHEA-IDEN-PARAGRAFO.
 
          MOVE SISTW011-CPRODT-BDSCO  TO CPRODT-BDSCO     OF SISTB008.
          MOVE SISTW011-CFAML-CONTR   TO CFAML-CONTR      OF SISTB008.
@@ -459,7 +459,7 @@
              ,:SISTB008.CCTA-CORR
              ,:SISTB008.CFLIAL-CGC-ST
                :WRK-CFLIAL-CGC-ST-NL
-           FROM DB2PRD.TABELA_PRINCIPAL_EX
+           FROM XPTODB.TABELA_PRINCIPAL_EX
           WHERE CPRODT_BDSCO = :SISTB008.CPRODT-BDSCO
           AND CFAML_CONTR  = :SISTB008.CFAML-CONTR
           AND CCONTR       = :SISTB008.CCONTR
@@ -469,7 +469,7 @@
           (SQLWARN0                EQUAL 'W')
            SET DB2-SELECT          TO TRUE
            MOVE 'TABELA-PRINCIPAL-EX'
-                       TO FRWKGDB2-NOME-TABELA
+                       TO XPTOGDB2-NOME-TABELA
            PERFORM 9300-FORMATAR-ERRO-DB2
          END-IF.
 
@@ -507,7 +507,7 @@
        3500-GRAVAR-SSAIDA01            SECTION.
       *----------------------------------------------------------------*
 
-         MOVE '3500-GRAVAR-SSAIDA01' TO FRWKGHEA-IDEN-PARAGRAFO.
+         MOVE '3500-GRAVAR-SSAIDA01' TO XPTOGHEA-IDEN-PARAGRAFO.
 
          INITIALIZE SISTW201-REGISTRO.
 
@@ -516,7 +516,7 @@
          MOVE SISTW011-CCONTR        TO SISTW201-CCONTR.
          MOVE DINCL-CONTR            OF SISTB008
                        TO SISTW201-DINCL-CONTR.
-         MOVE ICTA-MOVTC             OF TERCB008
+         MOVE ICTA-MOVTC             OF SISTB008
                        TO SISTW201-ICTA-MOVTC.
 
          WRITE FD-SSAIDA01           FROM SISTW201-REGISTRO.
@@ -530,20 +530,20 @@
       *----------------------------------------------------------------*
 ```
 
-### Finalizacao e SRELCTRL
+### Finalizacao e XRELCTRL
 
 ```cobol
       *----------------------------------------------------------------*
        4000-FINALIZAR                  SECTION.
       *----------------------------------------------------------------*
 
-         MOVE '4000-FINALIZAR'       TO FRWKGHEA-IDEN-PARAGRAFO.
+         MOVE '4000-FINALIZAR'       TO XPTOGHEA-IDEN-PARAGRAFO.
 
-         PERFORM 4100-EMITIR-SRELCTRL.
+         PERFORM 4100-EMITIR-XRELCTRL.
 
          CLOSE EPARMENT
            SSAIDA01
-           SRELCTRL.
+           XRELCTRL.
 
          SET ARQ-CLOSE               TO TRUE.
 
@@ -562,35 +562,35 @@
       *----------------------------------------------------------------*
 
       *----------------------------------------------------------------*
-       4100-EMITIR-SRELCTRL            SECTION.
+       4100-EMITIR-XRELCTRL            SECTION.
       *----------------------------------------------------------------*
 
-         WRITE FD-SRELCTRL           FROM WRK-CABEC1-REL1.
-         PERFORM 1170-TESTAR-FS-SRELCTRL.
+         WRITE FD-XRELCTRL           FROM WRK-CABEC1-REL1.
+         PERFORM 1170-TESTAR-FS-XRELCTRL.
 
-         CALL 'POOL7600'             USING WRK-DATA-HORA.
+         CALL 'XPTO7600'             USING WRK-DATA-HORA.
 
          MOVE WRK-DIA-7600           TO WRK-CB2-REL1-DIA.
          MOVE WRK-MES-7600           TO WRK-CB2-REL1-MES.
          MOVE WRK-ANO-7600           TO WRK-CB2-REL1-ANO.
 
-         WRITE FD-SRELCTRL           FROM WRK-CABEC2-REL1.
-         PERFORM 1170-TESTAR-FS-SRELCTRL.
+         WRITE FD-XRELCTRL           FROM WRK-CABEC2-REL1.
+         PERFORM 1170-TESTAR-FS-XRELCTRL.
 
-         WRITE FD-SRELCTRL           FROM WRK-CABEC3-REL1.
-         PERFORM 1170-TESTAR-FS-SRELCTRL.
+         WRITE FD-XRELCTRL           FROM WRK-CABEC3-REL1.
+         PERFORM 1170-TESTAR-FS-XRELCTRL.
 
          MOVE 'REGISTROS LIDOS       (EPARMENT)..: '
                        TO WRK-LD1-REL1-TEXTO.
          MOVE ACU-LIDOS-EPARMENT     TO WRK-LD1-REL1-VALOR.
-         WRITE FD-SRELCTRL           FROM WRK-LINDET1-REL1.
-         PERFORM 1170-TESTAR-FS-SRELCTRL.
+         WRITE FD-XRELCTRL           FROM WRK-LINDET1-REL1.
+         PERFORM 1170-TESTAR-FS-XRELCTRL.
 
          MOVE 'REGISTROS GRAVADOS    (SSAIDA01)..: '
                        TO WRK-LD1-REL1-TEXTO.
          MOVE ACU-GRAVA-SSAIDA01     TO WRK-LD1-REL1-VALOR.
-         WRITE FD-SRELCTRL           FROM WRK-LINDET1-REL1.
-         PERFORM 1170-TESTAR-FS-SRELCTRL.
+         WRITE FD-XRELCTRL           FROM WRK-LINDET1-REL1.
+         PERFORM 1170-TESTAR-FS-XRELCTRL.
 
       *----------------------------------------------------------------*
        4100-99-FIM.                    EXIT.
@@ -606,9 +606,9 @@
 
          SET ERRO-ARQUIVO            TO TRUE.
 
-         MOVE FRWKGARQ-TAM-LAYOUT    TO FRWKGHEA-TAM-DADOS.
+         MOVE XPTOGARQ-TAM-LAYOUT    TO XPTOGHEA-TAM-DADOS.
          MOVE WRK-AREA-ERRO-ARQUIVO  TO WRK-BLOCO-INFO-ERRO
-                        (1:FRWKGHEA-TAM-DADOS).
+                        (1:XPTOGHEA-TAM-DADOS).
 
          PERFORM 9900-TRATAR-ERRO.
 
@@ -622,10 +622,10 @@
 
          SET ERRO-LIVRE              TO   TRUE.
 
-         MOVE 1                      TO   FRWKGLIV-IDIOMA.
-         MOVE FRWKGLIV-TAM-LAYOUT    TO   FRWKGHEA-TAM-DADOS.
+         MOVE 1                      TO   XPTOGLIV-IDIOMA.
+         MOVE XPTOGLIV-TAM-LAYOUT    TO   XPTOGHEA-TAM-DADOS.
          MOVE WRK-AREA-ERRO-LIVRE    TO   WRK-BLOCO-INFO-ERRO
-                        (1:FRWKGHEA-TAM-DADOS).
+                        (1:XPTOGHEA-TAM-DADOS).
 
          PERFORM 9900-TRATAR-ERRO.
 
@@ -639,15 +639,15 @@
 
          SET ERRO-DB2                TO   TRUE.
 
-         MOVE FRWKGDB2-TAM-LAYOUT    TO   FRWKGHEA-TAM-DADOS.
-         MOVE FRWKGHEA-IDEN-PARAGRAFO(1:16)
-                       TO   FRWKGDB2-LOCAL.
-         MOVE SQLSTATE               TO   FRWKGDB2-SQLSTATE.
-         MOVE SQLCA                  TO   FRWKGDB2-SQLCA.
+         MOVE XPTOGDB2-TAM-LAYOUT    TO   XPTOGHEA-TAM-DADOS.
+         MOVE XPTOGHEA-IDEN-PARAGRAFO(1:16)
+                       TO   XPTOGDB2-LOCAL.
+         MOVE SQLSTATE               TO   XPTOGDB2-SQLSTATE.
+         MOVE SQLCA                  TO   XPTOGDB2-SQLCA.
          MOVE SQLCODE                TO   WRK-SQLCODE-AUX.
-         MOVE WRK-SQLCODE-9-3        TO   FRWKGDB2-SQLCODE2.
+         MOVE WRK-SQLCODE-9-3        TO   XPTOGDB2-SQLCODE2.
          MOVE WRK-AREA-ERRO-DB2      TO   WRK-BLOCO-INFO-ERRO
-                           (1:FRWKGHEA-TAM-DADOS).
+                           (1:XPTOGHEA-TAM-DADOS).
 
          PERFORM 9900-TRATAR-ERRO.
 
@@ -659,9 +659,9 @@
        9900-TRATAR-ERRO                SECTION.
       *----------------------------------------------------------------*
 
-         MOVE 'SIST8243'             TO FRWKGHEA-NOME-PROGRAMA.
+         MOVE 'SIST8243'             TO XPTOGHEA-NOME-PROGRAMA.
 
-         PERFORM 4100-EMITIR-SRELCTRL.
+         PERFORM 4100-EMITIR-XRELCTRL.
 
          PERFORM 9990-GRAVAR-LOG-ERRO.
 
@@ -677,7 +677,7 @@
        9990-GRAVAR-LOG-ERRO            SECTION.
       *----------------------------------------------------------------*
 
-         CALL WRK-FRWK2999           USING WRK-AREA-ERRO.
+         CALL WRK-XPTO2999           USING WRK-AREA-ERRO.
 
       *----------------------------------------------------------------*
        9990-99-FIM.                    EXIT.
@@ -687,9 +687,9 @@
        9999-ABENDAR-PROGRAMA           SECTION.
       *----------------------------------------------------------------*
 
-         DISPLAY '*** BRAD0450 CHAMADO PARA ABENDAR O PROGRAMA ***'.
+         DISPLAY '*** XPTO0450 CHAMADO PARA ABENDAR O PROGRAMA ***'.
 
-         CALL 'BRAD0450'             USING WRK-0450-ABEND-BAT
+         CALL 'XPTO0450'             USING WRK-0450-ABEND-BAT
                          WRK-0450-DUMP-BAT.
 
       *----------------------------------------------------------------*

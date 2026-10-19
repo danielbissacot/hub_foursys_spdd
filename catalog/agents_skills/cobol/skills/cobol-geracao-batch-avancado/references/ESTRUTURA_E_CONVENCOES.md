@@ -9,7 +9,7 @@ Replique a organizacao do `SIST8243` na ordem e formatacao:
 ### 1. Cabecalho de Identificacao
 
 - Bloco `IDENTIFICATION DIVISION` com `PROGRAM-ID` e `AUTHOR`.
-- Cabecalho comentado padrao Foursys/Bradesco contendo:
+- Cabecalho comentado padrao corporativo contendo:
   - `PROGRAMA`, `ANALISTA`, `DATA`.
   - `PROJETO`, `OBJETIVO`.
   - Lista de `TABELAS` (nome DB2 e DCLGEN).
@@ -32,11 +32,11 @@ Replique a organizacao do `SIST8243` na ordem e formatacao:
   - Auxiliares (flags `WRK-FIM-*`, mascaras, datas).
   - `WRK-SQLCODE-AUX` com redefinicao para `WRK-SQLCODE-9-3`.
   - Areas de copybooks de entrada/saida (`COPY '<NOME>'`).
-  - Area `WRK-DATA-HORA` para chamada do `POOL7600`.
-  - Cabecalhos do relatorio `SRELCTRL` (`WRK-CABEC1-REL1`, `WRK-CABEC2-REL1`, `WRK-CABEC3-REL1`, `WRK-LINDET1-REL1`).
-  - Area de framework de erro: `WRK-AREA-ERRO` com `COPY 'I#FRWKGE'` e `WRK-BLOCO-INFO-ERRO` ocorrendo de 0 a 526 com `DEPENDING ON FRWKGHEA-TAM-DADOS`.
-  - Areas `I#FRWKAR`, `I#FRWKLI`, `I#FRWKDB`.
-  - Area do `BRAD0450` com `WRK-0450-ABEND-BAT` e `WRK-0450-DUMP-BAT`.
+  - Area `WRK-DATA-HORA` para chamada do `XPTO7600`.
+  - Cabecalhos do relatorio `XRELCTRL` (`WRK-CABEC1-REL1`, `WRK-CABEC2-REL1`, `WRK-CABEC3-REL1`, `WRK-LINDET1-REL1`).
+  - Area de framework de erro: `WRK-AREA-ERRO` com `COPY 'I#XPTOGE'` e `WRK-BLOCO-INFO-ERRO` ocorrendo de 0 a 526 com `DEPENDING ON XPTOGHEA-TAM-DADOS`.
+  - Areas `I#XPTOAR`, `I#XPTOLI`, `I#XPTODB`.
+  - Area do `XPTO0450` com `WRK-0450-ABEND-BAT` e `WRK-0450-DUMP-BAT`.
   - Bloco `EXEC SQL INCLUDE SQLCA / <DCLGENs> END-EXEC` para todas as tabelas usadas.
   - Declarar somente variaveis utilizadas no programa; remover qualquer variavel sem referencia na PROCEDURE DIVISION, FILE SECTION ou areas chamadas.
 
@@ -52,23 +52,23 @@ Use SECTIONs nomeadas com sufixo de paragrafo de fim `-99-FIM. EXIT.` e numeraca
 - `2210-CONSISTIR-PARAMETRO`: validar tipo e dominio do parametro, usando `9200-FORMATAR-ERRO-LIVRE` para erros.
 - `3000-PROCESSAR`: loop `PERFORM UNTIL` consumindo o arquivo principal, com chamadas a sections `3100`, `3200`, `3300`, `3400`, `3500`, `3600` conforme o fluxo.
 - Sections de acesso DB2 (`3xx0-OBTER-*` / `3xx0-INSERIR-*` / `3xx0-ATUALIZAR-*`):
-  - `MOVE '<nome-section>' TO FRWKGHEA-IDEN-PARAGRAFO`.
+  - `MOVE '<nome-section>' TO XPTOGHEA-IDEN-PARAGRAFO`.
   - `EXEC SQL ... END-EXEC`.
-  - Tratamento padrao: `IF SQLCODE NOT EQUAL ZEROS AND +100 OR SQLWARN0 EQUAL 'W'`, `SET DB2-SELECT/INSERT/UPDATE/DELETE TO TRUE`, `MOVE '<TABELA>' TO FRWKGDB2-NOME-TABELA`, `PERFORM 9300-FORMATAR-ERRO-DB2`.
+  - Tratamento padrao: `IF SQLCODE NOT EQUAL ZEROS AND +100 OR SQLWARN0 EQUAL 'W'`, `SET DB2-SELECT/INSERT/UPDATE/DELETE TO TRUE`, `MOVE '<TABELA>' TO XPTOGDB2-NOME-TABELA`, `PERFORM 9300-FORMATAR-ERRO-DB2`.
   - Quando `SQLCODE = +100`, gerar gravacao em arquivo de inconsistencia, se aplicavel.
   - Atualizar acumulador `ACU-LIDOS-<TABELA>` ou `ACU-N-ENCONTR-<TABELA>`.
 - Section `3xx0-TRATAR-NULOS` para tratar indicadores de nulidade DB2.
 - Sections `3xx0-GRAVAR-<DDNAME>`: `INITIALIZE` do registro, `MOVE` dos campos, `WRITE FD-<DDNAME> FROM <area>`, `PERFORM` da section de teste de file status, incremento do acumulador `ACU-GRAVA-*`.
-- `4000-FINALIZAR`: `CLOSE` de todos os arquivos, `SET ARQ-CLOSE TO TRUE`, `PERFORM 1100-TESTAR-FILE-STATUS`, `DISPLAY` em moldura, `PERFORM 4100-EMITIR-SRELCTRL`, `STOP RUN`.
-- `4100-EMITIR-SRELCTRL`: `CALL 'POOL7600' USING WRK-DATA-HORA`, gravacao de cabecalhos e linhas de detalhe com totais por arquivo e por tabela.
+- `4000-FINALIZAR`: `CLOSE` de todos os arquivos, `SET ARQ-CLOSE TO TRUE`, `PERFORM 1100-TESTAR-FILE-STATUS`, `DISPLAY` em moldura, `PERFORM 4100-EMITIR-XRELCTRL`, `STOP RUN`.
+- `4100-EMITIR-XRELCTRL`: `CALL 'XPTO7600' USING WRK-DATA-HORA`, gravacao de cabecalhos e linhas de detalhe com totais por arquivo e por tabela.
 - Sections `9100-FORMATAR-ERRO-ARQUIVO`, `9200-FORMATAR-ERRO-LIVRE`, `9300-FORMATAR-ERRO-DB2`:
   - `SET ERRO-ARQUIVO/ERRO-LIVRE/ERRO-DB2 TO TRUE`.
-  - Preencher `FRWKGHEA-TAM-DADOS` com o tamanho do layout correspondente.
-  - Mover a area de erro para `WRK-BLOCO-INFO-ERRO (1:FRWKGHEA-TAM-DADOS)`.
+  - Preencher `XPTOGHEA-TAM-DADOS` com o tamanho do layout correspondente.
+  - Mover a area de erro para `WRK-BLOCO-INFO-ERRO (1:XPTOGHEA-TAM-DADOS)`.
   - `PERFORM 9900-TRATAR-ERRO`.
-- Section `9900-TRATAR-ERRO`: `MOVE '<PROGRAMA>' TO FRWKGHEA-NOME-PROGRAMA`, `PERFORM 4100-EMITIR-SRELCTRL`, `PERFORM 9990-GRAVAR-LOG-ERRO`, `PERFORM 9999-ABENDAR-PROGRAMA`, `GOBACK`.
-- Section `9990-GRAVAR-LOG-ERRO`: `CALL WRK-FRWK2999 USING WRK-AREA-ERRO`.
-- Section `9999-ABENDAR-PROGRAMA`: `DISPLAY` e `CALL 'BRAD0450' USING WRK-0450-ABEND-BAT WRK-0450-DUMP-BAT`.
+- Section `9900-TRATAR-ERRO`: `MOVE '<PROGRAMA>' TO XPTOGHEA-NOME-PROGRAMA`, `PERFORM 4100-EMITIR-XRELCTRL`, `PERFORM 9990-GRAVAR-LOG-ERRO`, `PERFORM 9999-ABENDAR-PROGRAMA`, `GOBACK`.
+- Section `9990-GRAVAR-LOG-ERRO`: `CALL WRK-XPTO2999 USING WRK-AREA-ERRO`.
+- Section `9999-ABENDAR-PROGRAMA`: `DISPLAY` e `CALL 'XPTO0450' USING WRK-0450-ABEND-BAT WRK-0450-DUMP-BAT`.
 
 - Inclua somente as sections necessárias para o programa
 
@@ -81,7 +81,7 @@ Use SECTIONs nomeadas com sufixo de paragrafo de fim `-99-FIM. EXIT.` e numeraca
   - `*- - - - ... - - - -*` para subgrupos de WORKING-STORAGE.
 - Comentarios em maiusculas, sem acentos.
 - Identadores alinhados em colunas (PIC, VALUE, clausulas adicionais) seguindo o modelo.
-- Nomes de variaveis prefixados: `WRK-`, `ACU-`, `FD-`, `FRWKG*`, conforme o padrao do modelo.
+- Nomes de variaveis prefixados: `WRK-`, `ACU-`, `FD-`, `XPTOG*`, conforme o padrao do modelo.
 - Acumuladores com `PIC 9(009) COMP-3 VALUE ZEROS`.
 - File status com `PIC X(002) VALUE SPACES`.
 - Indicadores de nulidade com `PIC S9(004) COMP VALUE ZEROS`.
@@ -93,12 +93,12 @@ Use SECTIONs nomeadas com sufixo de paragrafo de fim `-99-FIM. EXIT.` e numeraca
 
 - Arquivos: validar `WRK-FS-*` apos cada `OPEN`, `READ`, `WRITE`, `CLOSE` via section dedicada.
 - DB2: validar `SQLCODE` e `SQLWARN0` apos cada `EXEC SQL`.
-- Validacoes de regra: usar `FRWKGLIV-PARAMETROS` e `9200-FORMATAR-ERRO-LIVRE`.
-- Toda situacao de erro deve passar por `9900-TRATAR-ERRO` e abendar via `BRAD0450` apos gravar log via `FRWK2999`.
+- Validacoes de regra: usar `XPTOGLIV-PARAMETROS` e `9200-FORMATAR-ERRO-LIVRE`.
+- Toda situacao de erro deve passar por `9900-TRATAR-ERRO` e abendar via `XPTO0450` apos gravar log via `XPTO2999`.
 
-## Relatorio de Controle (SRELCTRL)
+## Relatorio de Controle (XRELCTRL)
 
-- Emitir cabecalhos `WRK-CABEC1-REL1`, `WRK-CABEC2-REL1` (com data via `POOL7600`) e `WRK-CABEC3-REL1`.
+- Emitir cabecalhos `WRK-CABEC1-REL1`, `WRK-CABEC2-REL1` (com data via `XPTO7600`) e `WRK-CABEC3-REL1`.
 - Emitir uma linha `WRK-LINDET1-REL1` para cada acumulador relevante: registros lidos por arquivo, registros gravados por arquivo, registros lidos por tabela e registros nao encontrados por tabela.
 
 ## Checklist Antes de Entregar o Programa
@@ -108,9 +108,9 @@ Use SECTIONs nomeadas com sufixo de paragrafo de fim `-99-FIM. EXIT.` e numeraca
 3. Todos os copybooks declarados na WORKING-STORAGE.
 4. `EXEC SQL INCLUDE` para `SQLCA` e cada DCLGEN usado.
 5. Todas as sections numeradas com paragrafo `-99-FIM. EXIT.` final.
-6. `MOVE '<nome>' TO FRWKGHEA-IDEN-PARAGRAFO` no inicio de toda section que acessa arquivo ou DB2.
+6. `MOVE '<nome>' TO XPTOGHEA-IDEN-PARAGRAFO` no inicio de toda section que acessa arquivo ou DB2.
 7. Tratamento de nulos para colunas DB2 anulaveis.
-8. `4100-EMITIR-SRELCTRL` cobrindo todos os acumuladores declarados.
+8. `4100-EMITIR-XRELCTRL` cobrindo todos os acumuladores declarados.
 9. Sections de erro `9100`, `9200`, `9300`, `9900`, `9990`, `9999` presentes e consistentes.
 10. Variaveis nao utilizadas ou usadas apenas como receptoras removidas da WORKING-STORAGE, preservando apenas campos referenciados diretamente ou por copybook/area chamada.
 11. `STOP RUN` apenas em `4000-FINALIZAR`; demais saidas de erro via `GOBACK` apos `9900-TRATAR-ERRO`.
@@ -118,8 +118,8 @@ Use SECTIONs nomeadas com sufixo de paragrafo de fim `-99-FIM. EXIT.` e numeraca
 ## Boas Praticas
 
 - Nao introduza dependencias novas sem justificativa funcional.
-- Preserve a nomenclatura local: prefixos de sistema, padroes de DDNAME, prefixos de copybooks `I#FRWK*`.
-- Reaproveite o framework de erro do Bradesco; nao crie tratamento proprio.
+- Preserve a nomenclatura local: prefixos de sistema, padroes de DDNAME, prefixos de copybooks `I#XPTO*`.
+- Reaproveite o framework de erro corporativo; nao crie tratamento proprio.
 - Mantenha o programa autocontido: nao misture regras de outros programas.
 - Remova variaveis nao utilizadas antes de entregar o programa.
 - Diferencie no comentario os campos vindos de arquivo, tabela ou parametro.
@@ -132,6 +132,6 @@ Use SECTIONs nomeadas com sufixo de paragrafo de fim `-99-FIM. EXIT.` e numeraca
 3. Tenho a lista de tabelas DB2 com operacoes e DCLGENs?
 4. Tenho a lista de parametros e suas validacoes?
 5. Tenho a lista de programas externos a serem chamados?
-6. Tenho a lista de acumuladores a serem reportados no SRELCTRL?
+6. Tenho a lista de acumuladores a serem reportados no XRELCTRL?
 
 Somente apos confirmar esses itens, gere o programa seguindo fielmente o modelo `SIST8243`.

@@ -1,21 +1,21 @@
 ---
 name: cobol-geracao-batch-avancado
 description: |
-  Gera programas COBOL batch completos para mainframe Bradesco/Foursys com integração
+  Gera programas COBOL batch completos para mainframe corporativo com integração
   DB2 e arquivos sequenciais, seguindo o padrão estrutural completo do ambiente:
-  cabeçalho comentado padrão Foursys, framework de erro (I#FRWKGE/I#FRWKAR/I#FRWKLI/
-  I#FRWKDB, FRWK2999, BRAD0450), teste de FILE STATUS por arquivo, tratamento de nulos
-  DB2 e relatório de controle (SRELCTRL) com acumuladores.
+  cabeçalho comentado padrão Foursys, framework de erro (I#XPTOGE/I#XPTOAR/I#XPTOLI/
+  I#XPTODB, XPTO2999, XPTO0450), teste de FILE STATUS por arquivo, tratamento de nulos
+  DB2 e relatório de controle (XRELCTRL) com acumuladores.
   Use quando: for necessário criar um programa COBOL batch novo que precise reaproveitar
-  o framework de erro e o relatório de controle padrão do ambiente Bradesco/Foursys —
+  o framework de erro e o relatório de controle padrão do ambiente corporativo —
   vai além do esqueleto genérico gerado por `cobol-geracao-boilerplate`.
 metadata:
   version: "0.0.1"
 ---
 
-# Skill: Geração de Programa COBOL Batch (Padrão Bradesco/Foursys)
+# Skill: Geração de Programa COBOL Batch (Padrão Corporativo)
 
-Atue como um Desenvolvedor COBOL Sênior especialista no ambiente mainframe Bradesco/Foursys,
+Atue como um Desenvolvedor COBOL Sênior especialista no ambiente mainframe corporativo,
 com integração DB2 e arquivos sequenciais.
 
 Sua tarefa é gerar um novo programa COBOL batch seguindo rigorosamente o padrão estrutural,
@@ -26,8 +26,8 @@ tratamento de erro via framework corporativo.
 ## Quando usar
 
 - Programa batch novo que acessa DB2 e/ou arquivos sequenciais e precisa seguir o padrão de
-  tratamento de erro do ambiente (framework `I#FRWK*` + `FRWK2999` + `BRAD0450`).
-- Programa que precisa emitir relatório de controle de execução (`SRELCTRL`) com acumuladores.
+  tratamento de erro do ambiente (framework `I#XPTO*` + `XPTO2999` + `XPTO0450`).
+- Programa que precisa emitir relatório de controle de execução (`XRELCTRL`) com acumuladores.
 
 ## Quando não usar
 
@@ -53,6 +53,14 @@ como pendência se algo estiver indefinido):
 Não copie variáveis, arquivos ou tabelas que não sejam usados pelo novo programa — apenas o
 padrão estrutural deve ser replicado, nunca a lógica de negócio de um programa de referência.
 
+## Nomes fictícios
+
+Os nomes de rotinas, books e arquivos do framework corporativo nesta skill e nas referências
+(`I#XPTOGE`, `I#XPTOAR`, `I#XPTOLI`, `I#XPTODB`, campos `XPTOG*`, `XPTO2999`, `XPTO0450`,
+`XPTO7600`, `XRELCTRL`, esquema `XPTODB`) são **fictícios** e mostram só o padrão. Use os nomes reais
+do framework do seu ambiente — quando houver glossário do cliente ao final desta skill, ele traz a
+correspondência.
+
 ## Referências
 
 - [`references/MODELO_COBOL_EXEMPLO.md`](references/MODELO_COBOL_EXEMPLO.md): trechos de código
@@ -64,8 +72,8 @@ padrão estrutural deve ser replicado, nunca a lógica de negócio de um program
 ## O código gerado deve
 
 - Seguir a organização e numeração de SECTIONs do modelo em `references/MODELO_COBOL_EXEMPLO.md`.
-- Reaproveitar o framework de erro do Bradesco (`I#FRWKGE`, `I#FRWKAR`, `I#FRWKLI`, `I#FRWKDB`,
-  `FRWK2999`, `BRAD0450`) — nunca criar tratamento de erro próprio.
+- Reaproveitar o framework de erro corporativo (`I#XPTOGE`, `I#XPTOAR`, `I#XPTOLI`, `I#XPTODB`,
+  `XPTO2999`, `XPTO0450`) — nunca criar tratamento de erro próprio.
 - Conter apenas variáveis, arquivos e tabelas efetivamente usados pelo programa.
 - Não escrever dado sensível (CPF, conta, cartão) em `DISPLAY`, no relatório de controle ou em
   mensagem de erro — grave mascarado. Campo monetário/decimal em `COMP-3` com a escala correta,

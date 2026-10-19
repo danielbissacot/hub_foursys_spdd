@@ -9,7 +9,7 @@ description: |
   cada tabela.
   Use quando: documentar tabelas DB2, DCLGENs ou a cadeia de dados de um sistema COBOL.
 metadata:
-  version: "0.0.1"
+  version: "0.0.2"
 ---
 
 # Skill: Documentação e Especificação Técnica/Negócio DB2
@@ -160,9 +160,14 @@ histórico, expurgo), papel regulatório ou financeiro e o impacto de dados inco
 ### 6.1 Operações por programa
 [uma linha por programa da tabela 0: operação, finalidade e se é por chave, por cursor ou posicionado
 (`WHERE CURRENT OF`)]
+- **SELECT:** [consultas por chave e por cursor, e a finalidade (ex.: validação de elegibilidade)]
+- **INSERT:** [quem inclui e como preenche data/hora (ex.: `CURRENT TIMESTAMP`)]
+- **UPDATE:** [mudanças de status, por chave ou posicionado]
+- **DELETE:** [proibido / permitido só por expurgo batch — diga qual e quem faz]
 
 ### 6.2 Desempenho e transação
-- **Isolamento:** [ex.: `WITH CS`; `WITH UR` só para relatório]
+- **Isolamento:** [ex.: `WITH CS`; `WITH RS` quando precisar de leitura estável; `WITH UR` só para
+  relatório]
 - **Cursores:** [`FOR FETCH ONLY`, `OPTIMIZE FOR n ROWS`]
 
 ## 7. Diagrama de relacionamento da tabela

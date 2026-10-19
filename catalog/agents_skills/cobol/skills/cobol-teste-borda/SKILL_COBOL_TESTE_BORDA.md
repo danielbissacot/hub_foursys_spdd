@@ -7,7 +7,7 @@ description: |
   por zero, arredondamento e retornos simulados de VSAM, DB2 e CICS.
   Use quando: garantir a cobertura de testes de uma rotina COBOL nova ou alterada.
 metadata:
-  version: "0.0.2"
+  version: "0.0.3"
 ---
 
 # Skill: Casos de Teste de Borda e Massa de Teste Unitário (COBOL)
@@ -25,6 +25,15 @@ Informe no contexto:
 - **Tipo de dado:** o PIC do campo (ex.: `PIC S9(9)V99 COMP-3`).
 - **Contexto:** a regra de negócio aplicada (ex.: cálculo de IR).
 - **Trecho do código** da rotina.
+
+## O que entregar (sempre os três)
+
+1. **Matriz de casos de teste de borda**, organizada pelos pilares abaixo (limites de PIC, tipo de
+   dado, sinal, tabelas `OCCURS`, escala financeira).
+2. **Massa de entrada:** posição por posição (layout fixo, byte a byte) ou atribuição na
+   `WORKING-STORAGE` / cartões `SYSIN` — sempre anonimizada (LGPD).
+3. **Saída esperada:** o estado final das variáveis e dos acumuladores, os códigos de retorno, o
+   `FILE STATUS` e os registros gravados.
 
 ## O que analisar
 
@@ -90,7 +99,9 @@ Os cenários de borda identificados para a rotina.
 
 Com `DECIMAL-POINT IS COMMA` no programa, escreva o literal com vírgula (`9999999,99`).
 
-#### B. Registros do arquivo de entrada (layout fixo)
+#### B. Registros do arquivo de entrada ou cartões SYSIN (layout fixo, posição por posição)
+
+Layout do exemplo: posições 1-11 CPF, 12-20 valor (`9(07)V99`, sem vírgula), 21-28 data `AAAAMMDD`.
 
 ```text
 * CT-TU-001: REGISTRO COM VALOR LIMITE MAXIMO
@@ -99,12 +110,19 @@ Com `DECIMAL-POINT IS COMMA` no programa, escreva o literal com vírgula (`99999
 1112223334412345A78920261015
 ```
 
+#### C. Saída esperada (estado final)
+
+| ID | Código de retorno | Acumuladores | FILE STATUS | Registro gravado |
+| :--- | :--- | :--- | :--- | :--- |
+| **CT-TU-001** | `WS-COD-RETORNO = 00` | lidos +1, processados +1 | `00` na saída | valor final conforme a regra |
+| **CT-TU-002** | `WS-COD-RETORNO = 99` | lidos +1, rejeitados +1 | `00` na saída de rejeitados | nenhum na saída principal |
+
 ### 4. Proteções recomendadas no código
 As instruções COBOL que blindam a rotina contra os cenários encontrados (ex.: `ON SIZE ERROR`,
 `IF ... IS NUMERIC`, teste de limite do índice, `NOT AT END`).
 
 ## Regras
-- **Dados fictícios sempre:** nunca CPF, nome, conta ou cartão reais. Use sequências claramente
+- **Dados fictícios sempre (LGPD):** nunca CPF, nome, conta ou cartão reais. Use sequências claramente
   inválidas (ex.: CPF `111.222.333-44`).
 - No mínimo 5 casos de teste; cada um com cenário, entrada e resultado esperado.
 - Exemplos de código no formato fixo (indicador na coluna 7, código entre as colunas 8 e 72).

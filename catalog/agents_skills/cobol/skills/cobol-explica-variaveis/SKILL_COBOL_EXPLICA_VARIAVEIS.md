@@ -7,7 +7,7 @@ description: |
   fluxo (IF, EVALUATE, PERFORM), com riscos de abend (S0C7/S0C4) e de desempenho.
   Use quando: entender lógica complexa de cálculo ou validação em COBOL.
 metadata:
-  version: "0.0.2"
+  version: "0.0.3"
 ---
 
 # Skill: Explicação de Lógica e Ciclo de Vida de Variáveis COBOL
@@ -33,13 +33,27 @@ Informe no contexto:
 2. **Riscos de abend:**
    - S0C7: campo `PIC X` redefinido como `PIC 9` usado em cálculo sem `IS NUMERIC`;
    - S0C4: índice ou subscrito de `OCCURS` sem teste de limite.
-3. **Desempenho e representação:** diga se o tipo de dado é eficiente para o uso (`COMP-3` e `COMP`
-   com sinal para cálculo; `DISPLAY` para exibição) e aponte conversões implícitas que o compilador
-   gera em `COMPUTE` e `MOVE`.
-4. **Dados fictícios:** em simulações de valores, use massas inventadas — nunca dados reais.
+3. **Desempenho e representação:** diga se o tipo de dado é eficiente para o uso (`COMP-3` /
+   `PACKED-DECIMAL` e `COMP` / `BINARY` com sinal para cálculo; `DISPLAY` para exibição) e aponte as
+   conversões implícitas que o compilador gera em `COMPUTE` e `MOVE` (instruções `PACK` / `UNPK`
+   extras). O `S` explícito em campo de cálculo evita instruções extras de acerto de sinal.
+4. **Dados fictícios (LGPD):** em simulações de valores, use massas inventadas — nunca dados reais.
 5. **Tamanho em bytes:** `COMP-3` ocupa (dígitos + 1) / 2 arredondado para cima (ex.:
    `S9(11)V99 COMP-3` = 13 dígitos = 7 bytes); `COMP` com 1-4 dígitos = 2 bytes, 5-9 = 4 bytes,
    10-18 = 8 bytes.
+
+## As 3 dimensões da análise
+
+Para cada variável-chave, cubra sempre:
+
+1. **Memória (como ela é guardada):** nível (`01`, `05`, `77`, `88`), PIC (`X`, `9`, `S9`, `V`, `Z`),
+   USAGE (`DISPLAY`, `COMP` / `BINARY` / `COMP-4`, `COMP-3` / `PACKED-DECIMAL`) e estrutura
+   (`REDEFINES`, `OCCURS ... INDEXED BY`).
+2. **Ciclo de vida (onde nasce e muda):** inicialização (`VALUE`, `INITIALIZE`), atribuição (`MOVE`,
+   `SET`), aritmética (`ADD`, `SUBTRACT`, `MULTIPLY`, `DIVIDE`, `COMPUTE`) e reconstrução (`STRING`,
+   `UNSTRING`, `INSPECT`).
+3. **Decisão (como ela muda o fluxo):** condições (`IF`, `EVALUATE`), laços (`PERFORM ... UNTIL` /
+   `VARYING`) e status (nível 88).
 
 ## Modo 1 — Relatório completo (padrão)
 
@@ -57,14 +71,22 @@ O que o bloco faz, em linguagem clara: entradas, transformações e saídas.
 
 ### 3. Evolução dos valores (passo a passo)
 Para cada variável-chave: parágrafo, comando, valor antes, operando, valor depois e efeito colateral
-(ex.: estouro de campo, perda de sinal).
+(ex.: estouro de campo, perda de sinal). Exemplo:
+
+- **Parágrafo:** `1000-PROCESSAR-REGISTRO`
+  - **Comando:** `ADD REG-VALOR TO WS-TOT-VALOR`
+  - **Valor antes:** `WS-TOT-VALOR` = `150,00`
+  - **Operando:** `REG-VALOR` = `50,25`
+  - **Valor depois:** `WS-TOT-VALOR` = `200,25`
+  - **Efeito colateral:** nenhum estouro de campo (`ON SIZE ERROR` não seria acionado).
 
 ### 4. Decisões baseadas nos dados
 - **Laços (`PERFORM`):** quais contadores e flags (inclusive nível 88) encerram cada laço.
 - **Desvios (`IF` / `EVALUATE`):** tabela "valor da variável → caminho executado".
 
 ### 5. Desempenho e boas práticas
-- Operações entre `COMP-3` e `DISPLAY` sem sinal que obrigam o compilador a gerar conversões extras.
+- Operações entre `COMP-3` e `DISPLAY` sem sinal que obrigam o compilador a gerar conversões extras
+  (`PACK` / `UNPK`).
 - Terminadores explícitos (`END-IF`, `END-PERFORM`, `END-COMPUTE`, `END-EVALUATE`).
 - Se houver melhoria, mostre a versão sugerida com **100% da equivalência funcional**.
 
@@ -89,11 +111,17 @@ flowchart TD
         H["WS-TOT-DEBITOS (COMP-3)"]
         I["WS-CONTADOR (COMP)"]
     end
+    subgraph DECISAO["Decisões e saída"]
+        J{"IF WS-CONTADOR > 10000"}
+        K["PERFORM 8000-GRAVAR-LOTE"]
+    end
     A --> C
     B --> C
     C -- "'C'" --> D --> G
     C -- "'D'" --> E --> H
     C --> F --> I
+    I --> J
+    J -- "Sim" --> K
 ```
 
 ## Exemplo
@@ -149,5 +177,8 @@ flowchart TD
    depois do laço. Como tem `S`, aceita saldo negativo sem perder o sinal.
 4. **Decisões:** o laço para em `WS-CONTADOR >= 500` ou `REG-TIPO = 'F'`; o `IF ... IS NUMERIC`
    impede o S0C7; o `EVALUATE` decide entre créditos e débitos (outro tipo não soma nada).
-5. **Boas práticas:** criar nível 88 para `REG-TIPO` (`TIPO-CREDITO`, `TIPO-DEBITO`, `TIPO-FIM`) e
-   registrar quantos registros foram rejeitados pelo `IS NUMERIC`.
+5. **Desempenho e boas práticas:** `COMP` no contador e `COMP-3` com `S` nos acumuladores são tipos
+   eficientes para o cálculo (o `S` evita instruções extras de acerto de sinal); o `IS NUMERIC` antes
+   do `ADD` é a proteção certa contra o S0C7. Sugestões: criar nível 88 para `REG-TIPO`
+   (`TIPO-CREDITO`, `TIPO-DEBITO`, `TIPO-FIM`) e registrar quantos registros foram rejeitados pelo
+   `IS NUMERIC`.

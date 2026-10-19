@@ -8,7 +8,7 @@ description: |
   Use quando: criar ou ajustar o JCL de um job batch, de um programa simples a uma cadeia
   de STEPs.
 metadata:
-  version: "0.0.2"
+  version: "0.0.3"
 ---
 
 # Skill: Geração e Engenharia de JCL (z/OS)
@@ -22,13 +22,39 @@ pronto para revisão técnica, com restart seguro e sem desperdício de CPU e de
 - Job de **compilação + link-edit + execução** de um programa COBOL.
 - Job com **vários STEPs** que passam arquivos de um para o outro (`DSN=*.STEPx.DDNAME`): ordenação,
   programa aplicativo, unload de tabela DB2.
-- PROC catalogada ou embutida (`PROC` / `PEND`), utilitários IBM, GDG, VSAM, condicionais e restart.
-- Parâmetros para o agendador (Control-M, TWS/OPC, CA-7).
+- PROC catalogada ou embutida (`PROC` / `PEND`).
+- Utilitários IBM:
+  - `IDCAMS`: VSAM (KSDS, ESDS, RRDS), base de GDG (`DEFINE GDG`), `LISTCAT`, `ALTER`, `REPRO`, `DELETE`;
+  - `SORT` / `DFSORT` / `ICETOOL`: ordenação, filtro (`INCLUDE` / `OMIT`), reformatação
+    (`INREC` / `OUTREC`), totalização (`SUM`) e retirada de duplicados;
+  - `IEBGENER` / `ICEGENER`: cópia de sequencial e geração de membro;
+  - `IEBCOPY`: cópia, junção e compressão de PDS / PDSE;
+  - `IKJEFT01` / `DSNTEP2` / `DSNTIAD`: programa COBOL/DB2 e SQL em lote;
+  - `ADRDSSU` / `IEBEDIT`: cópia física, backup e manipulação de JCL.
+- Datasets sequenciais (QSAM), PDS / PDSE, GDG (base e gerações) e VSAM.
+- Chamada de programas COBOL, Assembler, PL/I ou C.
+- Condicionais (`COND=(código,operador)` e `IF / THEN / ELSE / ENDIF`) e restart (`RESTART=STEPxx`).
+- Parâmetros e cartões para o agendador (Control-M, TWS/OPC, CA-7).
 
 ## Quando não usar
 - Revisar um JCL que já existe e dizer se está APTO → use `cobol-validador-jcl`.
 - Documentar um job ou uma malha batch → use `cobol-jcl-documenta`.
 - Código do programa COBOL batch → `cobol-geracao-batch-avancado`; programa CICS → `cobol-cics-dev`.
+
+## Componentes e utilitários
+
+| Componente | Papel no batch |
+| :--- | :--- |
+| **JOB card** | identifica o job: contabilização, `CLASS`, `PRTY`, `MSGCLASS`, `TIME`, `REGION`, `NOTIFY` |
+| **EXEC** | chama o programa (`PGM=`) ou a procedure (`PROC=`), com `PARM='...'` e condição (`COND` ou `IF`) |
+| **DD** | liga o nome lógico do programa (DDNAME) ao dataset físico (`DSN`): `DISP`, `SPACE`, `DCB` (`RECFM`, `LRECL`, `BLKSIZE`), `UNIT`, `VOL=SER=` |
+| **IDCAMS** | Access Method Services: VSAM, base de GDG, `LISTCAT`, expurgo (`DELETE`) |
+| **SORT / DFSORT / ICETOOL** | ordenação, junção, seleção, reformatação e totalização em alto volume |
+| **IEBGENER / ICEGENER** | cópia direta de sequencial, criação de membro de PDS |
+| **IEBCOPY** | bibliotecas PDS / PDSE: cópia de membros e compressão |
+| **IKJEFT01 / DSNTEP2** | TSO/DB2 em lote: programa COBOL/DB2 e SQL dinâmico |
+| **GDG** | gerações de um mesmo arquivo: `(0)` atual, `(+1)` nova, `(-1)` anterior |
+| **VSAM** | KSDS (por chave), ESDS (por entrada), RRDS (por número do registro) |
 
 ## Como usar esta skill
 
@@ -57,13 +83,27 @@ do cliente ao final desta skill, ele traz a correspondência.
 3. **Concorrência:** `DISP=SHR` para leitura compartilhada; `DISP=OLD` ou `MOD` só quando precisar de
    uso exclusivo.
 4. **Restart:** o job precisa poder recomeçar de qualquer STEP. Inclua um STEP inicial de limpeza
-   (`IDCAMS DELETE` com `SET MAXCC = 0`) para não cair em `NOT CATLGD 2` na reexecução.
+   (`IDCAMS DELETE` com `SET MAXCC = 0`) para não cair em `NOT CATLGD 2` na reexecução. Se o padrão do
+   ambiente for manter o RC do `DELETE`, os STEPs seguintes aceitam até 8 (arquivo inexistente):
+   `COND=(8,LT)` ou `IF STEP010.RC <= 8 THEN`.
 5. **GDG:** leia com `(0)` e grave com `(+1)` e `DISP=(NEW,CATLG,DELETE)`. Dentro do **mesmo job**, os
    STEPs seguintes continuam chamando a geração nova de `(+1)` — o número só muda no catálogo quando
    o job termina.
 6. **Encadeamento:** todo arquivo produzido por um STEP e usado depois deve ser referenciado certo
    (`DSN=*.STEPx.DDNAME`, ou `DSN=*.STEPx.<passo-da-proc>.DDNAME` dentro de PROC).
-7. **Dados sensíveis:** nada de senha, token, CPF ou dado pessoal em `SYSIN`, `PARM=` ou SYSOUT.
+7. **Dados sensíveis (LGPD / PCI-DSS):** nada de senha, token, CPF ou dado pessoal em `SYSIN`,
+   `PARM=` ou SYSOUT.
+
+### Ordenação e unload DB2 nos modelos do ambiente (`references/PADROES_STEPS.md`)
+1. Cada ordenação pela procedure de SORT do ambiente (`SORTD`) tem `SORTIN`, `SORTOUT`, `SYSOUT`,
+   `SYSUDUMP` e `SYSIN`.
+2. Cada unload DB2 pela procedure de HPU do ambiente tem `SYSPUNCH`, `SYSREC00`, `SYSTSIN`, `SYSIN`,
+   `SYSTSPRT`, `SYSPRINT`, `LISTING`, `SYSUDUMP` e `SYSOUT`.
+3. Arquivo gerado dentro dessas procedures e usado depois é referenciado pelo passo interno:
+   `DSN=*.STEPx.SORT.SORTOUT`, `DSN=*.STEPx.HPU.SYSREC00`.
+4. 🔒 **Unload com coluna sensível** (CPF, conta, cartão): o dataset de saída (`SYSREC00`) precisa de
+   `DISP=(,CATLG)` com proteção RACF adequada — sinalize isso no comentário do STEP e nunca gere o
+   dataset em HLQ público ou em temporário sem proteção.
 
 ### Desempenho e espaço
 1. **`BLKSIZE=0`:** deixe o z/OS escolher o bloco (nunca fixe `BLKSIZE=27920`).
@@ -77,7 +117,8 @@ do cliente ao final desta skill, ele traz a correspondência.
 - Nomes de STEP sequenciais (`STEP010`, `STEP020`... ou o padrão do ambiente); DD com até 8
   caracteres; continuação com `//` e espaços até a coluna do parâmetro.
 - Comentários `//*` antes do JOB card, de cada `EXEC` e dos DDs importantes, explicando a função de
-  negócio e o restart. Sem acentos (EBCDIC). Até a coluna 71.
+  negócio e o restart. Sem acentos nem caracteres fora do EBCDIC (IBM-1047 / IBM-275). Até a
+  coluna 71.
 - Em cartão de controle do DFSORT, comentário é **asterisco na coluna 1** (`* TEXTO`). `/*` é o fim
   dos dados in-stream.
 
@@ -210,6 +251,31 @@ flowchart TD
     F --> G["Gravação da geração GDG (+1)"]
 ```
 
+### Restart, temporários e gerações GDG
+
+```mermaid
+flowchart LR
+    subgraph ENTRADA["Entradas"]
+        GDG_IN["GDG de entrada: BASE.ENTRADA(0)"]
+        CARTAO["Cartão de controle SYSIN"]
+    end
+    subgraph JOB_JCL["Execução do job"]
+        STEP1["STEP010: limpeza (IDCAMS DELETE)"]
+        STEP2["STEP020: programa COBOL / DB2"]
+        STEP3["STEP030: DFSORT"]
+    end
+    subgraph SAIDA["Saídas"]
+        TEMP["Temporário: &&TEMPARQ"]
+        GDG_OUT["GDG de saída: BASE.SAIDA(+1)"]
+    end
+    GDG_IN --> STEP2
+    CARTAO --> STEP2
+    STEP1 -.->|"apaga as saídas antes de reexecutar"| GDG_OUT
+    STEP2 --> TEMP
+    TEMP --> STEP3
+    STEP3 --> GDG_OUT
+```
+
 ## Checklist antes de entregar
 - [ ] JOB card no padrão do ambiente (`CLASS`, `MSGCLASS`, `REGION`, `NOTIFY`), sem usuário fixo de
       outra pessoa.
@@ -219,6 +285,7 @@ flowchart TD
 - [ ] STEP inicial de limpeza para restart.
 - [ ] GDG: `(0)` para ler, `(+1)` para gravar.
 - [ ] Encadeamento entre STEPs com `DSN=*.STEPx.DDNAME` correto.
+- [ ] Ordenações e unloads com todos os DDs obrigatórios; saída de unload com dado sensível protegida.
 - [ ] Nenhum dado sensível em `SYSIN`, `PARM=` ou SYSOUT.
 - [ ] Sem acentos e sem caracteres fora do EBCDIC.
 

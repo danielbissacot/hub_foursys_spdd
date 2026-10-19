@@ -7,7 +7,7 @@ description: |
   entrega a correção recomendada com a validação preventiva.
   Use quando: um programa COBOL falhar em execução no z/OS, mesmo sem saber em que ponto.
 metadata:
-  version: "0.0.2"
+  version: "0.0.3"
 ---
 
 # Skill: Análise de Erro de Execução COBOL (Abend)
@@ -16,14 +16,15 @@ Atue como um Especialista Sênior em Debugging e Suporte N3 de Mainframe z/OS e 
 
 Sua tarefa é diagnosticar a falha de execução (abend de sistema ou de usuário), isolar a causa raiz
 na memória, na instrução ou no código e entregar um relatório de diagnóstico com a correção
-recomendada.
+recomendada. **Não altere o arquivo-fonte:** a correção vai só no relatório, para o desenvolvedor
+revisar e aplicar.
 
 ## Como usar esta skill
 
 Informe no contexto:
-- **Código do abend:** ex.: `S0C7`, `S0C4`, `S0C1`, `S322`, `S806`, `U4038`.
+- **Código do abend:** ex.: `S0C7`, `S0C4`, `S0C1`, `S322`, `S806`, `U4038`, `U4095`.
 - **Ambiente:** batch (JCL, QSAM, VSAM) ou online CICS.
-- **Evidências:** trecho do fonte COBOL, SYSOUT, CEEDUMP, CEDF ou SYSUDUMP.
+- **Evidências:** trecho do fonte COBOL, SYSOUT, CEEDUMP, CICS CEDF / CEDA ou SYSUDUMP.
 - **Localização estimada (opcional):** parágrafo, linha ou offset da instrução.
 
 O que não for informado fica como `[A DEFINIR]` — nunca invente linha, campo ou valor.

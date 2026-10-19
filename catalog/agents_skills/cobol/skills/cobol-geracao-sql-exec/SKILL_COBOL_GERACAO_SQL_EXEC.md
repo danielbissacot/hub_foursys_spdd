@@ -8,7 +8,7 @@ description: |
   índice) e parâmetros de BIND voltados a menor consumo de CPU.
   Use quando: o programa precisar ler ou gravar tabelas DB2, ou ao revisar SQL lento.
 metadata:
-  version: "0.0.2"
+  version: "0.0.3"
 ---
 
 # Skill: Desenvolvimento DB2 em COBOL (SQL embarcado, DDL, BIND e desempenho)
@@ -36,7 +36,7 @@ estrutura de banco.
 1. **Mesmo resultado de negócio:** otimização nenhuma pode mudar o conjunto de linhas lidas ou
    gravadas.
 2. **Nunca `SELECT *`:** traz coluna sensível à toa e quebra ao mudar o layout da tabela.
-3. **SQLCODE logo depois de cada `EXEC SQL`:**
+3. **`SQLCODE` (ou `SQLSTATE`) logo depois de cada `EXEC SQL`:**
    - `+100` (não encontrado / fim do cursor) é fluxo normal, não erro;
    - em erro, registre `SQLCODE`, tabela e operação — **nunca** o conteúdo das host variables no log
      (pode ter CPF, conta, salário).
@@ -44,12 +44,32 @@ estrutura de banco.
    (senão SQLCODE `-305`).
 5. **Precisão:** coluna `DECIMAL(p,s)` mapeia para host variable `COMP-3` com a mesma escala — nunca
    ponto flutuante (`COMP-1`/`COMP-2`).
-6. **Predicados indexáveis:** não aplique função (`YEAR()`, `SUBSTR()`, `UPPER()`) nem cálculo sobre a
+6. **Predicados indexáveis:** não aplique função (`YEAR()`, `DATE()`, `SUBSTR()`, `UPPER()`) nem cálculo sobre a
    coluna no `WHERE`; compare a coluna com a host variable do mesmo tipo e tamanho.
 7. **Concorrência:** `UPDATE`/`DELETE` em lote preveem a re-tentativa de `-911` (deadlock/timeout) a
    partir do último `COMMIT` — o DB2 já desfez a unidade de trabalho — com limite de tentativas.
 8. **Isolamento:** `WITH UR` só em leitura cujo resultado **não** alimenta gravação (relatório,
    consulta); leitura que decide atualização usa `CS`.
+
+## Ciclo de acesso em batch (cursor, commit e re-tentativa)
+
+```mermaid
+flowchart TD
+    A["DECLARE / OPEN do cursor"] --> B["FETCH (uma linha ou um bloco de linhas)"]
+    B --> C{"SQLCODE"}
+    C -- "0" --> D["Regra de negócio no COBOL"]
+    C -- "+100 (fim dos dados)" --> E["CLOSE, COMMIT final e fim"]
+    C -- "negativo" --> F["Trata o erro: registra SQLCODE, tabela e operação; ROLLBACK"]
+    D --> G{"Chegou a N linhas desde o último COMMIT?"}
+    G -- "Sim (ex.: 5.000)" --> H["COMMIT e guarda a chave da última linha"]
+    G -- "Não" --> B
+    H --> I{"COMMIT com SQLCODE 0?"}
+    I -- "Sim" --> B
+    I -- "-911 / -904" --> J{"Ainda dentro do limite de tentativas?"}
+    J -- "Sim" --> K["Reabre o cursor a partir da última chave confirmada"]
+    J -- "Não" --> F
+    K --> B
+```
 
 ## Padrões de código COBOL + DB2
 
@@ -161,9 +181,32 @@ Em batch que grava, faça `EXEC SQL COMMIT END-EXEC` a cada N linhas (ex.: 5.000
 e guarde a chave da última linha confirmada para o restart. Em CICS, quem confirma é o
 `EXEC CICS SYNCPOINT` (ou o fim da tarefa).
 
+### SQL lento → predicado indexável
+
+Errado — função sobre a coluna impede o uso do índice (varre a tabela):
+
+```sql
+SELECT CD_CLIENTE, NM_CLIENTE
+  FROM TB_CLIENTE_FINAN
+ WHERE YEAR(DT_ULT_ALT) = 2026
+   AND SUBSTR(NM_CLIENTE, 1, 3) = 'SIL'
+```
+
+Certo — a coluna fica "limpa" e o DB2 pode usar o índice:
+
+```sql
+SELECT CD_CLIENTE, NM_CLIENTE
+  FROM TB_CLIENTE_FINAN
+ WHERE DT_ULT_ALT BETWEEN '2026-01-01' AND '2026-12-31'
+   AND NM_CLIENTE LIKE 'SIL%'
+```
+
+No COBOL, use host variables no lugar dos literais (ex.: `:WS-DT-INI`, `:WS-DT-FIM`).
+
 ## DDL para DB2 for z/OS (quando pedido)
 
-Use Universal Table Space (UTS) — Partition-By-Growth (PBG) ou Partition-By-Range (PBR).
+Use Universal Table Space (UTS) — Partition-By-Growth (PBG) ou Partition-By-Range (PBR). Evite os
+tablespaces legados (segmentado ou simples).
 
 ```sql
 CREATE DATABASE DBFINAN

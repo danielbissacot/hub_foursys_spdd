@@ -1,11 +1,6 @@
 ---
 name: cobol-otimizacao-performance
-description: |
-  Identifica gargalos de performance em rotinas COBOL críticas: loops aninhados,
-  buscas sequenciais em tabelas (SEARCH vs SEARCH ALL), acessos excessivos a
-  arquivos/DB2 dentro de loops e lógicas redundantes.
-  Fornece o código otimizado e explica o ganho de performance estimado.
-  Use quando: revisar rotinas intensivas em processamento batch ou queries DB2.
+description: "Identifica gargalos de performance em rotinas COBOL críticas: loops aninhados, buscas sequenciais em tabelas (SEARCH vs SEARCH ALL), acessos excessivos a arquivos/DB2 dentro de loops e lógicas redundantes. Fornece o código otimizado e explica o ganho de performance estimado. Use quando: revisar rotinas intensivas em processamento batch ou queries DB2."
 metadata:
   version: "0.0.1"
 ---

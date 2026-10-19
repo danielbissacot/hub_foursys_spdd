@@ -1,13 +1,6 @@
 ---
 name: cobol-db2-documenta
-description: |
-  Documentação técnica e de negócio de objetos DB2 for z/OS usados por programas COBOL:
-  especificação de tabela, view e DCLGEN (dicionário de colunas DB2 ↔ COBOL, chaves, índices,
-  sensibilidade LGPD), engenharia reversa de DDL e SQL, documento da cadeia de dados de um
-  domínio (modelo ER, matriz programas × tabelas) e integração entre bancos (DRDA, three-part
-  names). Usa o Mapa de conexões, quando existe, para saber quais programas leem e gravam
-  cada tabela.
-  Use quando: documentar tabelas DB2, DCLGENs ou a cadeia de dados de um sistema COBOL.
+description: "Documentação técnica e de negócio de objetos DB2 for z/OS usados por programas COBOL: especificação de tabela, view e DCLGEN (dicionário de colunas DB2 ↔ COBOL, chaves, índices, sensibilidade LGPD), engenharia reversa de DDL e SQL, documento da cadeia de dados de um domínio (modelo ER, matriz programas × tabelas) e integração entre bancos (DRDA, three-part names). Usa o Mapa de conexões, quando existe, para saber quais programas leem e gravam cada tabela. Use quando: documentar tabelas DB2, DCLGENs ou a cadeia de dados de um sistema COBOL."
 metadata:
   version: "0.0.2"
 ---

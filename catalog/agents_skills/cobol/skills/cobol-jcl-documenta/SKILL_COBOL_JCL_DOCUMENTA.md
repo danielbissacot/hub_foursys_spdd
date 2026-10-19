@@ -1,11 +1,6 @@
 ---
 name: cobol-jcl-documenta
-description: |
-  Documentação técnica e de negócio de jobs JCL batch e PROCs do z/OS: especificação de um job
-  (JOB card, STEPs, DDs, condicionais, utilitários IBM, datasets, GDG, VSAM e procedimento de
-  restart), documento da malha batch de ponta a ponta (agendador, dependências entre jobs,
-  ciclo de vida dos arquivos, cenários BDD) e comentários explicativos dentro do próprio JCL.
-  Use quando: documentar um job, uma PROC ou uma cadeia batch, ou comentar um JCL existente.
+description: "Documentação técnica e de negócio de jobs JCL batch e PROCs do z/OS: especificação de um job (JOB card, STEPs, DDs, condicionais, utilitários IBM, datasets, GDG, VSAM e procedimento de restart), documento da malha batch de ponta a ponta (agendador, dependências entre jobs, ciclo de vida dos arquivos, cenários BDD) e comentários explicativos dentro do próprio JCL. Use quando: documentar um job, uma PROC ou uma cadeia batch, ou comentar um JCL existente."
 metadata:
   version: "0.0.1"
 ---

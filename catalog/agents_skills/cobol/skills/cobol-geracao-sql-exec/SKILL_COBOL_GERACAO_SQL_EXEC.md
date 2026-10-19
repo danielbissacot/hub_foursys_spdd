@@ -1,12 +1,6 @@
 ---
 name: cobol-geracao-sql-exec
-description: |
-  Gera e otimiza o acesso DB2 for z/OS em programas COBOL batch e CICS: SQL embarcado
-  (EXEC SQL / END-EXEC) com SELECT, INSERT, UPDATE, DELETE e CURSOR (inclusive leitura de
-  várias linhas por FETCH), host variables e indicadores de nulo no estilo DCLGEN, teste de
-  SQLCODE, commit em lote e re-tentativa em deadlock, além de DDL (tablespace, tabela,
-  índice) e parâmetros de BIND voltados a menor consumo de CPU.
-  Use quando: o programa precisar ler ou gravar tabelas DB2, ou ao revisar SQL lento.
+description: "Gera e otimiza o acesso DB2 for z/OS em programas COBOL batch e CICS: SQL embarcado (EXEC SQL / END-EXEC) com SELECT, INSERT, UPDATE, DELETE e CURSOR (inclusive leitura de várias linhas por FETCH), host variables e indicadores de nulo no estilo DCLGEN, teste de SQLCODE, commit em lote e re-tentativa em deadlock, além de DDL (tablespace, tabela, índice) e parâmetros de BIND voltados a menor consumo de CPU. Use quando: o programa precisar ler ou gravar tabelas DB2, ou ao revisar SQL lento."
 metadata:
   version: "0.0.3"
 ---

@@ -1,12 +1,6 @@
 ---
 name: cobol-transpilacao-java
-description: |
-  Converte a lógica de negócio de um programa COBOL para Java,
-  mantendo as regras rigorosamente intactas.
-  Mapeia DATA DIVISION para Classes/Records Java, PERFORM/CALL para métodos,
-  e documenta os desafios de mapeamento encontrados.
-  Resultado é um ponto de partida lógico, não código pronto para produção.
-  Use quando: entender como uma regra complexa COBOL ficaria em Java.
+description: "Converte a lógica de negócio de um programa COBOL para Java, mantendo as regras rigorosamente intactas. Mapeia DATA DIVISION para Classes/Records Java, PERFORM/CALL para métodos, e documenta os desafios de mapeamento encontrados. Resultado é um ponto de partida lógico, não código pronto para produção. Use quando: entender como uma regra complexa COBOL ficaria em Java."
 metadata:
   version: "0.0.1"
 ---

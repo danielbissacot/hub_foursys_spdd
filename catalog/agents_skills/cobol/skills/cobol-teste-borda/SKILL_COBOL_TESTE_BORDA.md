@@ -1,11 +1,6 @@
 ---
 name: cobol-teste-borda
-description: |
-  Gera no mínimo 5 casos de teste de borda (edge cases) para rotinas COBOL de cálculo ou
-  validação, com a massa de dados de entrada e a saída esperada prontas para o teste unitário:
-  limites de PIC, estouro de campo, dado não numérico (S0C7), índice de OCCURS (S0C4), divisão
-  por zero, arredondamento e retornos simulados de VSAM, DB2 e CICS.
-  Use quando: garantir a cobertura de testes de uma rotina COBOL nova ou alterada.
+description: "Gera no mínimo 5 casos de teste de borda (edge cases) para rotinas COBOL de cálculo ou validação, com a massa de dados de entrada e a saída esperada prontas para o teste unitário: limites de PIC, estouro de campo, dado não numérico (S0C7), índice de OCCURS (S0C4), divisão por zero, arredondamento e retornos simulados de VSAM, DB2 e CICS. Use quando: garantir a cobertura de testes de uma rotina COBOL nova ou alterada."
 metadata:
   version: "0.0.3"
 ---

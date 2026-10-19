@@ -1,15 +1,6 @@
 ---
 name: cobol-geracao-batch-avancado
-description: |
-  Gera programas COBOL batch completos para mainframe corporativo com integração
-  DB2 e arquivos sequenciais, seguindo o padrão estrutural completo do ambiente:
-  cabeçalho comentado padrão Foursys, framework de erro (I#XPTOGE/I#XPTOAR/I#XPTOLI/
-  I#XPTODB, XPTO2999, XPTO0450), teste de FILE STATUS por arquivo, tratamento de nulos
-  DB2, relatório de controle (XRELCTRL) com acumuladores, commit em lote e restart quando
-  o volume pedir, e prevenção de abends (S0C7, S0C4, -305).
-  Use quando: for necessário criar um programa COBOL batch novo que precise reaproveitar
-  o framework de erro e o relatório de controle padrão do ambiente corporativo —
-  vai além do esqueleto genérico gerado por `cobol-geracao-boilerplate`.
+description: "Gera programas COBOL batch completos para mainframe corporativo com integração DB2 e arquivos sequenciais, seguindo o padrão estrutural completo do ambiente: cabeçalho comentado padrão Foursys, framework de erro (I#XPTOGE/I#XPTOAR/I#XPTOLI/I#XPTODB, XPTO2999, XPTO0450), teste de FILE STATUS por arquivo, tratamento de nulos DB2, relatório de controle (XRELCTRL) com acumuladores, commit em lote e restart quando o volume pedir, e prevenção de abends (S0C7, S0C4, -305). Use quando: for necessário criar um programa COBOL batch novo que precise reaproveitar o framework de erro e o relatório de controle padrão do ambiente corporativo — vai além do esqueleto genérico gerado por `cobol-geracao-boilerplate`."
 metadata:
   version: "0.0.2"
 ---

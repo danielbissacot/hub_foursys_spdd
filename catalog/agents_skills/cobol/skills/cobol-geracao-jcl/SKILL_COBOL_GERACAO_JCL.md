@@ -1,12 +1,6 @@
 ---
 name: cobol-geracao-jcl
-description: |
-  Gera e refatora JCL para z/OS: job de compilação + link-edit + execução de programa COBOL,
-  jobs com vários STEPs encadeados (SORT, programa aplicativo, unload DB2 com passagem de
-  dataset entre STEPs), PROCs, utilitários IBM (IDCAMS, DFSORT/ICETOOL, IEBGENER, IEBCOPY,
-  IKJEFT01, DSNTEP2/DSNTIAD), GDG, VSAM, condicionais (COND, IF/THEN/ELSE) e restart.
-  Use quando: criar ou ajustar o JCL de um job batch, de um programa simples a uma cadeia
-  de STEPs.
+description: "Gera e refatora JCL para z/OS: job de compilação + link-edit + execução de programa COBOL, jobs com vários STEPs encadeados (SORT, programa aplicativo, unload DB2 com passagem de dataset entre STEPs), PROCs, utilitários IBM (IDCAMS, DFSORT/ICETOOL, IEBGENER, IEBCOPY, IKJEFT01, DSNTEP2/DSNTIAD), GDG, VSAM, condicionais (COND, IF/THEN/ELSE) e restart. Use quando: criar ou ajustar o JCL de um job batch, de um programa simples a uma cadeia de STEPs."
 metadata:
   version: "0.0.3"
 ---

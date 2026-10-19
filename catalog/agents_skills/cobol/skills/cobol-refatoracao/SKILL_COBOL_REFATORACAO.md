@@ -1,11 +1,6 @@
 ---
 name: cobol-refatoracao
-description: |
-  Refatora e moderniza programas ou trechos COBOL sem mudar nenhum comportamento: troca GO TO
-  e IFs aninhados por PERFORM e EVALUATE, aplica terminadores de escopo (END-IF, END-PERFORM...),
-  dá nomes descritivos em português a parágrafos e variáveis locais e entrega a tabela de
-  rastreabilidade De/Para de cada mudança.
-  Use quando: simplificar código "espaguete" ou preparar COBOL legado para manutenção.
+description: "Refatora e moderniza programas ou trechos COBOL sem mudar nenhum comportamento: troca GO TO e IFs aninhados por PERFORM e EVALUATE, aplica terminadores de escopo (END-IF, END-PERFORM...), dá nomes descritivos em português a parágrafos e variáveis locais e entrega a tabela de rastreabilidade De/Para de cada mudança. Use quando: simplificar código 'espaguete' ou preparar COBOL legado para manutenção."
 metadata:
   version: "0.0.2"
 ---

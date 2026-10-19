@@ -1,12 +1,6 @@
 ---
 name: cobol-reversa-completa
-description: |
-  Realiza decomposição técnica completa de um programa COBOL e gera proposta
-  de modernização para microserviço Java com Arquitetura Hexagonal.
-  Extrai resumo executivo, dicionário de dados críticos, inventário numerado
-  de regras de negócio, diagrama Mermaid e esboço Java com InputPort,
-  OutputPort e Entidade de Domínio.
-  Use quando: iniciar modernização de um programa COBOL legado.
+description: "Realiza decomposição técnica completa de um programa COBOL e gera proposta de modernização para microserviço Java com Arquitetura Hexagonal. Extrai resumo executivo, dicionário de dados críticos, inventário numerado de regras de negócio, diagrama Mermaid e esboço Java com InputPort, OutputPort e Entidade de Domínio. Use quando: iniciar modernização de um programa COBOL legado."
 metadata:
   version: "0.0.1"
 ---

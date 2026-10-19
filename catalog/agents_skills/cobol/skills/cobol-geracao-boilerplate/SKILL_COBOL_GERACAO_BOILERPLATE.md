@@ -1,11 +1,6 @@
 ---
 name: cobol-geracao-boilerplate
-description: |
-  Gera a estrutura básica completa (boilerplate) de programas COBOL Batch, online CICS
-  ou online IMS/DC, com base em requisitos de arquivos de entrada/saída e fluxos informados.
-  Inclui todas as divisões obrigatórias (IDENTIFICATION, ENVIRONMENT, DATA, PROCEDURE),
-  lógica de OPEN/READ/WRITE/CLOSE, formato fixo 80 colunas e compatibilidade Enterprise COBOL.
-  Use quando: iniciar um novo desenvolvimento COBOL do zero.
+description: "Gera a estrutura básica completa (boilerplate) de programas COBOL Batch, online CICS ou online IMS/DC, com base em requisitos de arquivos de entrada/saída e fluxos informados. Inclui todas as divisões obrigatórias (IDENTIFICATION, ENVIRONMENT, DATA, PROCEDURE), lógica de OPEN/READ/WRITE/CLOSE, formato fixo 80 colunas e compatibilidade Enterprise COBOL. Use quando: iniciar um novo desenvolvimento COBOL do zero."
 metadata:
   version: "0.0.1"
 ---

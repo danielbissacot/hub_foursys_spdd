@@ -1,11 +1,6 @@
 ---
 name: cobol-explica-variaveis
-description: |
-  Explica a lógica de um bloco ou programa COBOL pelo caminho das variáveis: como cada
-  variável-chave é declarada e guardada na memória (PIC, COMP, COMP-3, REDEFINES, OCCURS,
-  nível 88), onde nasce e muda (VALUE, INITIALIZE, MOVE, ADD, COMPUTE, SET) e como decide o
-  fluxo (IF, EVALUATE, PERFORM), com riscos de abend (S0C7/S0C4) e de desempenho.
-  Use quando: entender lógica complexa de cálculo ou validação em COBOL.
+description: "Explica a lógica de um bloco ou programa COBOL pelo caminho das variáveis: como cada variável-chave é declarada e guardada na memória (PIC, COMP, COMP-3, REDEFINES, OCCURS, nível 88), onde nasce e muda (VALUE, INITIALIZE, MOVE, ADD, COMPUTE, SET) e como decide o fluxo (IF, EVALUATE, PERFORM), com riscos de abend (S0C7/S0C4) e de desempenho. Use quando: entender lógica complexa de cálculo ou validação em COBOL."
 metadata:
   version: "0.0.3"
 ---

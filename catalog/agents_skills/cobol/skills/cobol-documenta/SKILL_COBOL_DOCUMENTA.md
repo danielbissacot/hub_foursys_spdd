@@ -1,6 +1,8 @@
 ---
 name: cobol-documenta
-description: "Documentação técnica, especificação de negócio, engenharia reversa, documentos aglomeradores de fluxo end-to-end e comentários em código COBOL/Mainframe seguindo o padrão corporativo de alta precisão."
+description: "Documentação técnica, especificação de negócio, engenharia reversa, documentos aglomeradores de fluxo end-to-end e comentários em código COBOL/Mainframe seguindo o padrão corporativo de alta precisão. Use quando: documentar programas COBOL batch ou IMS que já existem, ou o fluxo de ponta a ponta de um sistema."
+metadata:
+  version: "0.0.1"
 ---
 
 # Skill: Documentação e Especificação Técnica/Negócio COBOL

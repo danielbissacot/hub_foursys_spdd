@@ -1,6 +1,8 @@
 ---
 name: cobol-cics-documenta
-description: "Documentação técnica, especificação funcional de programas CICS (Online), engenharia reversa de COBOL CICS, mapas BMS, contratos de DFHCOMMAREA e de área de memória, documentos aglomeradores de cadeia transacional CICS end-to-end e comentários inline em código CICS seguindo o padrão corporativo de alta precisão."
+description: "Documentação técnica, especificação funcional de programas CICS (Online), engenharia reversa de COBOL CICS, mapas BMS, contratos de DFHCOMMAREA e de área de memória, documentos aglomeradores de cadeia transacional CICS end-to-end e comentários inline em código CICS seguindo o padrão corporativo de alta precisão. Use quando: documentar um programa CICS que já existe ou a cadeia de transações de um sistema CICS."
+metadata:
+  version: "0.0.1"
 ---
 
 # Skill: Documentação e Especificação Técnica/Negócio CICS Online

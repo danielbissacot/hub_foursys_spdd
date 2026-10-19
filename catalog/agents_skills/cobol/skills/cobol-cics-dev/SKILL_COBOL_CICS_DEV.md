@@ -1,6 +1,6 @@
 ---
 name: cobol-cics-dev
-description: "Analisa e implementa soluções COBOL/CICS, orquestrando mapa documental, especificação técnica, análise de impacto, cenários BDD, plano de implementação e código para coordenadores, funcionais, e compatíveis com mapa BMS, CWS, DB2 e VSAM."
+description: "Analisa e implementa soluções COBOL/CICS, orquestrando mapa documental, especificação técnica, análise de impacto, cenários BDD, plano de implementação e código para coordenadores, funcionais, e compatíveis com mapa BMS, CWS, DB2 e VSAM. Use quando: analisar, especificar ou implementar uma mudança em programa COBOL/CICS online."
 metadata:
   version: "0.0.1"
 ---

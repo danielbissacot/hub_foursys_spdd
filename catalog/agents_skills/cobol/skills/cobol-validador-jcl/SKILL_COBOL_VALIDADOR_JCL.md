@@ -1,6 +1,6 @@
 ---
 name: cobol-validador-jcl
-description: "Valida um JCL (z/OS) de forma estática, como um code review automatizado: estrutura geral, JOB, STEPs, DDs, dependências entre STEPs, SORT e os padrões corporativos do cliente (glossário do cliente), listando todas as inconsistências com correção sugerida e o status APTO / NÃO APTO."
+description: "Valida um JCL (z/OS) de forma estática, como um code review automatizado: estrutura geral, JOB, STEPs, DDs, dependências entre STEPs, SORT e os padrões corporativos do cliente (glossário do cliente), listando todas as inconsistências com correção sugerida e o status APTO / NÃO APTO. Use quando: revisar um JCL antes de mandar para homologação ou produção."
 metadata:
   version: "0.0.1"
 ---

@@ -2,7 +2,7 @@
 name: cobol-analise-abend
 description: "Analisa abends COBOL/z/OS (S0C7, S0C4, S0C1, S322, S806, U4038...) em batch ou CICS: explica a causa raiz no nível de memória/instrução, varre o fonte em busca dos suspeitos quando a linha do erro é desconhecida (SYSOUT, CEEDUMP, CEDF), prioriza as hipóteses e entrega a correção recomendada com a validação preventiva. Use quando: um programa COBOL falhar em execução no z/OS, mesmo sem saber em que ponto."
 metadata:
-  version: "0.0.3"
+  version: "0.0.4"
 ---
 
 # Skill: Análise de Erro de Execução COBOL (Abend)
@@ -81,6 +81,23 @@ Validações e boas práticas para o erro não voltar: `IF campo IS NUMERIC`, `N
 - Programa **CICS**: para implementar a correção com análise de impacto, use `cobol-cics-dev`.
 - Para provar a correção com casos de teste de borda: use `cobol-teste-borda`.
 - Em projeto com o fluxo SDD: registre a correção na história e siga pelo Plan/Tasks/Implement.
+
+### 7. Ficha de handoff (para colar na próxima skill)
+Feche o relatório com a ficha abaixo, preenchida, para o desenvolvedor copiar e colar na skill do
+próximo passo. O que não foi confirmado fica `[A DEFINIR]`; a ficha nunca leva dado sensível.
+
+```json
+{
+  "abend": "S0C7",
+  "programa": "XPTO0100",
+  "ambiente": "Batch",
+  "situacao": "Causa provável",
+  "trecho": "2000-PROCESSAR-ITEM",
+  "causa": "VLR-UNIT recebe espaços do arquivo e entra no COMPUTE sem teste IS NUMERIC",
+  "correcao": "testar IS NUMERIC antes do COMPUTE e rejeitar o registro inválido",
+  "proxima_skill": "cobol-teste-borda"
+}
+```
 
 ## Regras
 - Ao citar o conteúdo do dump ou do registro que causou o abend, **mascare dado sensível** (CPF,

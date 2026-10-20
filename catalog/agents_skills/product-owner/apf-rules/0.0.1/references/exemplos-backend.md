@@ -18,21 +18,21 @@
 **Contexto:** Enviar solicitação de opt-in à registradora Nuclea via API, registrar protocolo retornado e persistir rastreabilidade. Serviço backend sem interface web.
 
 ```markdown
-# [ESCRI-17282] Adicionar funcionalidade de solicitação de opt-in via API — Adapter Nuclea
+# [XPTO-17282] Adicionar funcionalidade de solicitação de opt-in via API — Adapter Nuclea
 
 **Status:** Draft
-**Serviço:** dupe-srv-duple-adapter-nuclea
-**Feature:** ESCRI-12831
-**Dependência:** ESCRI-17289 (dupe-lib-opt-dominios), ESCRI-17280 (infraestrutura de filas opt-in)
+**Serviço:** xpto-srv-adapter-nuclea
+**Feature:** XPTO-12831
+**Dependência:** XPTO-17289 (xpto-lib-opt-dominios), XPTO-17280 (infraestrutura de filas opt-in)
 
 ---
 
 ## 📌 APOIO APF
 
-➡️ Funcionalidade de solicitação de opt-in à registradora Nuclea via canal API (DUP0515).
+➡️ Funcionalidade de solicitação de opt-in à registradora Nuclea via canal API (XPTO0515).
 ➡️ Funcionalidade de registro de protocolo de solicitação de opt-in retornado pela Nuclea.
 ➡️ Funcionalidade de persistência do estado de rastreabilidade da solicitação de opt-in.
-➡️ Sistema referenciado: API Nuclea — endpoint de solicitação de opt-in (DUP0515).
+➡️ Sistema referenciado: API Nuclea — endpoint de solicitação de opt-in (XPTO0515).
 ➡️ Agrupamento de dados de negócio: controle de integração com a Nuclea (opt-in).
 
 ---
@@ -53,7 +53,7 @@ A solicitação de opt-in via API deve aplicar exatamente as mesmas regras de ne
 
 **RN-13 — Envio da solicitação de opt-in à registradora via canal API**
 
-O sistema deve enviar a solicitação de opt-in à registradora Nuclea consumindo a API de inclusão de opt-in (DUP0515) como sistema externo, traduzindo os dados do domínio Bradesco para o formato esperado pela registradora.
+O sistema deve enviar a solicitação de opt-in à registradora Nuclea consumindo a API de inclusão de opt-in (XPTO0515) como sistema externo, traduzindo os dados do domínio da empresa para o formato esperado pela registradora.
 
 **RN-14 — Registro do protocolo retornado pela registradora**
 
@@ -70,10 +70,10 @@ Cada solicitação de opt-in enviada via canal API deve ter seu estado de integr
 **RT-01 — UseCase `EnviarOptInOptOutNucleaUseCase`**
 
 Implementar UseCase (POJO puro, sem `@Service`) responsável por:
-1. Receber `IncluirRecebivel` (dupe-lib-opt-dominios) da fila `sbqenviooptin001`
+1. Receber `IncluirRecebivel` (xpto-lib-opt-dominios) da fila `xptoenviooptin001`
 2. Verificar estado do Circuit Breaker antes de chamar a Nuclea
-3. Converter `IncluirRecebivel` → `Dup0515Request` via `IncluirRecebivelToDup0515Mapper` (MapStruct)
-4. Chamar `OptInOptOutNucleaClient.enviarOptIn(Dup0515Request)` via Feign
+3. Converter `IncluirRecebivel` → `Xpto0515Request` via `IncluirRecebivelToXpto0515Mapper` (MapStruct)
+4. Chamar `OptInOptOutNucleaClient.enviarOptIn(Xpto0515Request)` via Feign
 5. Persistir protocolo via `ControleIntegracaoNucleaOutputPort`
 
 Registrar via `@Bean` na `UseCaseConfig`:
@@ -97,14 +97,14 @@ public EnviarOptInOptOutNucleaInputPort enviarOptInOptOutNucleaUseCase(
 )
 public interface OptInOptOutNucleaClient {
     @PostMapping("/registradora/optin/incluir")
-    ResponseEntity<ProtocoloNucleaResponse> enviarOptIn(@RequestBody Dup0515Request request);
+    ResponseEntity<ProtocoloNucleaResponse> enviarOptIn(@RequestBody Xpto0515Request request);
 }
 ```
 
-**RT-03 — DTO de Requisição `Dup0515Request`**
+**RT-03 — DTO de Requisição `Xpto0515Request`**
 
 ```java
-public record Dup0515Request(
+public record Xpto0515Request(
     String indicadorTipoTitular,              // (*) SCDR ou TITU — 4 chars
     String cpfOuCnpjSacadorOuTitular,         // (*) 11-14 chars
     String indicadorCnpjBase,                 // S ou N (opcional)
@@ -116,9 +116,9 @@ public record Dup0515Request(
 // (*) obrigatório
 ```
 
-**RT-04 — Mapeamento `IncluirRecebivel` → `Dup0515Request`**
+**RT-04 — Mapeamento `IncluirRecebivel` → `Xpto0515Request`**
 
-| Campo IncluirRecebivel | Campo Dup0515Request | Observação |
+| Campo IncluirRecebivel | Campo Xpto0515Request | Observação |
 |---|---|---|
 | `scIdentificadorSacadorTitular.cpfCnpj` | `cpfOuCnpjSacadorOuTitular` | 11-14 chars |
 | `scIdentificadorSacadorTitular.tipoTitular` | `indicadorTipoTitular` | SCDR/TITU |
@@ -182,22 +182,22 @@ resilience4j:
 
 ## 🔗 DEPENDÊNCIAS
 
-- **ESCRI-17289:** `dupe-lib-opt-dominios` com `IncluirRecebivel`, `RetornoProtocolo`.
-- **ESCRI-17280:** Infraestrutura de filas opt-in configurada.
+- **XPTO-17289:** `xpto-lib-opt-dominios` com `IncluirRecebivel`, `RetornoProtocolo`.
+- **XPTO-17280:** Infraestrutura de filas opt-in configurada.
 
 ---
 
 ## 🚫 FORA DO ESCOPO
 
-- Envio de opt-**out** via API (DUP0517) — ESCRI-17283.
-- Consulta do resultado do protocolo (polling DUP0515RET) — ESCRI-17278.
+- Envio de opt-**out** via API (XPTO0517) — XPTO-17283.
+- Consulta do resultado do protocolo (polling XPTO0515RET) — XPTO-17278.
 
 ---
 
 ## ⚠️ RISCOS
 
 - **Indisponibilidade prolongada da Nuclea:** Pode acumular mensagens nas filas.
-- **Mapeamento incompleto IncluirRecebivel → Dup0515Request:** Campos obrigatórios não mapeados causam rejeição 4xx.
+- **Mapeamento incompleto IncluirRecebivel → Xpto0515Request:** Campos obrigatórios não mapeados causam rejeição 4xx.
 ```
 
 ### Análise de Pontos — Exemplo 1
@@ -207,7 +207,7 @@ resilience4j:
 | 1 | Solicitação de opt-in à Nuclea via API | SE | 5,52 | Envio de dados para sistema externo |
 | 2 | Registro de protocolo retornado | EE | 4,70 | Persistência de dados internos |
 | 3 | Persistência de rastreabilidade | EE | 4,70 | Gravação em registro de controle |
-| 4 | AIE — API Nuclea (DUP0515) | AIE | 6,21 | Sistema externo referenciado |
+| 4 | AIE — API Nuclea (XPTO0515) | AIE | 6,21 | Sistema externo referenciado |
 | 5 | ALI — Controle de integração Nuclea | ALI | 7,21 | Dados mantidos pela aplicação |
 | — | **TOTAL** | — | **28,34** |
 
@@ -224,26 +224,26 @@ resilience4j:
 ```markdown
 ## 📌 APOIO APF
 
-➡️ Funcionalidade de consulta do resultado do protocolo de opt-in na registradora Nuclea (DUP0515RET).
-➡️ Funcionalidade de tradução do resultado da registradora para o formato de domínio Bradesco.
+➡️ Funcionalidade de consulta do resultado do protocolo de opt-in na registradora Nuclea (XPTO0515RET).
+➡️ Funcionalidade de tradução do resultado da registradora para o formato de domínio da empresa.
 ➡️ Funcionalidade de atualização do registro de integração com o resultado final do processamento.
-➡️ Sistema referenciado: API Nuclea — endpoint de retorno de opt-in (DUP0515RET).
+➡️ Sistema referenciado: API Nuclea — endpoint de retorno de opt-in (XPTO0515RET).
 
 ## 📌 IDENTIFICAÇÃO
 
 **EU COMO** Analista de Operações de Recebíveis
-**QUERO QUE** o sistema consulte automaticamente o resultado do protocolo de opt-in na registradora, traduza a resposta para o formato de domínio Bradesco e atualize o registro de integração
+**QUERO QUE** o sistema consulte automaticamente o resultado do protocolo de opt-in na registradora, traduza a resposta para o formato de domínio da empresa e atualize o registro de integração
 **PARA** acompanhar o ciclo completo da solicitação e reagir rapidamente a aceites ou recusas
 
 ## 📋 REGRAS DE NEGÓCIO
 
 **RN-16 — Consulta do resultado do protocolo na registradora**
 
-O sistema deve consultar o resultado do processamento da solicitação de opt-in na registradora, consumindo a API de retorno de opt-in (DUP0515RET) como fonte externa de dados, utilizando o protocolo previamente registrado.
+O sistema deve consultar o resultado do processamento da solicitação de opt-in na registradora, consumindo a API de retorno de opt-in (XPTO0515RET) como fonte externa de dados, utilizando o protocolo previamente registrado.
 
-**RN-17 — Tradução do resultado para formato de domínio Bradesco**
+**RN-17 — Tradução do resultado para formato de domínio da empresa**
 
-A resposta da registradora deve ser traduzida do formato proprietário para o formato de domínio padronizado do Bradesco antes de ser publicada. Os serviços consumidores não devem conhecer formatos proprietários da registradora.
+A resposta da registradora deve ser traduzida do formato proprietário para o formato de domínio padronizado da empresa antes de ser publicada. Os serviços consumidores não devem conhecer formatos proprietários da registradora.
 
 **RN-18 — Atualização do registro de integração com resultado definitivo**
 
@@ -368,9 +368,9 @@ Não usar termos APF diretamente. Em vez disso, usar linguagem natural que torna
 
 | Conceito APF | Linguagem natural na RN |
 |---|---|
-| AIE | "consumindo a API de retorno da Nuclea (DUP0515RET) como **fonte externa de dados**" |
+| AIE | "consumindo a API de retorno da Nuclea (XPTO0515RET) como **fonte externa de dados**" |
 | ALI | "persistir em um **registro de controle dedicado**, contendo data de envio, protocolo e status" |
-| SE | "enviar a solicitação à registradora, **traduzindo os dados do domínio Bradesco** para o formato esperado" |
+| SE | "enviar a solicitação à registradora, **traduzindo os dados do domínio da empresa** para o formato esperado" |
 | EE | "registrar o protocolo retornado para **viabilizar a consulta posterior**" |
 | CE | "consultar o resultado do processamento utilizando o **protocolo previamente registrado**" |
 

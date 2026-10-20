@@ -1,16 +1,20 @@
 ---
 name: springboot-certificado
 description: |
-  Configura a lib ensc-lib-autogestao-certificadopub em projetos Spring Boot
-  para resolver erros PKIX path building failed ao chamar serviços HTTPS internos Bradesco.
+  Configura a lib xpto-lib-autogestao-certificadopub em projetos Spring Boot
+  para resolver erros PKIX path building failed ao chamar serviços HTTPS internos da empresa.
   Faz download automático do Root CA e registra como Spring SSL Bundle com hot-reload.
-  Use quando: a aplicação precisar fazer chamadas HTTPS a serviços Bradesco e receber erro PKIX.
+  Use quando: a aplicação precisar fazer chamadas HTTPS a serviços internos da empresa e receber erro PKIX.
   Para implementações detalhadas por client HTTP: use /skill springboot-certificado-impl
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
-# Skill: Certificado SSL Corporativo Bradesco
+# Skill: Certificado SSL Corporativo
+
+> **Nomes fictícios:** o pacote `br.com.xpto`, a biblioteca `xpto-lib-autogestao-certificadopub` e os
+> certificados `XPTO ...` só mostram o padrão. Use os nomes reais do seu ambiente — confira no `pom.xml`
+> e nos imports do projeto antes de gerar código.
 
 ## Contexto do Problema
 
@@ -19,8 +23,8 @@ PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderExce
 unable to find valid certification path to requested target
 ```
 
-**Causa:** A JVM não encontra o Root CA Bradesco (`BradescoCorporateRootSHA2`) na truststore padrão.
-**Solução:** A lib `ensc-lib-autogestao-certificadopub` faz o download automático do certificado e o registra como Spring SSL Bundle com hot-reload.
+**Causa:** A JVM não encontra o Root CA corporativo (`XptoCorporateRootSHA2`) na truststore padrão.
+**Solução:** A lib `xpto-lib-autogestao-certificadopub` faz o download automático do certificado e o registra como Spring SSL Bundle com hot-reload.
 
 ## Como a lib funciona
 
@@ -47,12 +51,12 @@ Pod Kubernetes sobe
 ## Pré-requisitos
 
 - Spring Boot 3.2+
-- `ensc-lib-autogestao-certificadopub` disponível no nexus/kit LEAP
-- Acesso à rede Bradesco (VPN em dev local, rede corporativa em HOM/PRD)
+- `xpto-lib-autogestao-certificadopub` disponível no Nexus / kit da plataforma corporativa
+- Acesso à rede da empresa (VPN em dev local, rede corporativa em HOM/PRD)
 - Liberação de firewall/rede para o hostname alvo (responsabilidade da equipe de projeto)
 - Se o projeto usa FeignClient: mapear **todos** os `@FeignClient` existentes antes de iniciar
   (`grep -r "@FeignClient" src/main/java`) — a partir de `@EnableAutoGestaoCertificado`, a lib exige
-  `configuration` não vazia em **todo** `@FeignClient` de `br.com.bradesco`, mesmo os sem relação com o
+  `configuration` não vazia em **todo** `@FeignClient` de `br.com.xpto`, mesmo os sem relação com o
   domínio sendo integrado agora. Ver "Feign: exigências ocultas" em `/skill springboot-certificado-impl`.
 
 ---
@@ -63,7 +67,7 @@ Pod Kubernetes sobe
 
 1. **Qual é a URL do serviço HTTPS que a aplicação precisa chamar?**
    (A lib se conecta aqui para baixar o Root CA. Pode ser qualquer serviço HTTPS da rede corporativa
-   Bradesco ao qual a aplicação precise se conectar.)
+   da empresa ao qual a aplicação precise se conectar.)
 
    > **Não assuma uma URL.** Cada projeto chama serviços diferentes. A URL não é necessariamente um
    > autorizador — esse é só um caso específico de projetos que usam autorização transacional.
@@ -92,7 +96,7 @@ Pod Kubernetes sobe
 
    > Se não souber, verificar o `FROM` no Dockerfile do projeto.
 
-5. **Qual versão da `ensc-lib-autogestao-certificadopub` o projeto usa (pom.xml)?**
+5. **Qual versão da `xpto-lib-autogestao-certificadopub` o projeto usa (pom.xml)?**
 
    Define qual mecanismo de recarregamento usar (ver `/skill springboot-certificado-impl`):
 
@@ -117,8 +121,8 @@ Pod Kubernetes sobe
 
 ```xml
 <dependency>
-    <groupId>br.com.bradesco</groupId>
-    <artifactId>ensc-lib-autogestao-certificadopub</artifactId>
+    <groupId>br.com.xpto</groupId>
+    <artifactId>xpto-lib-autogestao-certificadopub</artifactId>
     <version>1.7.0</version>
     <exclusions>
         <exclusion>
@@ -262,11 +266,11 @@ Criar em `src/main/resources/application-cert.yml`:
 ```yaml
 allow-list:
   seguranca:
-    - CN=Bradesco Corporate Root SHA2
-    - CN=Bradesco Corporate Issuing 01 SHA256,DC=corpp,DC=bradesco,DC=com,DC=br
+    - CN=XPTO Corporate Root SHA2
+    - CN=XPTO Corporate Issuing 01 SHA256,DC=corpp,DC=xpto,DC=com,DC=br
     - CN=GlobalSign RSA OV SSL CA 2018,O=GlobalSign nv-sa,C=BE
-    - CN=Bradesco Root CA SHA2
-    - CN=Bradesco Issuing 02 CA SHA2,DC=corp,DC=bradesco,DC=com,DC=br
+    - CN=XPTO Root CA SHA2
+    - CN=XPTO Issuing 02 CA SHA2,DC=corp,DC=xpto,DC=com,DC=br
 ```
 
 > ⚠️ **A chave do yaml depende da versão da lib — confirmado via `javap` em 4 jars** (`1.1.7`, `1.3.1`,
@@ -299,7 +303,7 @@ A abordagem depende da versão da lib. **Confirmar no pom.xml antes de prossegui
 **Versão >= 1.7.0:**
 
 ```java
-import br.com.bradesco.lib.autogestao.EnableAutoGestaoCertificado;
+import br.com.xpto.lib.autogestao.EnableAutoGestaoCertificado;
 
 @SpringBootApplication
 @EnableLogCloud
@@ -312,7 +316,7 @@ public class Application implements CommandLineRunner { ... }
 
 ```java
 @Configuration(enforceUniqueMethods = false)
-@ComponentScan(basePackages = "br.com.bradesco.lib.autogestao")
+@ComponentScan(basePackages = "br.com.xpto.lib.autogestao")
 public class RestClientConfig { ... }
 ```
 
@@ -401,7 +405,7 @@ mvn clean package -DskipTests
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 # Esperado: "Started Application", sem BeanCreationException.
 # Se falhar sem causa raiz no log (comum com LogCloud/log estruturado): extrair a classe suspeita do jar
-# em cache (~/.m2/repository/br/com/bradesco/ensc-lib-autogestao-certificadopub/<versão>/...jar) e rodar
+# em cache (~/.m2/repository/br/com/xpto/xpto-lib-autogestao-certificadopub/<versão>/...jar) e rodar
 # javap -p -c NomeDaClasse.class para ver qual validação está falhando.
 
 # 3. Verificar que erro PKIX não ocorre mais nos endpoints HTTPS
@@ -429,11 +433,11 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 | `overriding is disabled` | Bean definition override desabilitado | Adicionar `spring.main.allow-bean-definition-overriding: true` |
 | `CertificateIssuerNotValid` | Issuer não está na allow-list — inclui o caso comum de a chave yaml não bater com a versão da lib (ver Passo 4), o que deixa a lista efetivamente vazia. Só ocorre quando o `.crt` ainda não existe no `caminho` (primeiro download ao vivo). | Confirmar a versão da lib no `pom.xml` e usar a chave correspondente (Passo 4). Se a chave já estiver certa e o issuer real não estiver na lista, contatar Leandro Augusto Merlo (Cyber & Certificados). |
 | `NoSuchBeanDefinitionException: SslBundles` | Bundle não inicializado | Verificar `@EnableAutoGestaoCertificado` na classe Application e bloco `spring.ssl.bundle.pem` no application.yml |
-| `more than one 'primary' bean found` (LogCloud) | `@ComponentScan("br.com.bradesco")` muito amplo — re-escaneia pacotes do LogCloud | Com `>= 1.7.0`: usar `@EnableAutoGestaoCertificado` (sem `@ComponentScan`). Com `< 1.7.0`: usar `@ComponentScan("br.com.bradesco.lib.autogestao")` em vez de `"br.com.bradesco"` |
+| `more than one 'primary' bean found` (LogCloud) | `@ComponentScan("br.com.xpto")` muito amplo — re-escaneia pacotes do LogCloud | Com `>= 1.7.0`: usar `@EnableAutoGestaoCertificado` (sem `@ComponentScan`). Com `< 1.7.0`: usar `@ComponentScan("br.com.xpto.lib.autogestao")` em vez de `"br.com.xpto"` |
 | `Cert baixado mas SSL ainda falha` | FileWatcher não detectou o arquivo | Aumentar `quiet-period` ou verificar permissões do diretório |
 | Erro de build com `start` / `stop` goals | Plugin spring-boot-maven-plugin tenta iniciar o contexto no build | Remover os goals `start` e `stop` do `spring-boot-maven-plugin` no pom.xml |
 | Erro em testes de integração (contexto Spring) | Lib tenta baixar cert real no build | Criar `application-test.yml` em `src/test/resources/` com cert local fake (ver Passo 8) |
-| `PropiedadeConfigurationFeignNaoEncontradaException` | `@FeignClient` sem `configuration` (em qualquer lib Bradesco no classpath) | Ver `/skill springboot-certificado-impl`, "Feign: exigências ocultas" |
+| `PropiedadeConfigurationFeignNaoEncontradaException` | `@FeignClient` sem `configuration` (em qualquer lib corporativa no classpath) | Ver `/skill springboot-certificado-impl`, "Feign: exigências ocultas" |
 | `ConfiguracaoSemBeanConfiguradoException` / `ExisteMaisDeUmMetodoAnotadoComBeanException` | Classe em `configuration =` sem `@Bean` nomeado, sem nenhum, ou com mais de um | Ver `/skill springboot-certificado-impl`, "Feign: exigências ocultas" — exatamente um `@Bean("nome")` por classe |
 | `factory-bean reference points back to the same bean definition` | `@Bean` nomeado igual à versão decapitalizada da própria classe `@Configuration` | Usar um nome que não colida (ex.: sufixo `RequestInterceptor`) |
 | `Conectando no host: null e port: 443` (ou `${VAR}` literal no log) | Placeholder sem valor-padrão não resolvido no perfil ativo | Espelhar `ssl-certificados.servidores.*` com `${VAR:valor-padrão}` — ver "Diferença entre ambientes" |

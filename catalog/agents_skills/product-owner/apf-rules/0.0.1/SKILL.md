@@ -1,7 +1,7 @@
 ---
 name: apf-rules
 description: >
-  Cria e otimiza User Stories e Features seguindo as regras de APF (Análise de Pontos de Função) do Bradesco,
+  Cria e otimiza User Stories e Features seguindo as regras de APF (Análise de Pontos de Função) da empresa,
   maximizando a pontuação de pontos de função. Use esta skill sempre que precisar escrever, revisar ou otimizar
   user stories, features, requisitos funcionais, cards ágeis ou qualquer documentação de requisitos que será
   medida por pontos de função. Também use quando o usuário mencionar APF, pontos de função, medição de software,
@@ -11,11 +11,11 @@ metadata:
   version: "0.0.1"
 ---
 
-# Bradesco APF Writer — Escrita de User Stories Otimizadas para Pontos de Função
+# APF Writer — Escrita de User Stories Otimizadas para Pontos de Função
 
 ## Por que esta skill existe
 
-No Bradesco, toda demanda de software é medida por **Análise de Pontos de Função (APF)** para dimensionar
+Na empresa, toda demanda de software é medida por **Análise de Pontos de Função (APF)** para dimensionar
 esforço, custo e principalmente o valor entregue. A forma como uma User Story é escrita impacta diretamente na quantidade de pontos de função
 que podem ser contados. Uma US mal escrita pode "esconder" funcionalidades legítimas, resultando em menos
 pontos. Uma US bem escrita torna cada funcionalidade explícita e mensurável.
@@ -47,11 +47,11 @@ A APF conta dois tipos de componentes funcionais:
 | Consulta Externa | CE | Processo que recupera dados sem cálculo/derivação | 3,95 |
 | Microsserviço | MS | Funções transacionais expostas como microsserviço | 1,33 |
 
-### Nomenclatura Ágil Bradesco
+### Nomenclatura Ágil
 
-No contexto ágil, o Bradesco usa termos simplificados:
+No contexto ágil, a empresa usa termos simplificados:
 
-| Termo Padrão APF | Termo Ágil Bradesco |
+| Termo Padrão APF | Termo Ágil |
 |-------------------|---------------------|
 | ALI | Agrupamento de dados de negócio |
 | AIE | Sistema referenciado |
@@ -164,7 +164,7 @@ A seção `📌 APOIO APF` deve listar, de forma clara e explícita, todas as fu
 
 ### Passo 4 — Escrever a User Story Completa
 
-Use o template padrão do Bradesco. A estrutura deve conter:
+Use o template padrão da empresa. A estrutura deve conter:
 
 1. **APOIO APF** — Lista de funcionalidades (Passo 3)
 2. **IDENTIFICAÇÃO** — **EU COMO** / **QUERO QUE** / **PARA** (keywords em negrito)
@@ -187,8 +187,8 @@ A persona **EU COMO** deve ser uma pessoa real ou papel, **nunca** "Como sistema
 | Funcionalidade técnica pura (infraestrutura, config) | "Tech Lead" | "Tech Lead" |
 | Funcionalidade de backoffice/operação | Papel operacional | "Operador da área de Operações" |
 
-❌ `EU COMO sistema Bradesco` / `EU COMO dupe-srv-duple-opt`
-✅ `EU COMO Gestor de Produto de Duplicatas Escriturais` / `EU COMO Tech Lead do squad DUPE`
+❌ `EU COMO sistema da empresa` / `EU COMO xpto-srv-opt`
+✅ `EU COMO Gestor de Produto de Duplicatas Escriturais` / `EU COMO Tech Lead do squad XPTO`
 
 O **QUERO QUE** deve mencionar naturalmente os processos-chave que correspondem às funcionalidades do APOIO APF (ex.: "enviar, registrar protocolo e persistir rastreabilidade").
 
@@ -197,10 +197,10 @@ O **QUERO QUE** deve mencionar naturalmente os processos-chave que correspondem 
 As regras de negócio devem descrever **O QUE** o sistema faz do ponto de vista do negócio. **NUNCA** incluir termos técnicos como nomes de classes, filas, endpoints, mappers, DTOs, annotations ou frameworks.
 
 ❌ **ERRADO** (termos técnicos na RN):
-> "O sistema deve consumir a fila `sbqenviooptin001` e chamar `OptInOptOutNucleaClient.enviarOptIn(Dup0515Request)` via Feign"
+> "O sistema deve consumir a fila `xptoenviooptin001` e chamar `OptInOptOutNucleaClient.enviarOptIn(Xpto0515Request)` via Feign"
 
 ✅ **CORRETO** (linguagem de negócio):
-> "O sistema deve enviar a solicitação de opt-in à registradora Nuclea consumindo a API de inclusão de opt-in (DUP0515) como sistema externo, traduzindo os dados do domínio Bradesco para o formato esperado pela registradora."
+> "O sistema deve enviar a solicitação de opt-in à registradora Nuclea consumindo a API de inclusão de opt-in (XPTO0515) como sistema externo, traduzindo os dados do domínio da empresa para o formato esperado pela registradora."
 
 **Cada RN deve descrever naturalmente um Processo Elementar distinto**, tornando implícito para o medidor APF qual funcionalidade está sendo descrita:
 - Mencionar **ação** (enviar, consultar, registrar, persistir, rotear)
@@ -217,7 +217,7 @@ As regras técnicas devem ser ricas em detalhes de implementação. Quando houve
 | Elemento | O que incluir | Exemplo |
 |---|---|---|
 | **UseCase** | Passos numerados do fluxo, `@Bean` config completo, ports injetados | `@Bean public XInputPort xUseCase(YOutputPort y) { return new XUseCase(y); }` |
-| **DTOs** | Estrutura `record` completa com tipos, tamanhos, obrigatoriedade, records aninhados | `record Dup0515Request(String indicadorTipoTitular, ...)` |
+| **DTOs** | Estrutura `record` completa com tipos, tamanhos, obrigatoriedade, records aninhados | `record Xpto0515Request(String indicadorTipoTitular, ...)` |
 | **Feign Client** | Anotação `@FeignClient` completa com `name`, `url`, `configuration` | `@FeignClient(name="x", url="${...}", configuration=Y.class)` |
 | **Mappers** | Tabela campo-a-campo `Origem → Destino → Observação` | Tabela markdown |
 | **Resiliência** | YAML completo do Circuit Breaker com `recordExceptions` e `ignoreExceptions` | Bloco YAML |

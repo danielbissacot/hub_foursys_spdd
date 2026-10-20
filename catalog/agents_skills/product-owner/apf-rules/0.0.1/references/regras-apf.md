@@ -1,4 +1,4 @@
-# Regras Completas de APF — Bradesco
+# Regras Completas de APF
 
 ## Índice
 
@@ -13,7 +13,7 @@
 
 ## Método Simplificado
 
-O Bradesco utiliza a **APF Simplificada**, que elimina a necessidade de identificar ALRs (Referências a
+A empresa utiliza a **APF Simplificada**, que elimina a necessidade de identificar ALRs (Referências a
 Arquivos Lógicos), DERs (Dados Elementares Referenciados) e níveis de complexidade (Baixa/Média/Alta).
 
 Em vez disso, cada tipo de função recebe um **peso fixo automatizado**, simplificando a contagem sem
@@ -29,7 +29,7 @@ perder precisão significativa.
 
 ## Método Ágil
 
-Para cards ágeis, o Bradesco usa uma nomenclatura ainda mais simplificada:
+Para cards ágeis, a empresa usa uma nomenclatura ainda mais simplificada:
 
 | Componente Funcional | Termo Ágil | Peso (PF) |
 |----------------------|------------|-----------|

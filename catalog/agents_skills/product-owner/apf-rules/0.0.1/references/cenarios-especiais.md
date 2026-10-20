@@ -1,4 +1,4 @@
-# Cenários Especiais de Medição APF — Bradesco
+# Cenários Especiais de Medição APF
 
 ## Índice
 
@@ -123,7 +123,7 @@ a função transacional é **replicada** na medição.
 ### Regras
 
 - NÃO se aplica a diferentes versões do MESMO browser — conte a funcionalidade apenas uma vez
-- NÃO se aplica a Bradesco Apps (aplicativos mobile)
+- NÃO se aplica aos apps da empresa (aplicativos mobile)
 - Microsoft Edge é contado junto com Internet Explorer
 - Vincular apenas atividades de teste de compatibilidade de browser no roadmap
 
@@ -189,7 +189,7 @@ com esforço desproporcional aos pontos de função padrão.
 **Conversão para PF:** `PF = PS × 0,10`
 
 A constante 0,10 representa a correlação entre tamanho não-funcional e funcional,
-derivada de análise estatística interna do Bradesco.
+derivada de análise estatística interna da empresa.
 
 ### Exemplo
 

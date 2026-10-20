@@ -1,18 +1,22 @@
 ---
 name: springboot-autorizador
 description: |
-  Implementa o fluxo de introspecção do Autorizador Corporativo (gacb-lib-authz-transacao)
+  Implementa o fluxo de introspecção do Autorizador Corporativo (xpto-lib-authz-transacao)
   em endpoints Spring Boot. Cobre DTO, injeção do serviço, lógica de validação JWE
   e 4 cenários de teste JUnit 5.
   Use quando: adicionar autorização transacional em um endpoint PUT/POST que requer
   validação do token JWE antes de efetivar uma operação sensível.
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Skill: Autorizador Corporativo — Introspecção no Controller
 
 Guia completo para implementar o Autorizador Corporativo em um endpoint Spring Boot.
+
+> **Nomes fictícios:** o pacote `br.com.xpto` e a biblioteca `xpto-lib-authz-transacao` só mostram o
+> padrão. Use os nomes reais do seu ambiente — confira no `pom.xml` e nos imports do projeto antes de
+> gerar código.
 
 ## Fluxo de autorização
 
@@ -20,7 +24,7 @@ Guia completo para implementar o Autorizador Corporativo em um endpoint Spring B
 Frontend              BFF (este projeto)         Autorizador
    |                       |                          |
    |--[tokenJWE]---------->|                          |
-   |                       |--[Leap + tokenJWE]------>|
+   |                       |--[Auth + tokenJWE]------>|
    |                       |<--[IntrospectResponse]---|
    |                       |                          |
    |                       |--[se active && efetivar]->
@@ -28,7 +32,7 @@ Frontend              BFF (este projeto)         Autorizador
 ```
 
 1. Frontend envia `tokenJWE` no corpo da requisição
-2. BFF recebe o `Authorization` (token Leap) pelo header via API Gateway
+2. BFF recebe o `Authorization` (token de acesso) pelo header via API Gateway
 3. A lib chama o endpoint de introspecção com ambos os tokens
 4. Se `active=true` e `acao=efetivar`, prossegue com a transação
 
@@ -36,8 +40,8 @@ Frontend              BFF (este projeto)         Autorizador
 
 ## Pré-requisitos (já atendidos neste projeto)
 
-- Dependência `gacb-lib-authz-transacao:2.0.0` no `pom.xml` ✅
-- `OkHttpConfig` configurado em `br.com.bradesco.mya.cartoes.config` ✅
+- Dependência `xpto-lib-authz-transacao:2.0.0` no `pom.xml` ✅
+- `OkHttpConfig` configurado em `br.com.xpto.projeto.config` ✅
 - Variável de ambiente `ENV_AUTORIZADOR_INTROSPECT_URL` configurada no ambiente ✅
 
 ---
@@ -64,10 +68,10 @@ public record MeuRequestDTO(
 ## Passo 2 — Injetar `IntrospectAutorizacaoService` no Controller
 
 ```java
-import br.com.gacb.lib.authz.transacao.entity.AcaoAutorizacao;
-import br.com.gacb.lib.authz.transacao.entity.IntrospectResponse;
-import br.com.gacb.lib.authz.transacao.exception.AuthzIntrospectException;
-import br.com.gacb.lib.authz.transacao.service.IntrospectAutorizacaoService;
+import br.com.xpto.lib.authz.transacao.entity.AcaoAutorizacao;
+import br.com.xpto.lib.authz.transacao.entity.IntrospectResponse;
+import br.com.xpto.lib.authz.transacao.exception.AuthzIntrospectException;
+import br.com.xpto.lib.authz.transacao.service.IntrospectAutorizacaoService;
 
 @RestController
 @RequestMapping("/api/meu-recurso")
@@ -125,7 +129,7 @@ public ResponseEntity<MeuResponseDTO> alterar(
 
 | Regra | Motivo |
 |-------|--------|
-| `verificaTokenAutorizacao(authorization, tokenJWE)` — nessa ordem | `authorization` = Leap token (header); `tokenJWE` = token do frontend (body) |
+| `verificaTokenAutorizacao(authorization, tokenJWE)` — nessa ordem | `authorization` = token de acesso (header); `tokenJWE` = token do frontend (body) |
 | Verificar `active() && efetivar` **antes** de chamar o use case | Evitar efetivação sem autorização válida |
 | Usar `AcaoAutorizacao.efetivar` (minúsculo) | Valor real do enum na lib v2.0.0 |
 | Capturar `AuthzIntrospectException` e relançar como exception de negócio | Encapsular erros de infra como erros de domínio |

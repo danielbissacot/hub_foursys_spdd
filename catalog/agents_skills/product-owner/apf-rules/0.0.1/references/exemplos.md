@@ -334,7 +334,7 @@ Novo endpoint `GET /api/v1/clientes/exportar?segmento={segmento}&formato=csv` pa
 | 8 | Exportação CSV por segmento (nova) | SE | 5,52 | Incluída | 1,00 | 5,52 |
 | — | **TOTAL** | — | — | — | — | **25,01** |
 
-> Cálculo: ESFP = ADD(9,47) + CHG(11,32) + DEL(1,19) + CFP(0) = **25,01 PFM**
+> Cálculo: ESFP = ADD(9,47) + CHG(14,35) + DEL(1,19) + CFP(0) = **25,01 PFM**
 
 ---
 

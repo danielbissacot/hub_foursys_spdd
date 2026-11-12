@@ -1,7 +1,7 @@
 ---
 name: springboot-certificado-impl
 description: |
-  Implementações completas do client HTTP com xpto-lib-autogestao-certificadopub:
+  Implementações completas do client HTTP com ensc-lib-autogestao-certificadopub:
   RestTemplate, FeignClient Default, FeignClient OkHttp, FeignClient Apache HC5,
   WebClient e RestClient. Inclui classe de configuração, hot-reload (BundleConfig)
   e adapter com @HandleInvalidPublicCertificate (lib >= 1.7.0) ou recarregamento manual
@@ -10,14 +10,10 @@ description: |
   Use quando: já respondeu as perguntas do /skill springboot-certificado e precisa
   do código completo para o client HTTP escolhido.
 metadata:
-  version: "1.1.1"
+  version: "1.1.0"
 ---
 
 # Skill: Certificado SSL — Implementações por Client HTTP
-
-> **Nomes fictícios:** o pacote `br.com.xpto`, a biblioteca `xpto-lib-autogestao-certificadopub` e os
-> certificados `XPTO ...` só mostram o padrão. Use os nomes reais do seu ambiente — confira no `pom.xml`
-> e nos imports do projeto antes de gerar código.
 
 Informe qual client HTTP o projeto usa e a versão da lib (`/skill springboot-certificado`, Passo 0) e
 gere o código completo para aquele client.
@@ -72,8 +68,8 @@ public class RestTemplateConfig {
 ### BundleRestConfig (hot-reload) — `config/certificado/BundleRestConfig.java`
 
 ```java
-import br.com.xpto.lib.autogestao.service.singleton.ClientSSLCertificado;
-import br.com.xpto.lib.autogestao.service.singleton.ControleAcessoSSLBundle;
+import br.com.bradesco.lib.autogestao.service.singleton.ClientSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.singleton.ControleAcessoSSLBundle;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -109,8 +105,8 @@ public class BundleRestConfig {
 ### Adapter — Caminho A (anotação, lib `>= 1.7.0`)
 
 ```java
-import br.com.xpto.lib.autogestao.anotation.HandleInvalidPublicCertificate;
-import br.com.xpto.lib.autogestao.service.RestTemplateSSLCertificadoService;
+import br.com.bradesco.lib.autogestao.anotation.HandleInvalidPublicCertificate;
+import br.com.bradesco.lib.autogestao.service.RestTemplateSSLCertificadoService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -138,8 +134,8 @@ public class ExternalServiceImpl {
 `HttpStatusCodeException` deve ser capturado **antes** de `RestClientException` — é subtipo dela.
 
 ```java
-import br.com.xpto.lib.autogestao.service.RenovacaoCertificadoPublicoService;
-import br.com.xpto.lib.autogestao.service.RestTemplateSSLCertificadoService;
+import br.com.bradesco.lib.autogestao.service.RenovacaoCertificadoPublicoService;
+import br.com.bradesco.lib.autogestao.service.RestTemplateSSLCertificadoService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
@@ -186,8 +182,8 @@ public class ExternalServiceImpl {
 ### FeignConfigSSL
 
 ```java
-import br.com.xpto.lib.autogestao.service.client.feign.ClientDefaultSSLCertificado;
-import br.com.xpto.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.client.feign.ClientDefaultSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
 import feign.Client;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.springframework.boot.ssl.SslBundle;
@@ -236,8 +232,8 @@ public class FeignConfigSSL {
 ### SSLBundleConfig (hot-reload) — `config/certificado/SSLBundleConfig.java`
 
 ```java
-import br.com.xpto.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
-import br.com.xpto.lib.autogestao.service.singleton.ControleAcessoSSLBundle;
+import br.com.bradesco.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.singleton.ControleAcessoSSLBundle;
 import feign.Client;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.ssl.SslBundles;
@@ -284,7 +280,7 @@ public interface ClientXYZ {
 ### Adapter — Caminho A (anotação, lib `>= 1.7.0`)
 
 ```java
-import br.com.xpto.lib.autogestao.anotation.HandleInvalidPublicCertificate;
+import br.com.bradesco.lib.autogestao.anotation.HandleInvalidPublicCertificate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -310,7 +306,7 @@ public class ExternalServiceImpl {
 `RetryableException` deve ser capturada **antes** de `FeignException` — é subtipo dela.
 
 ```java
-import br.com.xpto.lib.autogestao.service.RenovacaoCertificadoPublicoService;
+import br.com.bradesco.lib.autogestao.service.RenovacaoCertificadoPublicoService;
 import feign.FeignException;
 import feign.RetryableException;
 import org.springframework.stereotype.Service;
@@ -350,7 +346,7 @@ public class ExternalServiceImpl {
 Aplica-se às três variantes abaixo (Client Default, OkHttp, Apache HC5). Só quebra em
 `spring-boot:run`/pod real — `mvn test` (mockado) não pega.
 
-**1. Todo `@FeignClient` de `br.com.xpto` precisa de `configuration` não vazia.** A lib varre o
+**1. Todo `@FeignClient` de `br.com.bradesco` precisa de `configuration` não vazia.** A lib varre o
 classpath inteiro no startup (não só o microsserviço atual); qualquer `@FeignClient` sem `configuration`
 lança `PropiedadeConfigurationFeignNaoEncontradaException` e derruba a aplicação. Antes de ativar a lib,
 rodar `grep -r "@FeignClient" src/main/java` e cobrir os que não têm SSL com uma config genérica
@@ -416,9 +412,9 @@ spring:
 ### FeignConfigSSL (OkHttp)
 
 ```java
-import br.com.xpto.lib.autogestao.service.client.feign.ClientDefaultSSLCertificado;
-import br.com.xpto.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
-import br.com.xpto.lib.autogestao.util.X509Utils;
+import br.com.bradesco.lib.autogestao.service.client.feign.ClientDefaultSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
+import br.com.bradesco.lib.autogestao.util.X509Utils;
 import feign.Client;
 import okhttp3.OkHttpClient;
 import org.springframework.boot.ssl.SslBundle;
@@ -535,9 +531,9 @@ spring:
 ### FeignConfigSSL (Apache HC5)
 
 ```java
-import br.com.xpto.lib.autogestao.service.client.feign.ClientDefaultSSLCertificado;
-import br.com.xpto.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
-import br.com.xpto.lib.autogestao.service.client.feign.apache.ApacheHttpBuilderSSL;
+import br.com.bradesco.lib.autogestao.service.client.feign.ClientDefaultSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.singleton.ClientFeignSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.client.feign.apache.ApacheHttpBuilderSSL;
 import org.springframework.cloud.openfeign.support.FeignHttpClientProperties;
 import feign.Client;
 import feign.hc5.ApacheHttp5Client;
@@ -628,8 +624,8 @@ public class WebClientConfig {
 ### BundleWebClientConfig (hot-reload) — `config/certificado/BundleWebClientConfig.java`
 
 ```java
-import br.com.xpto.lib.autogestao.service.singleton.ClientSSLCertificado;
-import br.com.xpto.lib.autogestao.service.singleton.ControleAcessoSSLBundle;
+import br.com.bradesco.lib.autogestao.service.singleton.ClientSSLCertificado;
+import br.com.bradesco.lib.autogestao.service.singleton.ControleAcessoSSLBundle;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientSsl;
 import org.springframework.boot.ssl.SslBundles;
@@ -667,9 +663,9 @@ nota no topo desta página). **Lib `< 1.7.0`, ou a anotação não compila → O
 manual)**, de acordo com a lógica da pipe reativa.
 
 ```java
-import br.com.xpto.lib.autogestao.service.ReactiveRenewalCertificateService;
-import br.com.xpto.lib.autogestao.service.WebClientSSLCertificadoService;
-import br.com.xpto.lib.autogestao.anotation.HandleReactiveInvalidPublicCertificate;
+import br.com.bradesco.lib.autogestao.service.ReactiveRenewalCertificateService;
+import br.com.bradesco.lib.autogestao.service.WebClientSSLCertificadoService;
+import br.com.bradesco.lib.autogestao.anotation.HandleReactiveInvalidPublicCertificate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
@@ -808,7 +804,7 @@ O RestClient não tem suporte à anotação `@HandleInvalidPublicCertificate`. A
 `RenovacaoCertificadoPublicoService` no Adapter é **obrigatória** aqui:
 
 ```java
-import br.com.xpto.lib.autogestao.service.RenovacaoCertificadoPublicoService;
+import br.com.bradesco.lib.autogestao.service.RenovacaoCertificadoPublicoService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
